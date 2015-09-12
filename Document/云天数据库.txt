@@ -1,0 +1,4 @@
+Host: 172.26.81.6
+ÊµÀý:gzb02jm
+User: gzbjm
+Pwd: gzbjm
