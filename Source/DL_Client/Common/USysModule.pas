@@ -13,6 +13,7 @@ uses
   UClientWorker, UMITPacker,
   UFrameLog, UFrameSysLog, UFormIncInfo, UFormBackupSQL, UFormRestoreSQL,
   UFormPassword, UFormBaseInfo, UFrameAuthorize, UFormAuthorize,
+  {$IFNDEF GZBJM}
   UFrameCustomer, UFormCustomer, UFormGetCustom, UFrameSalesMan, UFormSalesMan,
   UFrameSaleContract, UFormSaleContract, UFrameZhiKa, UFormZhiKa,
   UFormGetContract, UFormZhiKaAdjust, UFormZhiKaFixMoney, UFrameZhiKaVerify,
@@ -21,17 +22,21 @@ uses
   UFrameCusInOutMoney, UFrameInvoiceWeek, UFormInvoiceWeek, UFormInvoiceGetWeek,
   UFrameInvoice, UFormInvoice, UFormInvoiceAdjust,UFrameInvoiceK, UFormInvoiceK,
   UFrameInvoiceDtl, UFrameInvoiceZZ, UFormInvoiceZZAll, UFormInvoiceZZCus,
-  UFormGetZhiKa, UFrameBill,
-  UFormBill, UFormGetTruck, UFrameZhiKaDetail, UFormZhiKaFreeze,
-  UFormZhiKaPrice, UFrameQueryDiapatch, UFrameTruckQuery, UFrameBillCard,
-  UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai, UFormLadingSan,
-  UFramePoundManual, UFramePoundAuto, UFramePMaterails, UFormPMaterails,
-  UFramePProvider, UFormPProvider, UFramePoundQuery, UFrameQuerySaleDetail,
-  UFrameZTDispatch, UFramePurchaseOrder, UFormPurchaseOrder,UFormPurchasing,
+  UFormGetZhiKa, UFrameZhiKaDetail, UFormZhiKaFreeze,
+  UFormZhiKaPrice, UFramePurchaseOrder, UFormPurchaseOrder,UFormPurchasing,
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
-  UFrameTrucks, UFormTruck, UFormRFIDCard, UFormGetProvider, UFormGetMeterails,
-  {$IFDEF MicroMsg}UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
-  UFormWeiXinSendlog,{$ENDIF}
+  UFormGetProvider, UFormGetMeterails,
+  {$ENDIF}
+  UFrameBill, UFormBill, UFormGetTruck, UFrameQueryDiapatch, UFrameTruckQuery,
+  UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
+  UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
+  UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
+  UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
+  UFormRFIDCard, UFormBillNew,
+  {$IFDEF MicroMsg}
+  UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
+  UFormWeiXinSendlog,
+  {$ENDIF}
   //----------------------------------------------------------------------------
   UFormHYStock, UFormHYData, UFormHYRecord, UFormGetStockNo,
   UFrameHYStock, UFrameHYData, UFrameHYRecord;
@@ -147,7 +152,7 @@ begin
     end;
 
     {$IFNDEF DEBUG}
-    gChannelChoolser.StartRefresh;
+    //gChannelChoolser.StartRefresh;
     {$ENDIF}//update channel
   end;
 

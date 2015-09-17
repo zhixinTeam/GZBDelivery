@@ -43,6 +43,9 @@ const
   cBC_SaveBillCard            = $0024;   //绑定交货单磁卡
   cBC_LogoffCard              = $0025;   //注销磁卡
 
+  cBC_ReadYTCard              = $0026;   //读取云天卡片信息
+  cBC_VerifyYTCard            = $0027;   //校验云天卡片有效性    
+
   cBC_SaveOrder               = $0040;
   cBC_DeleteOrder             = $0041;
   cBC_SaveOrderCard           = $0042;
@@ -105,6 +108,7 @@ type
   TLadingBillItem = record
     FID         : string;          //交货单号
     FZhiKa      : string;          //纸卡编号
+    FProject    : string;          //项目编号
     FCusID      : string;          //客户编号
     FCusName    : string;          //客户名称
     FTruck      : string;          //车牌号码
@@ -198,6 +202,7 @@ begin
       begin
         FID         := Values['ID'];
         FZhiKa      := Values['ZhiKa'];
+        FProject    := Values['Project'];
         FCusID      := Values['CusID'];
         FCusName    := Values['CusName'];
         FTruck      := Values['Truck'];
@@ -291,6 +296,7 @@ begin
       begin
         Values['ID']         := FID;
         Values['ZhiKa']      := FZhiKa;
+        Values['Project']    := FProject;
         Values['CusID']      := FCusID;
         Values['CusName']    := FCusName;
         Values['Truck']      := FTruck;

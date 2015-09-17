@@ -72,6 +72,7 @@ ResourceString
   {*数据库标识*}
   sFlag_DB_K3         = 'King_K3';                   //金蝶数据库
   sFlag_DB_NC         = 'YonYou_NC';                 //用友数据库
+  sFlag_DB_YT         = 'YT_GZB';                    //云天数据库
 
   {*相关标记*}
   sFlag_Yes           = 'Y';                         //是
@@ -208,6 +209,7 @@ ResourceString
   sFlag_AutoIn        = 'Truck_AutoIn';              //自动进厂
   sFlag_AutoOut       = 'Truck_AutoOut';             //自动出厂
   sFlag_InTimeout     = 'InFactTimeOut';             //进厂超时(队列)
+  sFlag_InAndBill     = 'InFactAndBill';             //进厂开单间隔
   sFlag_SanMultiBill  = 'SanMultiBill';              //散装预开多单
   sFlag_NoDaiQueue    = 'NoDaiQueue';                //袋装禁用队列
   sFlag_NoSanQueue    = 'NoSanQueue';                //散装禁用队列
@@ -224,7 +226,7 @@ ResourceString
   sFlag_WeiXin        = 'Bus_WeiXin';                //微信映射编号
   sFlag_HYDan         = 'Bus_HYDan';                 //化验单号
   sFlag_ForceHint     = 'Bus_HintMsg';               //强制提示
-  sFlag_Order         = 'Bus_Order';              //采购单号
+  sFlag_Order         = 'Bus_Order';                 //采购单号
   sFlag_OrderDtl      = 'Bus_OrderDtl';              //采购单号
 
   {*数据表*}
@@ -275,7 +277,7 @@ ResourceString
   sTable_Order        = 'S_Order';                   //采购订单
   sTable_OrderBak     = 'S_OrderBak';                //已删除采购订单
   sTable_OrderDtl     = 'S_OrderDtl';                //采购订单明细
-  sTable_OrderDtlBak  = 'S_OrderDtlBak';                //采购订单明细
+  sTable_OrderDtlBak  = 'S_OrderDtlBak';             //采购订单明细
 
   sTable_Truck        = 'S_Truck';                   //车辆表
   sTable_ZTLines      = 'S_ZTLines';                 //装车道
@@ -292,8 +294,7 @@ ResourceString
   sTable_StockRecord  = 'S_StockRecord';             //检验记录
   sTable_StockHuaYan  = 'S_StockHuaYan';             //开化验单
 
-  sTable_K3_SyncItem  = 'DL_SyncItem';               //数据同步项
-  sTable_K3_Customer  = 'T_Organization';            //组织结构(客户)
+  sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
 
   {*新建表*}
   sSQL_NewSysDict = 'Create Table $Table(D_ID $Inc, D_Name varChar(15),' +
@@ -640,10 +641,10 @@ ResourceString
   -----------------------------------------------------------------------------}
 
   sSQL_NewBill = 'Create Table $Table(R_ID $Inc, L_ID varChar(20),' +
-       'L_Card varChar(16), L_ZhiKa varChar(15), L_Project varChar(100),' +
+       'L_Card varChar(16), L_ZhiKa varChar(25), L_Project varChar(100),' +
        'L_Area varChar(50),' +
-       'L_CusID varChar(15), L_CusName varChar(80), L_CusPY varChar(80),' +
-       'L_SaleID varChar(15), L_SaleMan varChar(32),' +
+       'L_CusID varChar(25), L_CusName varChar(80), L_CusPY varChar(80),' +
+       'L_SaleID varChar(25), L_SaleMan varChar(32),' +
        'L_Type Char(1), L_StockNo varChar(20), L_StockName varChar(80),' +
        'L_Value $Float, L_Price $Float, L_ZKMoney Char(1),' +
        'L_Truck varChar(15), L_Status Char(1), L_NextStatus Char(1),' +
@@ -1193,6 +1194,17 @@ ResourceString
    *.H_Reporter:报告人
   -----------------------------------------------------------------------------}
 
+  sSQL_NewYTCard = 'Create Table $Table(R_ID $Inc, C_ID varChar(20),' +
+       'C_Card varChar(50), C_Freeze $Float, C_HasDone $Float)';
+  {-----------------------------------------------------------------------------
+   订单表: Order
+   *.R_ID: 记录编号
+   *.C_ID: 记录编号
+   *.C_Card: 卡片编号
+   *.C_Freeze: 冻结量
+   *.C_HasDone: 完成量
+  -----------------------------------------------------------------------------}
+
 //------------------------------------------------------------------------------
 // 数据查询
 //------------------------------------------------------------------------------
@@ -1336,6 +1348,8 @@ begin
   AddSysTableItem(sTable_StockParamExt, sSQL_NewStockRecord);
   AddSysTableItem(sTable_StockRecord, sSQL_NewStockRecord);
   AddSysTableItem(sTable_StockHuaYan, sSQL_NewStockHuaYan);
+
+  AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
 end;
 
 //Desc: 清理系统表

@@ -94,7 +94,7 @@ const
   cFI_FormMakeRFIDCard  = $1014;                     //办理电子标签
 
   cFI_FormBill          = $1016;                     //开提货单
-  cFI_FormShouJu        = $1017;                     //开收据
+  cFI_FormBillNew       = $1017;                     //读取订单
   cFI_FormZhiKaVerify   = $1018;                     //纸卡审核
   cFI_FormCusCredit     = $1019;                     //信用变动
   cFI_FormPayment       = $1020;                     //销售回款
@@ -314,6 +314,7 @@ begin
   AddMenuModuleItem('MAIN_D04', cFI_FormBill, mtForm);
   AddMenuModuleItem('MAIN_D05', cFI_FrameZhiKa);
   AddMenuModuleItem('MAIN_D06', cFI_FrameBill);
+  AddMenuModuleItem('MAIN_D07', cFI_FrameTrucks);
 
   AddMenuModuleItem('MAIN_E01', cFI_FramePoundManual);
   AddMenuModuleItem('MAIN_E02', cFI_FramePoundAuto);
@@ -346,8 +347,6 @@ begin
   AddMenuModuleItem('MAIN_H01', cFI_FormTruckIn, mtForm);
   AddMenuModuleItem('MAIN_H02', cFI_FormTruckOut, mtForm);
   AddMenuModuleItem('MAIN_H03', cFI_FrameTruckQuery);
-
-  AddMenuModuleItem('MAIN_J01', cFI_FrameTrucks);
 
   AddMenuModuleItem('MAIN_M01', cFI_FrameProvider);
   AddMenuModuleItem('MAIN_M02', cFI_FrameMaterails);

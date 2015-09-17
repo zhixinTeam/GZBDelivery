@@ -109,6 +109,10 @@ function SaveCustomerCredit(const nCusID,nMemo: string; const nCredit: Double;
 function IsCustomerCreditValid(const nCusID: string): Boolean;
 //客户信用是否有效
 
+function YT_ReadCardInfo(var nCard: string): Boolean;
+//读取云天XS_Card_Base卡片信息
+function YT_VerifyCardInfo(var nCard: string): Boolean;
+//验证能否开单
 function IsStockValid(const nStocks: string): Boolean;
 //品种是否可以发货
 function SaveBill(const nBillData: string): string;
@@ -1213,6 +1217,42 @@ function IsStockValid(const nStocks: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessCommand(cBC_CheckStockValid, nStocks, '', @nOut);
+end;
+
+//Date: 2015-09-13
+//Parm: 卡片编号[in];卡片信息[out]
+//Desc: 从云天系统中读取指定卡片的信息
+function YT_ReadCardInfo(var nCard: string): Boolean;
+var nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_ReadYTCard, nCard, '', @nOut, False);
+  if not Result then
+  begin
+    nCard := nOut.FBase.FErrDesc;
+    Exit;
+  end;
+
+  nList := TStringList.Create;
+  try
+    nList.Text := PackerDecodeStr(nOut.FData);
+    nCard := nList[0];
+    //cBC_ReadYTCard读取指令允许读取多条,取第一条
+  finally
+    nList.Free;
+  end;
+end;
+
+//Date: 2015-09-14
+//Parm: 卡片数据[in];提示信息[out]
+//Desc: 验证nCard能否开具提货单据
+function YT_VerifyCardInfo(var nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_VerifyYTCard, nCard, '', @nOut, False);
+  if Result then
+       nCard := nOut.FData
+  else nCard := nOut.FBase.FErrDesc;
 end;
 
 //Date: 2014-09-15
