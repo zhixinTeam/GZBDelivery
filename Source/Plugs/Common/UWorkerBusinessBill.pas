@@ -559,7 +559,8 @@ begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListA.Values['Record']),
             SF('C_Card', FListA.Values['Project']),
-            SF('B_HasDone', FListC.Values['Value'], sfVal)
+            SF('C_Freeze', '0', sfVal),
+            SF('C_HasDone', FListC.Values['Value'], sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
         end;
@@ -576,7 +577,8 @@ begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListA.Values['Record']),
             SF('C_Card', FListA.Values['Project']),
-            SF('C_Freeze', FListC.Values['Value'], sfVal)
+            SF('C_Freeze', FListC.Values['Value'], sfVal),
+            SF('C_HasDone', '0', sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
         end;

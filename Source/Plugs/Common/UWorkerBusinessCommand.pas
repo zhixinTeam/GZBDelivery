@@ -1102,9 +1102,9 @@ begin
   with nWorker.FExec do
   begin
     Close;
-    Parameters.Clear;
     SQL.Text := '{call GetID(?,?)}';
 
+    Parameters.Clear;
     Parameters.CreateParameter('P1', ftString , pdInput, Length(nTable), nTable);
     Parameters.CreateParameter('P2', ftString, pdOutput, 20, '') ;
     ExecSQL;

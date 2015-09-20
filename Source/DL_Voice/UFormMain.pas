@@ -37,6 +37,8 @@ type
     {*状态栏图标*}
     FResource: TStrings;
     //文本资源
+    FNetVoice: Boolean;
+    //网络模式
     procedure ShowLog(const nStr: string);
     //显示日志
     procedure DoExecute(const nContext: TIdContext);
@@ -54,7 +56,8 @@ implementation
 
 {$R *.dfm}
 uses
-  IniFiles, Registry, ULibFun, USysLoger, UMgrVoice, UMgrRemoteVoice;
+  IniFiles, Registry, ULibFun, USysLoger, UMgrVoice, UMgrRemoteVoice,
+  UMgrVoiceNet;
 
 var
   gPath: string;               //程序路径
@@ -94,6 +97,9 @@ begin
     EditPort.Text := nIni.ReadString('Config', 'Port', '8000');
     Timer1.Enabled := nIni.ReadBool('Config', 'Enabled', False);
 
+    FNetVoice := nIni.ReadInteger('Config', 'NetVoice', 0) = 1;
+    //网络版语音卡
+
     nReg := TRegistry.Create;
     nReg.RootKey := HKEY_CURRENT_USER;
 
@@ -104,13 +110,20 @@ begin
     nReg.Free;
   end;
 
-  gVoiceManager.LoadConfig(gPath + 'Voice.xml');
-  //voice manager
+  if FNetVoice then
+  begin
+    gNetVoiceHelper := TNetVoiceManager.Create;
+    gNetVoiceHelper.LoadConfig(gPath + 'NetVoice.xml');
+  end else
+  begin
+    gVoiceManager.LoadConfig(gPath + 'Voice.xml');
+    //voice manager
 
-  FResource := TStringList.Create;
-  if FileExists(gPath + sResourceFile) then
-    FResource.LoadFromFile(gPath + sResourceFile);
-  //load resource
+    FResource := TStringList.Create;
+    if FileExists(gPath + sResourceFile) then
+      FResource.LoadFromFile(gPath + sResourceFile);
+    //load resource
+  end;
 end;
 
 procedure TfFormMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -160,9 +173,17 @@ begin
   BtnTest.Enabled := CheckSrv.Checked;
   EditPort.Enabled := not CheckSrv.Checked;
 
-  if CheckSrv.Checked then
-       gVoiceManager.StartVoice
-  else gVoiceManager.StopVoice;
+  if FNetVoice then
+  begin
+    if CheckSrv.Checked then
+         gNetVoiceHelper.StartVoice
+    else gNetVoiceHelper.StopVoice;
+  end else
+  begin
+    if CheckSrv.Checked then
+         gVoiceManager.StartVoice
+    else gVoiceManager.StopVoice;
+  end;
 end;
 
 procedure TfFormMain.CheckLogedClick(Sender: TObject);
@@ -231,8 +252,11 @@ begin
      cVCCmd_PlaySound :
       begin
         Socket.ReadBytes(nBuf, nBase.FDataLen, False);
-        nStr := VoiceTextAdjust(DecodeBase64(BytesToString(nBuf)));
-        gVoiceManager.PlayVoice(nStr);
+        nStr := DecodeBase64(BytesToString(nBuf));
+
+        if FNetVoice then
+             gNetVoiceHelper.PlayVoice(nStr)
+        else gVoiceManager.PlayVoice(VoiceTextAdjust(nStr));
       end;
     end;
   end;
@@ -240,8 +264,14 @@ end;
 
 //Desc: test
 procedure TfFormMain.BtnTestClick(Sender: TObject);
+var nStr: string;
 begin
-  gVoiceManager.PlayVoice('您点击了语音合成系统测试按钮');
+  nStr := '您点击了语音合成系统测试按钮';
+  //test
+  
+  if FNetVoice then
+       gNetVoiceHelper.PlayVoice(nStr)
+  else gVoiceManager.PlayVoice(nStr);
 end;
 
 end.
