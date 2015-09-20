@@ -180,7 +180,8 @@ begin
   end;
 
   if not FQueryNo then Exit;
-  nStr := 'Select * From $Order Where (O_Card Is Null)';
+  nStr := 'Select * From $Order o Left Join $OrderDtl ob On o.O_ID = ob.D_OID ' +
+          'Where (O_Card Is Null) And D_OutFact is NULL';
 
   if FWhereNo = '' then
        nStr := nStr + ' And (O_Date>=''$S'' and O_Date<''$End'')'

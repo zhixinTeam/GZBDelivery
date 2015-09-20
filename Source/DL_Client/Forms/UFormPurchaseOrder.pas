@@ -1,97 +1,74 @@
 {*******************************************************************************
-  作者: fendou116688@163.com 2015/8/8
-  描述: 新建采购订单
+  作者: fendou116688@163.com 2015/9/19
+  描述: 办理采购订单绑定磁卡
 *******************************************************************************}
 unit UFormPurchaseOrder;
 
+{$I Link.Inc}
 interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  UDataModule, UFormBase, cxGraphics, cxControls, cxLookAndFeels,
-  cxLookAndFeelPainters, cxContainer, cxEdit, dxLayoutControl, cxLabel,
-  cxCheckBox, cxTextEdit, cxDropDownEdit, cxMCListBox, cxMaskEdit,
-  cxButtonEdit, StdCtrls, cxMemo;
+  UFormNormal, cxGraphics, cxControls, cxLookAndFeels,
+  cxLookAndFeelPainters, cxContainer, cxEdit, cxMaskEdit, cxButtonEdit,
+  cxTextEdit, dxLayoutControl, StdCtrls, cxDropDownEdit, cxLabel;
 
 type
-  TProviderParam = record
-    FID   : string;
-    FName : string;
-    FSaler: string;
-  end;
-
-  TMeterailsParam = record
-    FID   : string;
-    FName : string;
-  end;
-
-  TfFormPurchaseOrder = class(TBaseForm)
-    dxLayoutControl1Group_Root: TdxLayoutGroup;
-    dxLayoutControl1: TdxLayoutControl;
-    dxLayoutControl1Group1: TdxLayoutGroup;
-    EditMemo: TcxMemo;
-    dxLayoutControl1Item4: TdxLayoutItem;
-    BtnOK: TButton;
-    dxLayoutControl1Item10: TdxLayoutItem;
-    BtnExit: TButton;
-    dxLayoutControl1Item11: TdxLayoutItem;
-    dxLayoutControl1Group9: TdxLayoutGroup;
-    EditSalesMan: TcxComboBox;
-    dxLayoutControl1Item5: TdxLayoutItem;
+  TfFormPurchaseOrder = class(TfFormNormal)
+    dxGroup2: TdxLayoutGroup;
+    EditValue: TcxTextEdit;
+    dxLayout1Item8: TdxLayoutItem;
+    EditMate: TcxTextEdit;
+    dxLayout1Item9: TdxLayoutItem;
+    EditID: TcxTextEdit;
+    dxLayout1Item5: TdxLayoutItem;
+    EditProvider: TcxTextEdit;
+    dxlytmLayout1Item3: TdxLayoutItem;
+    dxGroupLayout1Group2: TdxLayoutGroup;
+    EditSalesMan: TcxTextEdit;
+    dxlytmLayout1Item6: TdxLayoutItem;
     EditProject: TcxTextEdit;
-    dxLayoutControl1Item2: TdxLayoutItem;
-    EditArea: TcxButtonEdit;
-    dxLayoutControl1Item8: TdxLayoutItem;
-    cxLabel1: TcxLabel;
-    dxLayoutControl1Item21: TdxLayoutItem;
-    dxLayoutControl1Group11: TdxLayoutGroup;
-    dxLayoutControl1Group2: TdxLayoutGroup;
-    dxLayoutControl1Group4: TdxLayoutGroup;
+    dxlytmLayout1Item7: TdxLayoutItem;
+    EditArea: TcxTextEdit;
+    dxlytmLayout1Item8: TdxLayoutItem;
     EditTruck: TcxButtonEdit;
-    dxLayoutControl1Item1: TdxLayoutItem;
-    EditMate: TcxComboBox;
-    dxLayoutControl1Item3: TdxLayoutItem;
+    dxlytmLayout1Item12: TdxLayoutItem;
     EditCardType: TcxComboBox;
-    dxLayoutControl1Item7: TdxLayoutItem;
-    EditProvider: TcxButtonEdit;
-    dxLayoutControl1Item6: TdxLayoutItem;
+    dxLayout1Item3: TdxLayoutItem;
+    dxLayout1Group2: TdxLayoutGroup;
+    cxLabel1: TcxLabel;
+    dxLayout1Item4: TdxLayoutItem;
+    dxLayout1Group4: TdxLayoutGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-   
     procedure BtnOKClick(Sender: TObject);
-    procedure BtnExitClick(Sender: TObject);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
-    procedure EditDatePropertiesButtonClick(Sender: TObject;
+    procedure EditLadingKeyPress(Sender: TObject; var Key: Char);
+    procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
-    procedure cxButtonEdit1PropertiesButtonClick(Sender: TObject;
-      AButtonIndex: Integer);
-    procedure EditSalesManKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
-    procedure EditTruckKeyPress(Sender: TObject; var Key: Char);
-    procedure EditProviderKeyPress(Sender: TObject; var Key: Char);
-    procedure EditMateKeyPress(Sender: TObject; var Key: Char);
-  private
-    { Private declarations }
-    FOrderID: string;
-    FListA  : TStrings;
-    FProvider: TProviderParam;
-    FMeterail: TMeterailsParam;
-    procedure InitFormData(const nID: string);
-    //载入数据
+  protected
+    { Protected declarations }
+    FCardData, FListA: TStrings;
+    //卡片数据
+    FNewBillID: string;
+    //新提单号
+    FBuDanFlag: string;
+    //补单标记
+    procedure InitFormData;
+    //初始化界面
   public
     { Public declarations }
     class function CreateForm(const nPopedom: string = '';
       const nParam: Pointer = nil): TWinControl; override;
     class function FormID: integer; override;
+    function OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean; override;
   end;
 
 implementation
 
 {$R *.dfm}
 uses
-  DB, IniFiles, ULibFun, UFormCtrl, UAdjustForm, UMgrControl, UFormBaseInfo,
-  USysBusiness, USysGrid, USysDB, USysConst, UBusinessPacker;
+  ULibFun, DB, IniFiles, UMgrControl, UAdjustForm, UFormBase, UBusinessPacker,
+  UDataModule, USysBusiness, USysDB, USysGrid, USysConst;
 
 var
   gForm: TfFormPurchaseOrder = nil;
@@ -99,59 +76,46 @@ var
 
 class function TfFormPurchaseOrder.CreateForm(const nPopedom: string;
   const nParam: Pointer): TWinControl;
-var nP: PFormCommandParam;
+var nStr: string;
+    nP: PFormCommandParam;
 begin
   Result := nil;
-  if Assigned(nParam) then
-       nP := nParam
-  else Exit;
+  if GetSysValidDate < 1 then Exit;
 
-  case nP.FCommand of
-   cCmd_AddData:
-    with TfFormPurchaseOrder.Create(Application) do
-    begin
-      Caption := '订单 - 添加';
+  if not Assigned(nParam) then
+  begin
+    New(nP);
+    FillChar(nP^, SizeOf(TFormCommandParam), #0);
+  end else nP := nParam;
 
-      InitFormData('');
-      nP.FCommand := cCmd_ModalResult;
-      nP.FParamA := ShowModal;
-      Free;
-    end;
-   cCmd_EditData:
-    with TfFormPurchaseOrder.Create(Application) do
-    begin
-      FOrderID := nP.FParamA;
-      Caption := '订单 - 修改';
+  try
+    CreateBaseFormItem(cFI_FormGetPOrderBase, nPopedom, nP);
+    if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
+    nStr := nP.FParamB;
+  finally
+    if not Assigned(nParam) then Dispose(nP);
+  end;
 
-      InitFormData(FOrderID);
-      nP.FCommand := cCmd_ModalResult;
-      nP.FParamA := ShowModal;
-      Free;
-    end;
-   cCmd_ViewData:
-    begin
-      if not Assigned(gForm) then
-      begin
-        gForm := TfFormPurchaseOrder.Create(Application);
-        with gForm do
-        begin
-          Caption := '订单 - 查看';
-          FormStyle := fsStayOnTop;
-          BtnOK.Visible := False;
-        end;
-      end;
+  with TfFormPurchaseOrder.Create(Application) do
+  try
+    Caption := '开采购单';
+    ActiveControl := EditTruck;
 
-      with gForm  do
-      begin
-        FOrderID := nP.FParamA;
-        InitFormData(FOrderID);
-        if not Showing then Show;
-      end;
-    end;
-   cCmd_FormClose:
+    FCardData.Text := PackerDecodeStr(nStr);
+    InitFormData;
+
+    if Assigned(nParam) then
+    with PFormCommandParam(nParam)^ do
     begin
-      if Assigned(gForm) then FreeAndNil(gForm);
-    end;
+      FCommand := cCmd_ModalResult;
+      FParamA := ShowModal;
+
+      if FParamA = mrOK then
+           FParamB := FNewBillID
+      else FParamB := '';
+    end else ShowModal;
+  finally
+    Free;
   end;
 end;
 
@@ -160,211 +124,39 @@ begin
   Result := cFI_FormOrder;
 end;
 
-//------------------------------------------------------------------------------
 procedure TfFormPurchaseOrder.FormCreate(Sender: TObject);
-var nIni: TIniFile;
 begin
-  nIni := TIniFile.Create(gPath + sFormConfig);
-  try
-    LoadFormConfig(Self, nIni);
-  finally
-    nIni.Free;
-  end;
-
-  FillChar(FProvider, 1, #0);
-  FillChar(FMeterail, 1, #0);
-
-  FListA := TStringList.Create;
+  FListA    := TStringList.Create;
+  FCardData := TStringList.Create;
   AdjustCtrlData(Self);
+  LoadFormConfig(Self);
 end;
 
-procedure TfFormPurchaseOrder.FormClose(Sender: TObject;
-  var Action: TCloseAction);
-var nIni: TIniFile;
+procedure TfFormPurchaseOrder.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  nIni := TIniFile.Create(gPath + sFormConfig);
-  try
-    SaveFormConfig(Self, nIni);
-  finally
-    nIni.Free;
-  end;
+  SaveFormConfig(Self);
+  ReleaseCtrlData(Self);
 
   FListA.Free;
-  gForm := nil;
-  Action := caFree;
-  ReleaseCtrlData(Self);
+  FCardData.Free;
 end;
 
-procedure TfFormPurchaseOrder.BtnExitClick(Sender: TObject);
-begin
-  Close;
-end;
-
-procedure TfFormPurchaseOrder.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
- if Key = VK_ESCAPE then
-  begin
-    Key := 0; Close;
-  end;
-end;
-
-//Date: 2009-6-2
-//Parm: 供应商编号
-//Desc: 载入nID供应商的信息到界面
-procedure TfFormPurchaseOrder.InitFormData(const nID: string);
-var nStr: string;
-    nArray: TDynamicStrArray;
-begin
-  if EditSalesMan.Properties.Items.Count < 1 then
-  begin
-    nStr := 'S_ID=Select S_ID,S_PY,S_Name From %s ' +
-            'Where S_InValid<>''%s'' Order By S_PY';
-    nStr := Format(nStr, [sTable_Salesman, sFlag_Yes]);
-
-    SetLength(nArray, 1);
-    nArray[0] := 'S_ID';
-    FDM.FillStringsData(EditSalesMan.Properties.Items, nStr, -1, '.', nArray);
-    AdjustStringsItem(EditSalesMan.Properties.Items, False);
-  end;
-  {
-  if EditMate.Properties.Items.Count < 1 then
-  begin
-    nStr := 'M_ID=Select M_ID,M_PY,M_Name From %s ' +
-            'Order By M_PY';
-    nStr := Format(nStr, [sTable_Materails]);
-
-    SetLength(nArray, 1);
-    nArray[0] := 'M_ID';
-    FDM.FillStringsData(EditMate.Properties.Items, nStr, -1, '.', nArray);
-    AdjustStringsItem(EditMate.Properties.Items, False);
-  end;   }
-
-  if nID <> '' then
-  begin
-    nStr := 'Select * From %s Where O_ID=''%s''';
-    nStr := Format(nStr, [sTable_Order, nID]);
-
-    LoadDataToCtrl(FDM.QuerySQL(nStr), Self);
-  end;
-end;
-
-function GetStrValue(nStr: string): string;
-var nPos: Integer;
-begin
-  nPos := Pos('.', nStr);
-  Delete(nStr, 1, nPos);
-  Result := nStr;
-end;  
-
-//Desc: 当前时间
-procedure TfFormPurchaseOrder.EditDatePropertiesButtonClick(Sender: TObject;
-  AButtonIndex: Integer);
-begin
-  TcxButtonEdit(Sender).Text := DateTime2Str(Now);
-end;
-
-//Desc: 选择区域
-procedure TfFormPurchaseOrder.cxButtonEdit1PropertiesButtonClick(
-  Sender: TObject; AButtonIndex: Integer);
-var nBool,nSelected: Boolean;
-begin
-  nBool := True;
-  nSelected := True;
-
-  with ShowBaseInfoEditForm(nBool, nSelected, '区域', '', sFlag_AreaItem) do
-  begin
-    if nSelected then TcxButtonEdit(Sender).Text := FText;
-  end;
-end;
-
-//Desc: 快速定位
-procedure TfFormPurchaseOrder.EditSalesManKeyDown(Sender: TObject;
-  var Key: Word; Shift: TShiftState);
-var i,nCount: integer;
-    nBox: TcxComboBox;
-begin
-  if Key = 13 then
-  begin
-    Key := 0;
-    nBox := Sender as TcxComboBox;
-
-    nCount := nBox.Properties.Items.Count - 1;
-    for i:=0 to nCount do
-    if Pos(LowerCase(nBox.Text), LowerCase(nBox.Properties.Items[i])) > 0 then
-    begin
-      nBox.ItemIndex := i; Break;
-    end;
-  end;
-end;
-
-//Desc: 保存数据
-procedure TfFormPurchaseOrder.BtnOKClick(Sender: TObject);
-var nStr: string;
-begin
-  nStr := Trim(EditTruck.Text);
-  if Length(nStr)<1 then
-  begin
-    ShowMsg('车牌号码至少为2位', sWarn);
-    Exit;
-  end;
-
-  nStr := Trim(EditProvider.Text);
-  if Length(nStr)<1 then
-  begin
-    ShowMsg('供应商不能为空', sWarn);
-    EditProvider.SetFocus;
-    Exit;
-  end;
-
-  nStr := Trim(EditMate.Text);
-  if Length(nStr)<1 then
-  begin
-    ShowMsg('原料名不能为空', sWarn);
-    EditMate.SetFocus;
-    Exit;
-  end;
-
-  with FListA do
-  begin
-    Clear;
-
-    Values['Area']          := EditArea.Text;
-    Values['Truck']         := EditTruck.Text;
-    Values['Project']       := EditProject.Text;
-
-    Values['CardType']      := GetCtrlData(EditCardType);
-
-    Values['SaleID']        := GetCtrlData(EditSalesMan);
-    Values['SaleMan']       := GetStrValue(EditSalesMan.Text);
-
-    Values['ProviderID']    := FProvider.FID;
-    Values['ProviderName']  := FProvider.FName;
-
-    Values['StockNO']       := FMeterail.FID;
-    Values['StockName']     := FMeterail.FName;
-  end;
-
-  FOrderID := SaveOrder(PackerEncodeStr(FListA.Text));
-  if FOrderID='' then Exit;
-
-  SetOrderCard(FOrderID, FListA.Values['Truck'], True);
-  //办理磁卡
-
-  ModalResult := mrOK;
-  ShowMsg('采购订单保存成功', sHint);
-end;
-
-procedure TfFormPurchaseOrder.EditTruckKeyPress(Sender: TObject;
-  var Key: Char);
+//Desc: 回车键
+procedure TfFormPurchaseOrder.EditLadingKeyPress(Sender: TObject; var Key: Char);
 var nP: TFormCommandParam;
 begin
-  inherited;
-  if Key = Char(VK_SPACE) then
+  if Key = Char(VK_RETURN) then
   begin
     Key := #0;
-    if EditTruck.Properties.ReadOnly then Exit;
-    
+
+    if Sender = EditValue then
+         BtnOK.Click
+    else Perform(WM_NEXTDLGCTL, 0, 0);
+  end;
+
+  if (Sender = EditTruck) and (Key = Char(VK_SPACE)) then
+  begin
+    Key := #0;
     nP.FParamA := EditTruck.Text;
     CreateBaseFormItem(cFI_FormGetTruck, '', @nP);
 
@@ -374,56 +166,93 @@ begin
   end;
 end;
 
-procedure TfFormPurchaseOrder.EditProviderKeyPress(Sender: TObject;
-  var Key: Char);
-var nP: TFormCommandParam;
+procedure TfFormPurchaseOrder.EditTruckPropertiesButtonClick(Sender: TObject;
+  AButtonIndex: Integer);
+var nChar: Char;
 begin
-  inherited;
-  if Key = Char(VK_RETURN) then
+  nChar := Char(VK_SPACE);
+  EditLadingKeyPress(EditTruck, nChar);
+end;
+
+//------------------------------------------------------------------------------
+procedure TfFormPurchaseOrder.InitFormData;
+begin
+  with FCardData do
   begin
-    Key := #0;
-    
-    nP.FParamA := EditProvider.Text;
-    CreateBaseFormItem(cFI_FormGetProvider, '', @nP);
-
-    if (nP.FCommand = cCmd_ModalResult) and(nP.FParamA = mrOk) then
-    with FProvider do
-    begin
-      FID   := nP.FParamB;
-      FName := nP.FParamC;
-      FSaler:= nP.FParamE;
-
-      EditProvider.Text := FName;
-      SetCtrlData(EditSalesMan, FSaler);
-    end;                               
-
-    EditProvider.SelectAll;
+    EditID.Text       := Values['SQ_ID'];
+    EditProvider.Text := Values['SQ_ProName'];
+    EditMate.Text     := Values['SQ_StockName'];
+    EditSalesMan.Text := Values['SQ_SaleName'];
+    EditArea.Text     := Values['SQ_Area'];
+    EditProject.Text  := Values['SQ_Project'];
+    EditValue.Text    := Values['SQ_RestValue'];
   end;
 end;
 
-procedure TfFormPurchaseOrder.EditMateKeyPress(Sender: TObject;
-  var Key: Char);
-var nP: TFormCommandParam;
+function TfFormPurchaseOrder.OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean;
+var nVal: Double;
 begin
-  inherited;
-  if Key = Char(VK_RETURN) then
+  Result := True;
+
+  if Sender = EditTruck then
   begin
-    Key := #0;
-    
-    nP.FParamA := EditMate.Text;
-    CreateBaseFormItem(cFI_FormGetMeterail, '', @nP);
+    Result := Length(EditTruck.Text) > 2;
+    nHint := '车牌号长度应大于2位';
+  end else
 
-    if (nP.FCommand = cCmd_ModalResult) and(nP.FParamA = mrOk) then
-    with FMeterail do
-    begin
-      FID := nP.FParamB;
-      FName:=nP.FParamC;
+  if Sender = EditValue then
+  begin
+    Result := IsNumber(EditValue.Text, True);
+    nHint := '请填写有效的办理量';
+    if not Result then Exit;
 
-      EditMate.Text := FName;
-    end;  
-
-    EditMate.SelectAll;
+    nVal := StrToFloat(EditValue.Text);
+    Result := FloatRelation(nVal, StrToFloat(FCardData.Values['SQ_RestValue']),
+              rtLE);
+    nHint := '已超出可提货量';
   end;
+end;
+
+//Desc: 保存
+procedure TfFormPurchaseOrder.BtnOKClick(Sender: TObject);
+var nOrder, nCardType: string;
+begin
+  if not IsDataValid then Exit;
+  //check valid
+
+  with FListA do
+  begin
+    Clear;
+    Values['SQID']          := FCardData.Values['SQ_ID'];
+
+    Values['Area']          := FCardData.Values['SQ_Area'];
+    Values['Truck']         := Trim(EditTruck.Text);
+    Values['Project']       := FCardData.Values['SQ_ID'];
+
+    nCardType               := GetCtrlData(EditCardType);
+    Values['CardType']      := nCardType;
+
+    Values['SaleID']        := FCardData.Values['SQ_SaleID'];
+    Values['SaleMan']       := FCardData.Values['SQ_SaleName'];
+
+    Values['ProviderID']    := FCardData.Values['SQ_ProID'];
+    Values['ProviderName']  := FCardData.Values['SQ_ProName'];
+
+    Values['StockNO']       := FCardData.Values['SQ_StockNo'];
+    Values['StockName']     := FCardData.Values['SQ_StockName'];
+    if nCardType='L' then
+          Values['Value']   := EditValue.Text
+    else  Values['Value']   := '0.00';
+  end;
+
+  nOrder := SaveOrder(PackerEncodeStr(FListA.Text));
+  if nOrder='' then Exit;
+
+  SetOrderCard(nOrder, FListA.Values['Truck'], True);
+  //办理磁卡
+
+  ModalResult := mrOK;
+  ShowMsg('采购订单保存成功', sHint);
 end;
 
 initialization

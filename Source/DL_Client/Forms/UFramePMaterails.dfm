@@ -25,7 +25,7 @@ inherited fFrameMaterails: TfFrameMaterails
     Height = 135
     object cxTextEdit1: TcxTextEdit [0]
       Left = 69
-      Top = 96
+      Top = 93
       Hint = 'T.M_Name'
       ParentFont = False
       TabOrder = 1
@@ -47,7 +47,7 @@ inherited fFrameMaterails: TfFrameMaterails
     end
     object cxTextEdit2: TcxTextEdit [2]
       Left = 257
-      Top = 96
+      Top = 93
       Hint = 'T.M_Memo'
       ParentFont = False
       TabOrder = 2

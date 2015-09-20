@@ -198,7 +198,7 @@ inherited fFrameOrderDetail: TfFrameOrderDetail
   inherited TitlePanel1: TZnBitmapPanel
     Width = 1089
     inherited TitleBar: TcxLabel
-      Caption = #37319#36141#20837#21378#26126#32454#26597#35810
+      Caption = #37319#36141#36710#36742#26597#35810
       Style.IsFontAssigned = True
       Width = 1089
       AnchorX = 545

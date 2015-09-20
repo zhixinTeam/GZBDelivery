@@ -178,8 +178,7 @@ procedure TfFrameOrderDetailQuery.N2Click(Sender: TObject);
 begin
   inherited;
   try
-    FJBWhere := '(D_OutFact Is Null And D_DStatus<>''%s'')';
-    FJBWhere := Format(FJBWhere, [sFlag_OrderDel]);
+    FJBWhere := '(D_OutFact Is Null)';
     InitFormData('');
   finally
     FJBWhere := '';

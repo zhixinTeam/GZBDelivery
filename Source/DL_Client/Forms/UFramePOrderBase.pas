@@ -1,8 +1,8 @@
 {*******************************************************************************
   作者: fendou116688@163.com 2015/8/8
-  描述: 采购订单管理
+  描述: 采购申请单管理
 *******************************************************************************}
-unit UFramePurchaseOrder;
+unit UFramePOrderBase;
 
 interface
 
@@ -17,7 +17,7 @@ uses
   ComCtrls, ToolWin, cxCheckBox;
 
 type
-  TfFramePurchaseOrder = class(TfFrameNormal)
+  TfFramePOrderBase = class(TfFrameNormal)
     EditID: TcxButtonEdit;
     dxLayout1Item1: TdxLayoutItem;
     EditName: TcxButtonEdit;
@@ -47,10 +47,8 @@ type
     procedure BtnAddClick(Sender: TObject);
     procedure BtnEditClick(Sender: TObject);
     procedure BtnDelClick(Sender: TObject);
+    procedure BtnExitClick(Sender: TObject);
     procedure cxView1DblClick(Sender: TObject);
-    procedure N1Click(Sender: TObject);
-    procedure N2Click(Sender: TObject);
-    procedure N3Click(Sender: TObject);
     procedure Check1Click(Sender: TObject);
   private
     { Private declarations }
@@ -75,12 +73,12 @@ uses
   USysConst, USysDB, UFormDateFilter, UFormInputbox;
 
 //------------------------------------------------------------------------------
-class function TfFramePurchaseOrder.FrameID: integer;
+class function TfFramePOrderBase.FrameID: integer;
 begin
-  Result := cFI_FrameOrder;
+  Result := cFI_FrameOrderBase;
 end;
 
-procedure TfFramePurchaseOrder.OnCreateFrame;
+procedure TfFramePOrderBase.OnCreateFrame;
 begin
   inherited;
   FTimeS := Str2DateTime(Date2Str(Now) + ' 00:00:00');
@@ -89,40 +87,51 @@ begin
   InitDateRange(Name, FStart, FEnd);
 end;
 
-procedure TfFramePurchaseOrder.OnDestroyFrame;
+procedure TfFramePOrderBase.OnDestroyFrame;
 begin
   SaveDateRange(Name, FStart, FEnd);
   inherited;
 end;
 
 //Desc: 数据查询SQL
-function TfFramePurchaseOrder.InitFormDataSQL(const nWhere: string): string;
+function TfFramePOrderBase.InitFormDataSQL(const nWhere: string): string;
 begin
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
 
-  Result := 'Select oo.* From $OO oo ';
+  Result := 'Select * From $OrderBase ';
   //xxxxx
 
   if nWhere = '' then
-       Result := Result + ' Where (O_Date >=''$ST'' and O_Date<''$End'') '
+       Result := Result + ' Where (B_Date >=''$ST'' and B_Date<''$End'') '
   else Result := Result + ' Where (' + nWhere + ')';
 
   if Check1.Checked then
-       Result := MacroValue(Result, [MI('$OO', sTable_OrderBak)])
-  else Result := MacroValue(Result, [MI('$OO', sTable_Order)]);
+       Result := MacroValue(Result, [MI('$OrderBase', sTable_OrderBaseBak)])
+  else Result := MacroValue(Result, [MI('$OrderBase', sTable_OrderBase)]);
 
-  Result := MacroValue(Result, [MI('$OO', sTable_Order),
-            MI('$ST', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
+  Result := MacroValue(Result, [MI('$ST', Date2Str(FStart)),
+            MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx
+end;
+
+//Desc: 关闭
+procedure TfFramePOrderBase.BtnExitClick(Sender: TObject);
+var nParam: TFormCommandParam;
+begin
+  if not IsBusy then
+  begin
+    nParam.FCommand := cCmd_FormClose;
+    CreateBaseFormItem(cFI_FormOrderBase, '', @nParam); Close;
+  end;
 end;
 
 //------------------------------------------------------------------------------
 //Desc: 添加
-procedure TfFramePurchaseOrder.BtnAddClick(Sender: TObject);
+procedure TfFramePOrderBase.BtnAddClick(Sender: TObject);
 var nParam: TFormCommandParam;
 begin
   nParam.FCommand := cCmd_AddData;
-  CreateBaseFormItem(cFI_FormOrder, PopedomItem, @nParam);
+  CreateBaseFormItem(cFI_FormOrderBase, PopedomItem, @nParam);
 
   if (nParam.FCommand = cCmd_ModalResult) and (nParam.FParamA = mrOK) then
   begin
@@ -131,7 +140,7 @@ begin
 end;
 
 //Desc: 修改
-procedure TfFramePurchaseOrder.BtnEditClick(Sender: TObject);
+procedure TfFramePOrderBase.BtnEditClick(Sender: TObject);
 var nParam: TFormCommandParam;
 begin
   if cxView1.DataController.GetSelectedCount < 1 then
@@ -140,8 +149,8 @@ begin
   end;
 
   nParam.FCommand := cCmd_EditData;
-  nParam.FParamA := SQLQuery.FieldByName('O_ID').AsString;
-  CreateBaseFormItem(cFI_FormOrder, PopedomItem, @nParam);
+  nParam.FParamA := SQLQuery.FieldByName('B_ID').AsString;
+  CreateBaseFormItem(cFI_FormOrderBase, PopedomItem, @nParam);
 
   if (nParam.FCommand = cCmd_ModalResult) and (nParam.FParamA = mrOK) then
   begin
@@ -150,7 +159,7 @@ begin
 end;
 
 //Desc: 删除
-procedure TfFramePurchaseOrder.BtnDelClick(Sender: TObject);
+procedure TfFramePOrderBase.BtnDelClick(Sender: TObject);
 var nStr: string;
 begin
   if cxView1.DataController.GetSelectedCount < 1 then
@@ -158,28 +167,35 @@ begin
     ShowMsg('请选择要删除的记录', sHint); Exit;
   end;
 
-  nStr := SQLQuery.FieldByName('O_ID').AsString;
-  if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的订单吗?', sAsk) then Exit;
+  nStr := SQLQuery.FieldByName('B_ID').AsString;
+  if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的申请单吗?', sAsk) then Exit;
 
-  if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
+  if DeleteOrderBase(nStr) then ShowMsg('已成功删除记录', sHint);
 
   BtnRefresh.Click;
 end;
 
 //Desc: 查看内容
-procedure TfFramePurchaseOrder.cxView1DblClick(Sender: TObject);
+procedure TfFramePOrderBase.cxView1DblClick(Sender: TObject);
+var nParam: TFormCommandParam;
 begin
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nParam.FCommand := cCmd_ViewData;
+    nParam.FParamA := SQLQuery.FieldByName('B_ID').AsString;
+    CreateBaseFormItem(cFI_FormOrderBase, PopedomItem, @nParam);
+  end;
 end;
 
 //Desc: 日期筛选
-procedure TfFramePurchaseOrder.EditDatePropertiesButtonClick(Sender: TObject;
+procedure TfFramePOrderBase.EditDatePropertiesButtonClick(Sender: TObject;
   AButtonIndex: Integer);
 begin
   if ShowDateFilterForm(FStart, FEnd) then InitFormData(FWhere);
 end;
 
 //Desc: 执行查询
-procedure TfFramePurchaseOrder.EditIDPropertiesButtonClick(Sender: TObject;
+procedure TfFramePOrderBase.EditIDPropertiesButtonClick(Sender: TObject;
   AButtonIndex: Integer);
 begin
   if Sender = EditID then
@@ -187,7 +203,7 @@ begin
     EditID.Text := Trim(EditID.Text);
     if EditID.Text = '' then Exit;
 
-    FWhere := 'con.O_ID like ''%' + EditID.Text + '%''';
+    FWhere := 'con.B_ID like ''%' + EditID.Text + '%''';
     InitFormData(FWhere);
   end else
 
@@ -196,7 +212,7 @@ begin
     EditName.Text := Trim(EditName.Text);
     if EditName.Text = '' then Exit;
 
-    FWhere := 'O_SaleMan like ''%%%s%%'' Or O_SaleMan like ''%%%s%%''';
+    FWhere := 'B_SaleMan like ''%%%s%%'' Or B_SaleMan like ''%%%s%%''';
     FWhere := Format(FWhere, [EditName.Text, EditName.Text]);
     InitFormData(FWhere);
   end else
@@ -206,70 +222,18 @@ begin
     EditCustomer.Text := Trim(EditCustomer.Text);
     if EditCustomer.Text = '' then Exit;
 
-    FWhere := 'O_ProPY like ''%%%s%%'' Or O_ProName like ''%%%s%%''';
+    FWhere := 'B_ProPY like ''%%%s%%'' Or B_ProName like ''%%%s%%''';
     FWhere := Format(FWhere, [EditCustomer.Text, EditCustomer.Text]);
     InitFormData(FWhere);
   end;
 end;
 
-procedure TfFramePurchaseOrder.N1Click(Sender: TObject);
-var nOrderID, nTruck: string;
-begin
-  inherited;
-  if cxView1.DataController.GetSelectedCount < 1 then
-  begin
-    ShowMsg('请选择要编辑的记录', sHint); Exit;
-  end;
-  nOrderID := SQLQuery.FieldByName('O_ID').AsString;
-  nTruck   := SQLQuery.FieldByName('O_Truck').AsString;
-
-  if SetOrderCard(nOrderID, nTruck, True) then
-    ShowMsg('办理磁卡成功', sHint);
-  //办理磁卡
-end;
-
-procedure TfFramePurchaseOrder.N2Click(Sender: TObject);
-var nCard: string;
-begin
-  inherited;
-  if cxView1.DataController.GetSelectedCount < 1 then
-  begin
-    ShowMsg('请选择要编辑的记录', sHint); Exit;
-  end;
-
-  nCard := SQLQuery.FieldByName('O_Card').AsString;
-  if LogoutOrderCard(nCard) then
-    ShowMsg('注销磁卡成功', sHint);
-  //办理磁卡
-end;
-
-procedure TfFramePurchaseOrder.N3Click(Sender: TObject);
-var nStr,nTruck: string;
-begin
-  if cxView1.DataController.GetSelectedCount > 0 then
-  begin
-    nStr := SQLQuery.FieldByName('O_Truck').AsString;
-    nTruck := nStr;
-    if not ShowInputBox('请输入新的车牌号码:', '修改', nTruck, 15) then Exit;
-
-    if (nTruck = '') or (nStr = nTruck) then Exit;
-    //无效或一致
-
-    nStr := SQLQuery.FieldByName('O_ID').AsString;
-    if ChangeOrderTruckNo(nStr, nTruck) then
-    begin
-      InitFormData(FWhere);
-      ShowMsg('车牌号修改成功', sHint);
-    end;
-  end;
-end;
-
-procedure TfFramePurchaseOrder.Check1Click(Sender: TObject);
+procedure TfFramePOrderBase.Check1Click(Sender: TObject);
 begin
   inherited;
   BtnRefresh.Click;
 end;
 
 initialization
-  gControlManager.RegCtrl(TfFramePurchaseOrder, TfFramePurchaseOrder.FrameID);
+  gControlManager.RegCtrl(TfFramePOrderBase, TfFramePOrderBase.FrameID);
 end.

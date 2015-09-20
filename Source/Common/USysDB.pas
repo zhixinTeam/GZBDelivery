@@ -227,6 +227,7 @@ ResourceString
   sFlag_HYDan         = 'Bus_HYDan';                 //化验单号
   sFlag_ForceHint     = 'Bus_HintMsg';               //强制提示
   sFlag_Order         = 'Bus_Order';                 //采购单号
+  sFlag_OrderBase     = 'Bus_OrderBase';             //采购申请单号
   sFlag_OrderDtl      = 'Bus_OrderDtl';              //采购单号
 
   {*数据表*}
@@ -274,10 +275,12 @@ ResourceString
   sTable_BillBak      = 'S_BillBak';                 //已删交货单
   sTable_StockMatch   = 'S_StockMatch';              //品种映射
 
-  sTable_Order        = 'S_Order';                   //采购订单
-  sTable_OrderBak     = 'S_OrderBak';                //已删除采购订单
-  sTable_OrderDtl     = 'S_OrderDtl';                //采购订单明细
-  sTable_OrderDtlBak  = 'S_OrderDtlBak';             //采购订单明细
+  sTable_Order        = 'P_Order';                   //采购订单
+  sTable_OrderBak     = 'P_OrderBak';                //已删除采购订单
+  sTable_OrderBase    = 'P_OrderBase';               //采购申请订单
+  sTable_OrderBaseBak = 'P_OrderBaseBak';            //已删除采购申请订单
+  sTable_OrderDtl     = 'P_OrderDtl';                //采购订单明细
+  sTable_OrderDtlBak  = 'P_OrderDtlBak';             //采购订单明细
 
   sTable_Truck        = 'S_Truck';                   //车辆表
   sTable_ZTLines      = 'S_ZTLines';                 //装车道
@@ -693,9 +696,38 @@ ResourceString
    *.L_Memo: 动作备注
   -----------------------------------------------------------------------------}
 
+  sSQL_NewOrderBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +
+       'B_Value $Float, B_SentValue $Float,B_RestValue $Float,' +
+       'B_LimValue $Float, B_WarnValue $Float,B_FreezeValue $Float,' +
+       'B_BStatus Char(1),B_Area varChar(50), B_Project varChar(100),' +
+       'B_ProID varChar(15), B_ProName varChar(80), B_ProPY varChar(80),' +
+       'B_SaleID varChar(15), B_SaleMan varChar(32), B_SalePY varChar(80),' +
+       'B_StockType Char(1), B_StockNo varChar(20), B_StockName varChar(80),' +
+       'B_Man varChar(32), B_Date DateTime,' +
+       'B_DelMan varChar(32), B_DelDate DateTime, B_Memo varChar(500))';
+  {-----------------------------------------------------------------------------
+   采购申请单表: Order
+   *.R_ID: 编号
+   *.B_ID: 提单号
+   *.B_Value,B_SentValue,B_RestValue:订单量，已发量，剩余量
+   *.B_LimValue,B_WarnValue,B_FreezeValue:订单超发上限;订单预警量,订单冻结量
+   *.B_BStatus: 订单状态
+   *.B_Area,B_Project: 区域,项目
+   *.B_ProID,B_ProName,B_ProPY:供应商
+   *.B_SaleID,B_SaleMan,B_SalePY:业务员
+   *.B_StockType: 类型(袋,散)
+   *.B_StockNo: 原材料编号
+   *.B_StockName: 原材料名称
+   *.B_Man:操作人
+   *.B_Date:创建时间
+   *.B_DelMan: 采购申请单删除人员
+   *.B_DelDate: 采购申请单删除时间
+   *.B_Memo: 动作备注
+  -----------------------------------------------------------------------------}
+
   sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, O_ID varChar(20),' +
-       'O_Card varChar(16), O_CType varChar(1), ' +
-       'O_Area varChar(50), O_Project varChar(100),' +
+       'O_BID varChar(20),O_Card varChar(16), O_CType varChar(1),' +
+       'O_Value $Float,O_Area varChar(50), O_Project varChar(100),' +
        'O_ProID varChar(15), O_ProName varChar(80), O_ProPY varChar(80),' +
        'O_SaleID varChar(15), O_SaleMan varChar(32), O_SalePY varChar(80),' +
        'O_Type Char(1), O_StockNo varChar(20), O_StockName varChar(80),' +
@@ -706,7 +738,9 @@ ResourceString
    采购订单表: Order
    *.R_ID: 编号
    *.O_ID: 提单号
+   *.O_BID: 采购申请单据号
    *.O_Card,O_CType: 磁卡号,磁卡类型(L、临时卡;G、固定卡)
+   *.O_Value:订单量，
    *.O_OStatus: 订单状态
    *.O_Area,O_Project: 区域,项目
    *.O_ProID,O_ProName,O_ProPY:供应商
@@ -1332,6 +1366,8 @@ begin
   AddSysTableItem(sTable_BillBak, sSQL_NewBill);
   AddSysTableItem(sTable_Order, sSQL_NewOrder);
   AddSysTableItem(sTable_OrderBak, sSQL_NewOrder);
+  AddSysTableItem(sTable_OrderBase, sSQL_NewOrderBase);
+  AddSysTableItem(sTable_OrderBaseBak, sSQL_NewOrderBase);
   AddSysTableItem(sTable_OrderDtl, sSQL_NewOrderDtl);
   AddSysTableItem(sTable_OrderDtlBak, sSQL_NewOrderDtl);
 

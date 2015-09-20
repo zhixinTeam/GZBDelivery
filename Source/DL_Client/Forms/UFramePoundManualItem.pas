@@ -87,7 +87,7 @@ type
     FBillItems: TLadingBillItems;
     FUIData,FInnerData: TLadingBillItem;
     //称重数据
-    FListA: TStrings;
+    FListA, FListB: TStrings;
     //数据列表
     procedure InitUIData;
     procedure SetUIData(const nReset: Boolean; const nOnlyData: Boolean = False);
@@ -140,6 +140,7 @@ procedure TfFrameManualPoundItem.OnCreateFrame;
 begin
   inherited;
   FListA := TStringList.Create;
+  FListB := TStringList.Create;
 
   FPoundTunnel := nil;
   InitUIData;
@@ -154,6 +155,7 @@ begin
   AdjustStringsItem(EditPID.Properties.Items, True);
 
   FListA.Free;
+  FListB.Free;
   inherited;
 end;
 
@@ -368,8 +370,11 @@ begin
     nStr := '※.单号:[ %s ] 状态:[ %-6s -> %-6s ]   ';
     if nIdx < High(nBills) then nStr := nStr + #13#10;
 
-    nStr := Format(nStr, [FID,
-            TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)]);
+    if FCardUsed=sFlag_Provide then
+         nStr := Format(nStr, [FZhiKa,
+                        TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)])
+    else nStr := Format(nStr, [FID,
+                        TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)]);
     nHint := nHint + nStr;
   end;
 
@@ -728,7 +733,9 @@ end;
 //------------------------------------------------------------------------------
 //Desc: 原材料或临时
 function TfFrameManualPoundItem.SavePoundData: Boolean;
-var nNextStatus: string;
+var nLimite: Boolean;
+    nNextStatus: string;
+    nMax, nWarn, nLim, nFreeze: Double;
 begin
   Result := False;
   //init
@@ -769,7 +776,28 @@ begin
          nNextStatus := sFlag_TruckBFM
     else nNextStatus := sFlag_TruckBFP;
 
-    Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel); 
+    FListB.Clear;
+    FListB.Text := GetGYOrderBaseValue(FBillItems[0].FZhiKa);
+    with FListB do
+    begin
+      nLimite := Values['NoLimite'] <> sFlag_Yes;
+      nMax    := StrToFloatDef(Values['MaxValue'], 0);
+      nLim    := StrToFloatDef(Values['LimValue'], 0);
+      nWarn   := StrToFloatDef(Values['WarnValue'], 0);
+      nFreeze := StrToFloatDef(Values['FreezeValue'], 0);
+    end;
+
+    if nLimite and (nMax+nLim+nFreeze-FBillItems[0].FValue<0) then
+    begin
+      ShowDlg('订单已超出范围，请重新制卡', sWarn);
+      Exit;
+    end;
+
+    Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel);
+
+    if nLimite and
+      (nMax-(FBillItems[0].FMData.FValue-FBillItems[0].FPData.FValue)<nWarn)
+    then ShowDlg('订单即将发完，请及时更换', sHint);
   end else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
   //保存称重
 end;

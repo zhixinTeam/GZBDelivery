@@ -52,6 +52,9 @@ const
   cBC_LogOffOrderCard         = $0043;
   cBC_GetPostOrders           = $0044;   //获取岗位采购单
   cBC_SavePostOrders          = $0045;   //保存岗位采购单
+  cBC_SaveOrderBase           = $0046;   //保存采购申请单
+  cBC_DeleteOrderBase         = $0047;   //删除采购申请单
+  cBC_GetGYOrderValue         = $0048;   //获取已收货量
 
   cBC_GetPostBills            = $0030;   //获取岗位交货单
   cBC_SavePostBills           = $0031;   //保存岗位交货单

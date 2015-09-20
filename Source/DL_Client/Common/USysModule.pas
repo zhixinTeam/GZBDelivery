@@ -23,9 +23,7 @@ uses
   UFrameInvoice, UFormInvoice, UFormInvoiceAdjust,UFrameInvoiceK, UFormInvoiceK,
   UFrameInvoiceDtl, UFrameInvoiceZZ, UFormInvoiceZZAll, UFormInvoiceZZCus,
   UFormGetZhiKa, UFrameZhiKaDetail, UFormZhiKaFreeze,
-  UFormZhiKaPrice, UFramePurchaseOrder, UFormPurchaseOrder,UFormPurchasing,
-  UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
-  UFormGetProvider, UFormGetMeterails,
+  UFormZhiKaPrice,
   {$ENDIF}
   UFrameBill, UFormBill, UFormGetTruck, UFrameQueryDiapatch, UFrameTruckQuery,
   UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
@@ -33,6 +31,11 @@ uses
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
   UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,
+
+  UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing,
+  UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
+  UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
+  UFormGetPOrderBase,
   {$IFDEF MicroMsg}
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,

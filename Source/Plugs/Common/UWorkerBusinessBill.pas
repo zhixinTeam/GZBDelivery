@@ -1506,6 +1506,7 @@ begin
               SF('P_MName', FStockName),
               SF('P_MType', FType),
               SF('P_LimValue', FValue),
+              SF('P_KZValue', 0, sfVal),
               SF('P_PValue', nBills[nInt].FPData.FValue, sfVal),
               SF('P_PDate', sField_SQLServer_Now, sfVal),
               SF('P_PMan', FIn.FBase.FFrom.FUser),

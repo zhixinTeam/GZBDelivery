@@ -153,6 +153,10 @@ function ReadPoundCard(const nTunnel: string): string;
 procedure CapturePicture(const nTunnel: PPTTunnelItem; const nList: TStrings);
 //抓拍指定通道
 
+function SaveOrderBase(const nOrderData: string): string;
+//保存采购申请单
+function DeleteOrderBase(const nOrder: string): Boolean;
+//删除采购申请单
 function SaveOrder(const nOrderData: string): string;
 //保存采购单
 function DeleteOrder(const nOrder: string): Boolean;
@@ -167,6 +171,8 @@ function LogoutOrderCard(const nCard: string): Boolean;
 //注销指定磁卡
 function ChangeOrderTruckNo(const nOrder,nTruck: string): Boolean;
 //修改车牌号
+function GetGYOrderBaseValue(const nOrder: string): string;
+//获取采购申请单发货信息
 
 function GetPurchaseOrders(const nCard,nPost: string;
  var nBills: TLadingBillItems): Boolean;
@@ -1380,6 +1386,24 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2015/9/19
+//Parm: 
+//Desc: 保存采购申请单
+function SaveOrderBase(const nOrderData: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrder(cBC_SaveOrderBase, nOrderData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+function DeleteOrderBase(const nOrder: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrder(cBC_DeleteOrderBase, nOrder, '', @nOut);
+end;
+
 //Date: 2014-09-15
 //Parm: 开单数据
 //Desc: 保存采购单,返回采购单号列表
@@ -1450,6 +1474,19 @@ function ChangeOrderTruckNo(const nOrder,nTruck: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_ModifyBillTruck, nOrder, nTruck, @nOut);
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/9/20
+//Parm: 供应订单编号
+//Desc: 获取采购申请单发货信息
+function GetGYOrderBaseValue(const nOrder: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+   if CallBusinessPurchaseOrder(cBC_GetGYOrderValue, nOrder, '', @nOut) and
+     (nOut.FData<>'') then
+        Result := PackerDecodeStr(nOut.FData)
+   else Result := '';
 end;
 
 //Date: 2014-09-17

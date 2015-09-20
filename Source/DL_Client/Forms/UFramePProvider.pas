@@ -136,7 +136,7 @@ procedure TfFrameProvider.PopupMenu1Popup(Sender: TObject);
 begin
   inherited;
   {$IFDEF SyncRemote}
-  N1.Visible := True;
+  //N1.Visible := True;
   {$ENDIF}
 end;
 
