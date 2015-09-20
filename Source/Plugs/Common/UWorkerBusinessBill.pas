@@ -473,6 +473,7 @@ begin
               SF('L_Lading', FListA.Values['Lading']),
               SF('L_IsVIP', FListA.Values['IsVIP']),
               SF('L_Seal', FListA.Values['Seal']),
+              SF('L_HYDan', FListA.Values['HYDan']),
               SF('L_Man', FIn.FBase.FFrom.FUser),
               SF('L_Date', sField_SQLServer_Now, sfVal)
               ], sTable_Bill, '', True);
@@ -917,14 +918,14 @@ end;
 //Desc: 删除指定交货单
 function TWorkerBusinessBills.DeleteBill(var nData: string): Boolean;
 var nIdx: Integer;
+    nVal: Double;
     nHasOut: Boolean;
-    nVal,nMoney: Double;
-    nStr,nP,nFix,nRID,nCus,nBill,nZK: string;
+    nStr,nP,nRID,nBill,nZK: string;
 begin
   Result := False;
   //init
 
-  nStr := 'Select L_ZhiKa,L_Value,L_Price,L_CusID,L_OutFact,L_ZKMoney From %s ' +
+  nStr := 'Select L_ZhiKa,L_Project,L_Value,L_OutFact From %s ' +
           'Where L_ID=''%s''';
   nStr := Format(nStr, [sTable_Bill, FIn.FData]);
 
@@ -937,24 +938,11 @@ begin
       Exit;
     end;
 
-    nHasOut := FieldByName('L_OutFact').AsString <> '';
-    //已出厂
-    {
-    if nHasOut then
-    begin
-      nData := '交货单[ %s ]已出厂,不允许删除.';
-      nData := Format(nData, [FIn.FData]);
-      Exit;
-    end;
-    }
-    nCus := FieldByName('L_CusID').AsString;
     nZK  := FieldByName('L_ZhiKa').AsString;
-    nFix := FieldByName('L_ZKMoney').AsString;
-
     nVal := FieldByName('L_Value').AsFloat; 
-    nMoney := Float2Float(nVal*FieldByName('L_Price').AsFloat, cPrecision, True);
+    nHasOut := FieldByName('L_OutFact').AsString <> '';
   end;
-                   
+
   nStr := 'Select R_ID,T_HKBills,T_Bill From %s ' +
           'Where T_HKBills Like ''%%%s%%''';
   nStr := Format(nStr, [sTable_ZTTrucks, FIn.FData]);
@@ -1008,27 +996,18 @@ begin
       //更新合单信息
     end;
 
-    //--------------------------------------------------------------------------
     if nHasOut then
     begin
-      nStr := 'Update %s Set A_OutMoney=A_OutMoney-(%.2f) Where A_CID=''%s''';
-      nStr := Format(nStr, [sTable_CusAccount, nMoney, nCus]);
+      nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
+      nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
-      //释放出金
+      //释放完成
     end else
     begin
-      nStr := 'Update %s Set A_FreezeMoney=A_FreezeMoney-(%.2f) Where A_CID=''%s''';
-      nStr := Format(nStr, [sTable_CusAccount, nMoney, nCus]);
+      nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
+      nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
-      //释放冻结金
-    end;
-
-    if nFix = sFlag_Yes then
-    begin
-      nStr := 'Update %s Set Z_FixedMoney=Z_FixedMoney+(%.2f) Where Z_ID=''%s''';
-      nStr := Format(nStr, [sTable_ZhiKa, nMoney, nZK]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-      //释放限提金额
+      //释放冻结
     end;
 
     //--------------------------------------------------------------------------

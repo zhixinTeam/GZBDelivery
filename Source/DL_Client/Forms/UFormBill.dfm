@@ -15,7 +15,7 @@ inherited fFormBill: TfFormBill
       Left = 297
       Top = 428
       Caption = #24320#21333
-      TabOrder = 16
+      TabOrder = 15
     end
     inherited BtnExit: TButton
       Left = 367
@@ -26,7 +26,7 @@ inherited fFormBill: TfFormBill
       Left = 279
       Top = 377
       ParentFont = False
-      TabOrder = 15
+      TabOrder = 14
       OnKeyPress = EditLadingKeyPress
       Width = 120
     end
@@ -36,7 +36,7 @@ inherited fFormBill: TfFormBill
       ParentFont = False
       Properties.MaxLength = 15
       Properties.ReadOnly = True
-      TabOrder = 2
+      TabOrder = 1
       OnKeyPress = EditLadingKeyPress
       Width = 125
     end
@@ -46,92 +46,102 @@ inherited fFormBill: TfFormBill
       ParentFont = False
       Properties.MaxLength = 100
       Properties.ReadOnly = True
-      TabOrder = 1
+      TabOrder = 0
       OnKeyPress = EditLadingKeyPress
       Width = 125
     end
     object EditCus: TcxTextEdit [5]
       Left = 81
       Top = 86
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 3
+      TabOrder = 2
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditCName: TcxTextEdit [6]
       Left = 81
       Top = 111
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 4
+      TabOrder = 3
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditMan: TcxTextEdit [7]
       Left = 81
       Top = 136
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 5
+      TabOrder = 4
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditDate: TcxTextEdit [8]
       Left = 81
       Top = 161
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 6
+      TabOrder = 5
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditFirm: TcxTextEdit [9]
       Left = 81
       Top = 186
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 7
+      TabOrder = 6
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditArea: TcxTextEdit [10]
       Left = 81
       Top = 211
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 8
+      TabOrder = 7
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditStock: TcxTextEdit [11]
       Left = 81
       Top = 302
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 9
+      TabOrder = 8
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditSName: TcxTextEdit [12]
       Left = 81
       Top = 327
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 10
+      TabOrder = 9
       OnKeyPress = EditLadingKeyPress
       Width = 135
     end
     object EditMax: TcxTextEdit [13]
       Left = 279
       Top = 327
+      ParentFont = False
       Properties.ReadOnly = True
-      TabOrder = 11
+      TabOrder = 10
       OnKeyPress = EditLadingKeyPress
       Width = 121
     end
     object EditTruck: TcxButtonEdit [14]
       Left = 81
       Top = 377
+      ParentFont = False
       Properties.Buttons = <
         item
           Default = True
           Kind = bkEllipsis
         end>
       Properties.OnButtonClick = EditTruckPropertiesButtonClick
-      TabOrder = 14
+      TabOrder = 13
       OnKeyPress = EditLadingKeyPress
       Width = 135
     end
@@ -146,7 +156,7 @@ inherited fFormBill: TfFormBill
         'Z=Z'#12289#26632#21488
         'V=V'#12289'VIP'
         'S=S'#12289#33337#36816)
-      TabOrder = 12
+      TabOrder = 11
       OnKeyPress = EditLadingKeyPress
       Width = 135
     end
@@ -155,7 +165,7 @@ inherited fFormBill: TfFormBill
       Top = 352
       ParentFont = False
       Properties.MaxLength = 100
-      TabOrder = 13
+      TabOrder = 12
       Width = 132
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
@@ -259,7 +269,7 @@ inherited fFormBill: TfFormBill
               object dxlytmLayout1Item14: TdxLayoutItem
                 AutoAligns = [aaVertical]
                 AlignHorz = ahClient
-                Caption = #23553#31614#32534#21495':'
+                Caption = #27700#27877#32534#21495':'
                 Control = EditFQ
                 ControlOptions.ShowBorder = False
               end

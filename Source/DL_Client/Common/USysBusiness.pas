@@ -1249,7 +1249,7 @@ end;
 function YT_VerifyCardInfo(var nCard: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
-  Result := CallBusinessCommand(cBC_VerifyYTCard, nCard, '', @nOut, False);
+  Result := CallBusinessCommand(cBC_VerifyYTCard, nCard, sFlag_Yes, @nOut, False);
   if Result then
        nCard := nOut.FData
   else nCard := nOut.FBase.FErrDesc;

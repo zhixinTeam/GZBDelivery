@@ -186,7 +186,6 @@ end;
 
 //------------------------------------------------------------------------------
 procedure TfFormBill.InitFormData;
-var nStr: string;
 begin
   with FCardData do
   begin
@@ -201,25 +200,7 @@ begin
     EditStock.Text  := Values['XCB_Cement'];
     EditSName.Text  := Values['XCB_CementName'];
     EditMax.Text    := Values['XCB_RemainNum'];
-
-    nStr := 'Select D_Memo From %s Where D_ParamB=''%s''';
-    nStr := Format(nStr, [sTable_SysDict, Values['XCB_Cement']]);
-
-    with FDM.QueryTemp(nStr) do
-    begin
-      BtnOK.Enabled := RecordCount > 0;
-      if RecordCount < 1 then
-      begin
-        nStr := '品种[ %s.%s ]没有在字典中配置,请联系管理员.';
-        nStr := Format(nStr, [Values['XCB_Cement'], Values['XCB_CementName']]);
-        
-        ShowDlg(nStr, sHint);
-        Exit;
-      end;
-
-      Values['XCB_CementType'] := Fields[0].AsString;
-      //包散类型
-    end;
+    EditFQ.Text     := Values['XCB_CementCode'];
   end;
 end;
 
@@ -285,7 +266,8 @@ begin
       Values['Truck'] := EditTruck.Text;
       Values['Lading'] := sFlag_TiHuo;
       Values['IsVIP'] := GetCtrlData(EditType);
-      Values['Seal'] := EditFQ.Text;
+      Values['Seal'] := FCardData.Values['XCB_CementCodeID'];
+      Values['HYDan'] := EditFQ.Text;
       Values['BuDan'] := FBuDanFlag;
     end;
 

@@ -855,7 +855,7 @@ end;
 function TPrinterSGB.PrintCode(const nCode: string;
   var nHint: string): Boolean;
 var nData: string;
-    nBuf: TIdBytes;
+    //nBuf: TIdBytes;
 begin
   //ÊË¹ó±¦ÅçÂë»ú
   //1B 41 len(start 38) channel(start 31) 40 37 datas 40 39 0D

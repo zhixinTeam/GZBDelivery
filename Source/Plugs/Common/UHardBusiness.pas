@@ -969,7 +969,7 @@ end;
 //Parm: 车辆;通道
 //Desc: 授权nTruck在nTunnel车道放灰
 procedure TruckStartFH(const nTruck: PTruckItem; const nTunnel: string);
-var nStr,nTmp,nCard,nCardUse: string;
+var nStr,nTmp,nCardUse: string;
    nField: TField;
    nWorker: PDBWorker;
 begin
@@ -983,10 +983,14 @@ begin
     if RecordCount > 0 then
     begin
       nField := FindField('T_Card');
-      if Assigned(nField) then nTmp := nField.AsString;
+      if Assigned(nField) then
+        nTmp := nField.AsString;
+      //xxxxx
 
       nField := FindField('T_CardUse');
-      if Assigned(nField) then nCardUse := nField.AsString;
+      if Assigned(nField) then
+        nCardUse := nField.AsString;
+      //xxxxx
 
       if nCardUse = sFlag_No then
         nTmp := '';
