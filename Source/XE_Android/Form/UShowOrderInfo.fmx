@@ -54,7 +54,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
         TextSettings.Font.Size = 16.000000000000000000
         Position.X = 96.000000000000000000
         Position.Y = 280.000000000000000000
-        Size.Width = 225.000000000000000000
+        Size.Width = 193.000000000000000000
         Size.Height = 24.000000000000000000
         Size.PlatformDefault = False
         StyledSettings = [Family, Style, FontColor]
@@ -157,7 +157,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
         ItemIndex = -1
         Position.X = 96.000000000000000000
         Position.Y = 328.000000000000000000
-        Size.Width = 225.000000000000000000
+        Size.Width = 193.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
         OnMouseEnter = EditMouseEnter

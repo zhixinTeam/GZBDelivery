@@ -7,7 +7,7 @@ uses
   FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
   UAndroidFormBase, FMX.Edit, FMX.Controls.Presentation, FMX.Layouts,
   UMITPacker,UClientWorker,UBusinessConst,USysBusiness,UMainFrom, FMX.ListBox,
-  FMX.ComboEdit;
+  FMX.ComboEdit, Androidapi.JNI.Toast;
 
 type
   TFrmShowOrderInfo = class(TfrmFormBase)
@@ -65,7 +65,12 @@ begin
     FKZValue := StrToFloatDef(EditKZValue.Text, 0);
     FMemo    := EditKZMemo.Text;
 
-    if SavePurchaseOrders('X', gOrders) then MainForm.Show;
+    if SavePurchaseOrders('X', gOrders) then
+    begin
+      Toast('验收保存成功');
+      MainForm.Show;
+    end;
+
   end;
 end;
 

@@ -117,6 +117,7 @@ end;
 
 procedure TMainForm.BtnLoginClick(Sender: TObject);
 begin
+  Layout_Menu.Visible := False;
   gSysParam.FHasLogin := False;
   if not Assigned(frmLogin) then
      frmLogin := TfrmLogin.Create(Self);
