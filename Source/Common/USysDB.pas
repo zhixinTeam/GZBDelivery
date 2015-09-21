@@ -298,6 +298,7 @@ ResourceString
   sTable_StockHuaYan  = 'S_StockHuaYan';             //开化验单
 
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
+  sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
 
   {*新建表*}
   sSQL_NewSysDict = 'Create Table $Table(D_ID $Inc, D_Name varChar(15),' +
@@ -1229,12 +1230,25 @@ ResourceString
   -----------------------------------------------------------------------------}
 
   sSQL_NewYTCard = 'Create Table $Table(R_ID $Inc, C_ID varChar(20),' +
-       'C_Card varChar(50), C_Freeze $Float, C_HasDone $Float)';
+       'C_Card varChar(50), C_Stock varChar(32), C_Freeze $Float, C_HasDone $Float)';
   {-----------------------------------------------------------------------------
    订单表: Order
    *.R_ID: 记录编号
    *.C_ID: 记录编号
    *.C_Card: 卡片编号
+   *.C_Stock: 品种编号
+   *.C_Freeze: 冻结量
+   *.C_HasDone: 完成量
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewYTCode = 'Create Table $Table(R_ID $Inc, C_ID varChar(20),' +
+       'C_Code varChar(50), C_Stock varChar(32), C_Freeze $Float, C_HasDone $Float)';
+  {-----------------------------------------------------------------------------
+   水泥编号表: Order
+   *.R_ID: 记录编号
+   *.C_ID: 检验记录
+   *.C_Code: 水泥编号
+   *.C_Stock: 品种编号
    *.C_Freeze: 冻结量
    *.C_HasDone: 完成量
   -----------------------------------------------------------------------------}
@@ -1386,6 +1400,7 @@ begin
   AddSysTableItem(sTable_StockHuaYan, sSQL_NewStockHuaYan);
 
   AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
+  AddSysTableItem(sTable_YT_CodeInfo, sSQL_NewYTCode);
 end;
 
 //Desc: 清理系统表

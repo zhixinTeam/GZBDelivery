@@ -1022,7 +1022,7 @@ end;
 //Desc: 验证记录是否有效,或者能否开单
 function TWorkerBusinessCommander.VerifyYTCard(var nData: string): Boolean;
 var nStr: string;
-    nVal,nFreeze: Double;
+    nVal: Double;
     nWorker: PDBWorker;
 begin
   with FListA do
@@ -1057,9 +1057,7 @@ begin
       Exit;
     end;
 
-    nFreeze := 0;
     nVal := StrToFloat(nStr);
-    
     if FloatRelation(nVal, 0, rtLE, cPrecision) then
     begin
       nStr := '※.单据:[ %s ]剩余量为0,无法提货.' + #13#10;
@@ -1078,8 +1076,7 @@ begin
     if RecordCount > 0 then
     begin
       First;
-      nFreeze := FieldByName('C_Freeze').AsFloat;
-      nVal := nVal - nFreeze;
+      nVal := nVal - FieldByName('C_Freeze').AsFloat;
       //扣除已开未提
 
       nVal := Float2Float(nVal, cPrecision, False);
@@ -1122,9 +1119,10 @@ begin
     //--------------------------------------------------------------------------
     nWorker := nil;
     try
-      nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count from CF_Notify_OutWorkDtl cnd' +
-              ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid' +
-              ' where (cnd.Cnd_Cement = ''%s'') and' +
+      nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count from ' +
+              'CF_Notify_OutWorkDtl cnd' +
+              ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
+              'where (cnd.Cnd_Cement = ''%s'') and' +
               '      (cno.cno_cementcode <> '' '') and' +
               '      (cno.cno_status = 1) AND' +
               '      (cno.CNO_Del = 0) AND' +
@@ -1143,6 +1141,16 @@ begin
         Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
         Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
 
+        nStr := 'select C_Freeze from %s where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CodeInfo, Values['XCB_CementCodeID']]);
+
+        with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+        begin
+          if RecordCount > 0 then
+            nVal := nVal - Fields[0].AsFloat;
+          //扣减已冻结
+        end;
+
         nStr := 'select nvl(SUM(xlc.XLM_Number), 0) AS XCV_UserCount ' +
                 'from XS_Lade_CementCode xlc' +
                 ' LEFT OUTER JOIN XS_Lade_Base xlb on xlb.XLB_ID = xlc.XLM_Lade ' +
@@ -1157,17 +1165,18 @@ begin
         with gDBConnManager.WorkerQuery(nWorker, nStr) do
         begin
           if RecordCount > 0 then
-          begin
-            nVal := nVal - FieldByName('XCV_UserCount').AsFloat - nFreeze;
-            //批次可用量
+            nVal := nVal - FieldByName('XCV_UserCount').AsFloat;
+          //扣减已发货
+        end;
 
-            if nVal <= 0 then
-            begin
-              nData := '水泥编号[ %s ]可用量不足,无法开票.';
-              nData := Format(nData, [Values['XCB_CementCode']]);
-              Exit;
-            end;
-          end;
+        if nVal <= 0 then
+        begin
+          nData := '※.水泥编号: %s' + #13#10 +
+                   '※.水泥名称: %s' + #13#10 +
+                   '※.错误描述: 该编号余量不足,无法开票.';
+          nData := Format(nData, [Values['XCB_CementCode'],
+                   Values['XCB_CementName']]);
+          Exit;
         end;
       end;
     finally
@@ -1249,8 +1258,8 @@ begin
         FZhiKa      := FieldByName('L_ZhiKa').AsString;
         FCusID      := FieldByName('L_CusID').AsString;
 
-        FCusName    := FieldByName('L_Seal').AsString;
-        FStockName  := FieldByName('L_HYDan').AsString;
+        FSeal       := FieldByName('L_Seal').AsString;
+        FHYDan      := FieldByName('L_HYDan').AsString;
 
         FTruck      := FieldByName('L_Truck').AsString;
         FStockNo    := FieldByName('L_StockNo').AsString;
@@ -1359,7 +1368,7 @@ begin
                 SF('XLB_Client', nBills[nIdx].FCusID),
                 SF('XLB_Cement', nBills[nIdx].FStockNo),
                 SF('XLB_CementSwap', nBills[nIdx].FStockNo),
-                SF('XLB_CementCode', nBills[nIdx].FStockName),
+                SF('XLB_CementCode', nBills[nIdx].FHYDan),
                 SF('XLB_Number', nBills[nIdx].FValue, sfVal),
                 SF('XLB_FactNum', nBills[nIdx].FValue, sfVal),
 
@@ -1431,14 +1440,14 @@ begin
                 nBills[nIdx].FValue, nBills[nIdx].FZhiKa]);
         FListA.Add(nSQL + ';'); //更新订单
 
-        if nBills[nIdx].FCusName <> '' then
+        if nBills[nIdx].FSeal <> '' then
         begin
           nStr := YT_NewID('XS_LADE_CEMENTCODE', nWorker);
           //id
 
           nSQL := MakeSQLByStr([SF('XLM_ID', nStr),
                   SF('XLM_LADE', nRID),
-                  SF('XLM_CEMENTCODE', nBills[nIdx].FCusName),
+                  SF('XLM_CEMENTCODE', nBills[nIdx].FSeal),
                   SF('XLM_NUMBER', nBills[nIdx].FValue, sfVal)
                   ], 'XS_Lade_CementCode', '', True);
           FListA.Add(nSQL + ';'); //更新批次号使用量

@@ -135,6 +135,8 @@ type
     FPoundID    : string;          //称重记录
     FSelected   : Boolean;         //选中状态
 
+    FSeal       : string;          //编号ID
+    FHYDan      : string;          //水泥编号
     FKZValue    : Double;          //供应扣除
     FMemo       : string;          //动作备注
   end;
@@ -264,7 +266,9 @@ begin
              FKZValue := StrToFloat(nStr)
         else FKZValue := 0;
 
-        FMemo := Values['Memo'];
+        FSeal   := Values['Seal'];
+        FHYDan  := Values['HYDan'];
+        FMemo   := Values['Memo'];
       end;
 
       Inc(nInt);
@@ -340,6 +344,8 @@ begin
              Values['Selected'] := sFlag_Yes
         else Values['Selected'] := sFlag_No;
 
+        Values['Seal']       := FSeal;
+        Values['HYDan']      := FHYDan;
         Values['KZValue']    := FloatToStr(FKZValue);
         Values['Memo']       := FMemo;
       end;

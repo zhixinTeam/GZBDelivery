@@ -560,11 +560,33 @@ begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListA.Values['Record']),
             SF('C_Card', FListA.Values['Project']),
+            SF('C_Stock', FListC.Values['StockNO']),
             SF('C_Freeze', '0', sfVal),
             SF('C_HasDone', FListC.Values['Value'], sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
         end;
+
+        if FListA.Values['Seal'] <> '' then
+        begin
+          nStr := 'Update %s Set C_HasDone=C_HasDone+%.2f Where C_ID=''%s''';
+          nStr := Format(nStr, [sTable_YT_CodeInfo,
+                  StrToFloat(FListC.Values['Value']),
+                  FListA.Values['Seal']]);
+          nInt := gDBConnManager.WorkerExec(FDBConn, nStr);
+
+          if nInt < 1 then
+          begin
+            nSQL := MakeSQLByStr([
+              SF('C_ID', FListA.Values['Seal']),
+              SF('C_Code', FListA.Values['HYDan']),
+              SF('C_Stock', FListC.Values['StockNO']),
+              SF('C_Freeze', '0', sfVal),
+              SF('C_HasDone', FListC.Values['Value'], sfVal)
+              ], sTable_YT_CodeInfo, '', True);
+            gDBConnManager.WorkerExec(FDBConn, nSQL);
+          end;
+        end; //更新水泥编号发货量
       end else
       begin
         nStr := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
@@ -578,11 +600,33 @@ begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListA.Values['Record']),
             SF('C_Card', FListA.Values['Project']),
+            SF('C_Stock', FListC.Values['StockNO']),
             SF('C_Freeze', FListC.Values['Value'], sfVal),
             SF('C_HasDone', '0', sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
         end;
+
+        if FListA.Values['Seal'] <> '' then
+        begin
+          nStr := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+          nStr := Format(nStr, [sTable_YT_CodeInfo,
+                  StrToFloat(FListC.Values['Value']),
+                  FListA.Values['Seal']]);
+          nInt := gDBConnManager.WorkerExec(FDBConn, nStr);
+
+          if nInt < 1 then
+          begin
+            nSQL := MakeSQLByStr([
+              SF('C_ID', FListA.Values['Seal']),
+              SF('C_Code', FListA.Values['HYDan']),
+              SF('C_Stock', FListC.Values['StockNO']),
+              SF('C_Freeze', FListC.Values['Value'], sfVal),
+              SF('C_HasDone', '0', sfVal)
+              ], sTable_YT_CodeInfo, '', True);
+            gDBConnManager.WorkerExec(FDBConn, nSQL);
+          end;
+        end; //更新水泥编号冻结量
       end;
     end;
 
@@ -920,12 +964,12 @@ function TWorkerBusinessBills.DeleteBill(var nData: string): Boolean;
 var nIdx: Integer;
     nVal: Double;
     nHasOut: Boolean;
-    nStr,nP,nRID,nBill,nZK: string;
+    nStr,nP,nRID,nBill,nZK,nCode: string;
 begin
   Result := False;
   //init
 
-  nStr := 'Select L_ZhiKa,L_Project,L_Value,L_OutFact From %s ' +
+  nStr := 'Select L_ZhiKa,L_Project,L_Value,L_OutFact,L_Seal From %s ' +
           'Where L_ID=''%s''';
   nStr := Format(nStr, [sTable_Bill, FIn.FData]);
 
@@ -939,7 +983,8 @@ begin
     end;
 
     nZK  := FieldByName('L_ZhiKa').AsString;
-    nVal := FieldByName('L_Value').AsFloat; 
+    nVal := FieldByName('L_Value').AsFloat;
+    nCode := FieldByName('L_Seal').AsString;
     nHasOut := FieldByName('L_OutFact').AsString <> '';
   end;
 
@@ -996,18 +1041,30 @@ begin
       //更新合单信息
     end;
 
-    if nHasOut then
+    if nHasOut then //释放完成
     begin
       nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
-      //释放完成
-    end else
+
+      if nCode <> '' then
+      begin
+        nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CodeInfo, nVal, nCode]);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end;
+    end else //释放冻结
     begin
       nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
-      //释放冻结
+
+      if nCode <> '' then
+      begin
+        nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CodeInfo, nVal, nCode]);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end;
     end;
 
     //--------------------------------------------------------------------------
@@ -1286,8 +1343,8 @@ begin
   end;
 
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
-          'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
-          'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue From $Bill b ';
+          'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan From $Bill b ';
   //xxxxx
 
   if nIsBill then
@@ -1328,6 +1385,9 @@ begin
       FStockName  := FieldByName('L_StockName').AsString;
       FValue      := FieldByName('L_Value').AsFloat;
       FPrice      := FieldByName('L_Price').AsFloat;
+
+      FSeal       := FieldByName('L_Seal').AsString;
+      FHYDan      := FieldByName('L_HYDan').AsString;
 
       FCard       := FieldByName('L_Card').AsString;
       FIsVIP      := FieldByName('L_IsVIP').AsString;
@@ -1783,6 +1843,14 @@ begin
               'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
       nSQL := Format(nSQL, [sTable_YT_CardInfo, FValue, FValue, FZhiKa]);
       FListA.Add(nSQL); //更新订单
+
+      if FSeal <> '' then
+      begin
+        nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
+                'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
+        nSQL := Format(nSQL, [sTable_YT_CodeInfo, FValue, FValue, FSeal]);
+        FListA.Add(nSQL); //更新水泥编号
+      end;
     end;
 
     if not TWorkerBusinessCommander.CallMe(cBC_SyncStockBill,
