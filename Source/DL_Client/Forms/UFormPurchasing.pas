@@ -223,8 +223,6 @@ end;
 
 procedure TfFormPurchasing.EditKZValuePropertiesEditValueChanged(
   Sender: TObject);
-var nInt: Integer;
-    nChanged: Boolean;
 begin
   if (FItemIndex >= 0) and IsNumber(EditKZValue.Text, True) then
   begin

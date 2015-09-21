@@ -163,7 +163,7 @@ begin
 
   if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
 
-  BtnRefresh.Click;
+  InitFormData('');
 end;
 
 //Desc: 查看内容
@@ -267,7 +267,7 @@ end;
 procedure TfFramePurchaseOrder.Check1Click(Sender: TObject);
 begin
   inherited;
-  BtnRefresh.Click;
+  InitFormData('');
 end;
 
 initialization

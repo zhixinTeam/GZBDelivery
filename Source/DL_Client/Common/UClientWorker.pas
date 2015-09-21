@@ -96,7 +96,6 @@ end;
 function TClient2MITWorker.DoWork(const nIn, nOut: Pointer): Boolean;
 var nStr: string;
     nParam: string;
-    nPackEncode: Boolean;
     nArray: TDynamicStrArray;
 begin
   with PBWDataBase(nIn)^,gSysParam do
@@ -114,13 +113,7 @@ begin
     end;
   end;
 
-  FListA.Clear;
-  FListA.Text := PWorkerBusinessCommand(nIn).FExtParam;
-  nPackEncode := FListA.Values['PackEncode'] <> 'N';
-
-  nStr := FPacker.PackIn(nIn, nPackEncode);
-  WriteLog(nStr);
-
+  nStr := FPacker.PackIn(nIn);
   Result := MITWork(nStr);
 
   if not Result then
@@ -135,13 +128,12 @@ begin
     Exit;
   end;
 
-  FPacker.UnPackOut(nStr, nOut, nPackEncode);
+  FPacker.UnPackOut(nStr, nOut);
   with PBWDataBase(nOut)^ do
   begin
     nStr := 'User:[ %s ] FUN:[ %s ] TO:[ %s ] KP:[ %d ]';
     nStr := Format(nStr, [gSysParam.FUserID, FunctionName, FVia.FIP,
             GetTickCount - FWorkTimeInit]);
-    WriteLog(nStr);
 
     Result := FResult;
     if Result then

@@ -6,7 +6,8 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants, 
   FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
   UAndroidFormBase, FMX.Edit, FMX.Controls.Presentation, FMX.Layouts,
-  UMITPacker,UClientWorker,UBusinessConst,USysBusiness,UMainFrom;
+  UMITPacker,UClientWorker,UBusinessConst,USysBusiness,UMainFrom, FMX.ListBox,
+  FMX.ComboEdit;
 
 type
   TFrmShowOrderInfo = class(TfrmFormBase)
@@ -23,6 +24,8 @@ type
     lblProvider: TLabel;
     lblID: TLabel;
     Label1: TLabel;
+    Label2: TLabel;
+    EditKZMemo: TComboEdit;
     procedure tmrGetOrderTimer(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
@@ -60,6 +63,7 @@ begin
   with gOrders[0] do
   begin
     FKZValue := StrToFloatDef(EditKZValue.Text, 0);
+    FMemo    := EditKZMemo.Text;
 
     if SavePurchaseOrders('X', gOrders) then MainForm.Show;
   end;
@@ -72,6 +76,7 @@ begin
   lblProvider.Text := '';
   lblMate.Text     := '';
   lblTruck.Text    := '';
+  EditKZMemo.Text  := '';
   EditKZValue.Text := '0.00';
 
   tmrGetOrder.Enabled := True;

@@ -287,7 +287,7 @@ begin
     end;
   end;
 
-  N2.Click;
+  InitFormData('');
 end;
 
 procedure TfFrameOrderDetail.Check1Click(Sender: TObject);
@@ -300,7 +300,7 @@ procedure TfFrameOrderDetail.N4Click(Sender: TObject);
 var nStr: String;
 begin
   inherited;
-    if cxView1.DataController.GetSelectedCount > 0 then
+  if cxView1.DataController.GetSelectedCount > 0 then
   begin
     nStr := SQLQuery.FieldByName('D_ID').AsString;
     PrintOrderReport(nStr, False);

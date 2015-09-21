@@ -164,14 +164,6 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
-        <DeployFile Include="D:\NFC_Samples_XE5_2\Android\Debug\classes.dex" Condition="'$(Config)'=='Debug'">
-            <RemoteDir>PNFCReadCard\classes\</RemoteDir>
-            <RemoteName>classes.dex</RemoteName>
-            <Operation>1</Operation>
-            <LocalCommand/>
-            <RemoteCommand/>
-            <Overwrite>True</Overwrite>
-        </DeployFile>
         <DeployFile Include="$(BDS)\lib\android\debug\mips\libnative-activity.so" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PNFCReadCard\library\lib\mips\</RemoteDir>
             <RemoteName>libPNFCReadCard.so</RemoteName>
@@ -196,6 +188,14 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
+        <DeployFile Include="$(BDS)\bin\Artwork\Android\FM_LauncherIcon_144x144.png" Condition="'$(Config)'=='Release'">
+            <RemoteDir>PNFCReadCard\res\drawable-xxhdpi\</RemoteDir>
+            <RemoteName>ic_launcher.png</RemoteName>
+            <Operation>1</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
         <DeployFile Include="$(BDS)\lib\android\debug\x86\libnative-activity.so" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PNFCReadCard\library\lib\x86\</RemoteDir>
             <RemoteName>libPNFCReadCard.so</RemoteName>
@@ -204,10 +204,10 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
-        <DeployFile Include="$(BDS)\bin\Artwork\Android\FM_LauncherIcon_144x144.png" Condition="'$(Config)'=='Release'">
-            <RemoteDir>PNFCReadCard\res\drawable-xxhdpi\</RemoteDir>
-            <RemoteName>ic_launcher.png</RemoteName>
-            <Operation>1</Operation>
+        <DeployFile Include="res\xml\nfc_tech_discovered_filter.xml" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>PNFCReadCard\res\xml\</RemoteDir>
+            <RemoteName>nfc_tech_discovered_filter.xml</RemoteName>
+            <Operation>0</Operation>
             <LocalCommand/>
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
@@ -228,7 +228,7 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
-        <DeployFile Include="D:\Delphi XE Android\PNFCReadCard\Android\Debug\classes.dex" Condition="'$(Config)'=='Debug'">
+        <DeployFile Include="D:\WorkDir2015\GitHub\GZBDelivery\Source\XE_Android\Android\Debug\classes.dex" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PNFCReadCard\classes\</RemoteDir>
             <RemoteName>classes.dex</RemoteName>
             <Operation>1</Operation>
@@ -318,14 +318,6 @@
             <RemoteCommand/>
             <Overwrite>True</Overwrite>
         </DeployFile>
-        <DeployFile Include="..\NFC_Samples_XE5\res\xml\nfc_tech_discovered_filter.xml">
-            <RemoteDir>PNFCReadCard\res\xml\</RemoteDir>
-            <RemoteName>nfc_tech_discovered_filter.xml</RemoteName>
-            <Operation>0</Operation>
-            <LocalCommand/>
-            <RemoteCommand/>
-            <Overwrite>True</Overwrite>
-        </DeployFile>
         <DeployFile Include="$(BDS)\bin\Artwork\Android\FM_SplashImage_470x320.png" Condition="'$(Config)'=='Release'">
             <RemoteDir>PNFCReadCard\res\drawable-normal\</RemoteDir>
             <RemoteName>splash_image.png</RemoteName>
@@ -335,9 +327,18 @@
             <Overwrite>True</Overwrite>
         </DeployFile>
     </ItemGroup>
-    <ItemGroup Condition="'$(Platform)'=='Win64'"/>
+    <ItemGroup Condition="'$(Platform)'=='Win64'">
+        <DeployFile Include="res\xml\nfc_tech_discovered_filter.xml" Condition="'$(Config)'=='Debug'">
+            <RemoteDir>PNFCReadCard\</RemoteDir>
+            <RemoteName>nfc_tech_discovered_filter.xml</RemoteName>
+            <Operation>0</Operation>
+            <LocalCommand/>
+            <RemoteCommand/>
+            <Overwrite>True</Overwrite>
+        </DeployFile>
+    </ItemGroup>
     <ItemGroup Condition="'$(Platform)'=='Win32'">
-        <DeployFile Include="..\NFC_Samples_XE5\res\xml\nfc_tech_discovered_filter.xml">
+        <DeployFile Include="res\xml\nfc_tech_discovered_filter.xml" Condition="'$(Config)'=='Debug'">
             <RemoteDir>PNFCReadCard\</RemoteDir>
             <RemoteName>nfc_tech_discovered_filter.xml</RemoteName>
             <Operation>0</Operation>

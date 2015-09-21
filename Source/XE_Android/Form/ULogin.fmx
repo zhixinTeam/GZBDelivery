@@ -13,9 +13,9 @@ inherited frmLogin: TfrmLogin
       object Label1: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 144.000000000000000000
+        Position.Y = 136.000000000000000000
         Size.Width = 97.000000000000000000
-        Size.Height = 25.000000000000000000
+        Size.Height = 41.000000000000000000
         Size.PlatformDefault = False
         TextSettings.Font.Size = 26.000000000000000000
         Text = #23494'    '#30721':'
@@ -23,9 +23,9 @@ inherited frmLogin: TfrmLogin
       object Label2: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 80.000000000000000000
+        Position.Y = 64.000000000000000000
         Size.Width = 89.000000000000000000
-        Size.Height = 25.000000000000000000
+        Size.Height = 41.000000000000000000
         Size.PlatformDefault = False
         TextSettings.Font.Size = 26.000000000000000000
         Text = #29992#25143#21517':'
