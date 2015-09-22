@@ -1179,6 +1179,15 @@ begin
           Exit;
         end;
       end;
+
+      if Values['XCB_CementCode'] = '' then
+      begin
+        nData := '※.品种编号: %s' + #13#10 +
+                 '※.品种名称: %s' + #13#10 +
+                 '※.错误描述: 没有该品种的水泥编号,无法开票.';
+        nData := Format(nData, [Values['XCB_Cement'], Values['XCB_CementName']]);
+        Exit;
+      end;
     finally
       gDBConnManager.ReleaseConnection(nWorker);
     end;

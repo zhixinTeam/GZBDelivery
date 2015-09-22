@@ -170,8 +170,10 @@ begin
          nStr := nStr + 'Where (C_Date>=''$S'' and C_Date<''$End'')'
     else nStr := nStr + 'Where (' + FWhere + ')';
 
+    nStr := nStr + ' And (C_Used=''$Sale'')';
+
     nStr := MacroValue(nStr, [MI('$BC', sTable_Card),
-            MI('$Bill', sTable_Bill),
+            MI('$Bill', sTable_Bill), MI('$Sale', sFlag_Sale),
             MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
     FDM.QueryData(SQLQuery, nStr);
   end;
