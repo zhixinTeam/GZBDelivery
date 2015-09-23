@@ -20,7 +20,7 @@ type
   TfFrameBill = class(TfFrameNormal)
     EditCus: TcxButtonEdit;
     dxLayout1Item1: TdxLayoutItem;
-    EditCard: TcxButtonEdit;
+    EditTruck: TcxButtonEdit;
     dxLayout1Item2: TdxLayoutItem;
     cxTextEdit1: TcxTextEdit;
     dxLayout1Item3: TdxLayoutItem;
@@ -48,6 +48,8 @@ type
     N9: TMenuItem;
     dxLayout1Item10: TdxLayoutItem;
     CheckDelete: TcxCheckBox;
+    dxlytmLayout1Item11: TdxLayoutItem;
+    EditYTCard: TcxButtonEdit;
     procedure EditIDPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnDelClick(Sender: TObject);
@@ -169,14 +171,24 @@ begin
     InitFormData(FWhere);
   end else
 
-  if Sender = EditCard then
+  if Sender = EditTruck then
   begin
-    EditCard.Text := Trim(EditCard.Text);
-    if EditCard.Text = '' then Exit;
+    EditTruck.Text := Trim(EditTruck.Text);
+    if EditTruck.Text = '' then Exit;
 
-    FUseDate := Length(EditCard.Text) <= 3;
-    FWhere := Format('L_Card=''%s''', [EditCard.Text]);
+    FUseDate := Length(EditTruck.Text) <= 3;
+    FWhere := Format('L_Truck like ''%%%s%%''', [EditTruck.Text]);
     InitFormData(FWhere);
+  end else
+
+  if Sender = EditYTCard then
+  begin
+    EditYTCard.Text := Trim(EditYTCard.Text);
+    if EditYTCard.Text = '' then Exit;
+
+    FUseDate := Length(EditYTCard.Text) <= 3;
+    FWhere := Format('L_Project like ''%%%s%%''', [EditYTCard.Text]);
+    InitFormData(FWhere); 
   end;
 end;
 

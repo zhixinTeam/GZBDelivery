@@ -102,6 +102,8 @@ type
     //读取交货单
     procedure LoadTruckPoundItem(const nTruck: string);
     //读取车辆称重
+    function VerifySanValue(var nValue: Double): Boolean;
+    //矫正散装净重
     function SavePoundSale: Boolean;
     function SavePoundData: Boolean;
     //保存称重     
@@ -125,7 +127,7 @@ implementation
 uses
   ULibFun, UAdjustForm, UFormBase, {$IFDEF HR1847}UKRTruckProber,
   {$ELSE}UMgrTruckProbe,{$ENDIF} UMgrRemoteVoice, UMgrVoiceNet, UDataModule,
-  UFormWait, USysBusiness, USysConst, USysDB;
+  USysBusiness, UBusinessPacker, UFormInputbox, UFormWait, USysConst, USysDB;
 
 const
   cFlag_ON    = 10;
@@ -802,6 +804,71 @@ begin
   //保存称重
 end;
 
+//Date: 2015-09-22
+//Parm: 净重[in];超发量[out]
+//Desc: 计算净重比订单超发了多少,没超发为0.
+function TfFrameManualPoundItem.VerifySanValue(var nValue: Double): Boolean;
+var nStr: string;
+    f,m: Double;
+begin
+  Result := False;
+  nStr := FInnerData.FProject;
+
+  if not (YT_ReadCardInfo(nStr) and YT_VerifyCardInfo(nStr)) then
+  begin
+    ShowDlg(nStr, sHint);
+    Exit;
+  end;
+
+  FListB.Text := PackerDecodeStr(nStr);
+  //读取订单
+  m := StrToFloat(FListB.Values['XCB_RemainNum']);
+  m := Float2Float(m, cPrecision, False);
+  //订单剩余量
+
+  f := Float2Float(nValue - FInnerData.FValue, cPrecision, True);
+  //开单量和净重差额
+  m := f - m;
+  //可用量是否够用
+
+  if m > 0 then
+  begin
+    nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+             '※.订单编号: %s' + #13#10 +
+             '※.提货净重: %.2f吨' + #13#10 +
+             '※.需 补 交: %.2f吨' + #13#10+#13#10 +
+             '请到开票室办理补单手续,然后再次称重.若有可用提货单,请点击"是"按钮继续.';
+    //xxxxx
+    
+    nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
+            FInnerData.FProject, nValue, m]);
+    if not QueryDlg(nStr, sHint) then Exit;
+
+    nStr := '';
+    while true do
+    begin
+      if not ShowInputBox('请输入新的提货单号:', '并单业务', nStr) then Exit;
+      nStr := Trim(nStr);
+
+      if (nStr = '') or  (CompareText(nStr, FInnerData.FProject) = 0) then
+      begin
+        ShowMsg('请输入有效单据', sHint);
+        Continue;
+      end;
+
+      FUIData.FMemo := nStr;
+      FUIData.FKZValue := m;
+
+      nValue := m;
+      Result := True; Break;
+    end;
+  end else
+  begin
+    nValue := 0;
+    Result := True;
+  end;
+end;
+
 //Desc: 保存销售
 function TfFrameManualPoundItem.SavePoundSale: Boolean;
 var nStr: string;
@@ -875,6 +942,14 @@ begin
           if not QueryDlg(nStr, sAsk) then Exit;
         end;  
       end;
+
+      FUIData.FMemo := '';
+      FUIData.FKZValue := 0;
+      //初始化补单数据
+
+      if (nVal > 0) and (FType = sFlag_San) and (not VerifySanValue(nNet)) then
+        Exit;
+      //散装净重超过开单量时,验证是否发超
     end;
   end;
 
@@ -896,6 +971,10 @@ begin
       FValue := FUIData.FMData.FValue;
       FOperator := gSysParam.FUserID;
     end;
+
+    FMemo := FUIData.FMemo;
+    FKZValue := FUIData.FKZValue;
+    //散装并单信息
 
     FPoundID := sFlag_Yes;
     //标记该项有称重数据

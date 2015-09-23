@@ -276,7 +276,10 @@ begin
   nTruck := FListA.Values['Truck'];
   if not VerifyTruckNO(nTruck, nData) then Exit;
 
-  nInt := GetInBillInterval;
+  if FListA.Values['BuDan'] = sFlag_Yes then
+       nInt := 0
+  else nInt := GetInBillInterval;
+  
   if nInt > 0 then
   begin
     nStr := 'Select %s as T_Now,T_LastTime,T_NoVerify,T_Valid From %s ' +
@@ -407,6 +410,8 @@ begin
     Values['CusID'] := FListC.Values['XCB_Client'];
     Values['CusName'] := FListC.Values['XCB_ClientName'];
     Values['CusPY'] := GetPinYinOfStr(FListC.Values['XCB_ClientName']);
+    
+    Values['WorkAddr'] := FListC.Values['XCB_WorkAddr'];
     Values['SaleID'] := FListC.Values['XCB_OperMan'];
     Values['SaleMan'] := '?';
     Values['ZKMoney'] := sFlag_No;
@@ -455,6 +460,7 @@ begin
               SF('L_ZhiKa', FListA.Values['Record']),
               SF('L_Project', FListA.Values['Project']),
               SF('L_Area', FListA.Values['Area']),
+              SF('L_WorkAddr', FListA.Values['WorkAddr']),
               SF('L_CusID', FListA.Values['CusID']),
               SF('L_CusName', FListA.Values['CusName']),
               SF('L_CusPY', FListA.Values['CusPY']),
@@ -1440,7 +1446,8 @@ begin
     Exit;
   end;
 
-  if (nBills[0].FType = sFlag_San) and (nInt > 1) then
+  if (nBills[0].FType = sFlag_San) and (nInt > 1) and
+     (FIn.FExtParam <> sFlag_TruckOut) then
   begin
     nData := '岗位[ %s ]提交了散装合单,该业务系统暂时不支持.';
     nData := Format(nData, [PostTypeToStr(FIn.FExtParam)]);
@@ -1655,63 +1662,214 @@ begin
       Exit;
     end;
 
-    with nBills[0] do
+    with nBills[nInt] do
     if FType = sFlag_San then //散装需校验是否发超
     begin
       nVal := FValue;
+      //开单量
       FValue :=Float2Float(nMVal - FPData.FValue, cPrecision, True) ;
       //新净重,实际提货量
-      f := Float2Float(FValue - nVal, cPrecision, True);
-      //开单量和净重差额
 
-      if f > 0 then
+      if (FKZValue <= 0) or (nBills[nInt].FPModel = sFlag_PoundCC) then
       begin
-        if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard,
-               nBills[0].FProject, '', @nOut) then
+        f := FValue - nVal;
+        //原开票新增冻结
+
+        nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal)
+              ], sTable_Bill, SF('L_ID', FID), False);
+        FListA.Add(nSQL); //更新提货量
+
+        nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
+                'Where C_ID=''%s''';
+        nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
+        FListA.Add(nSQL); //冻结量
+
+        if FSeal <> '' then
+        begin
+          nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
+                  'Where C_ID=''%s''';
+          nSQL := Format(nSQL, [sTable_YT_CodeInfo, f, FSeal]);
+          FListA.Add(nSQL); //水泥编号
+        end;
+      end else //发超量
+      begin
+        FValue := FValue - FKZValue;
+        //原订单最大可发量
+        f := FValue - nVal;
+        //原开票新增冻结
+
+        nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal)
+              ], sTable_Bill, SF('L_ID', FID), False);
+        FListA.Add(nSQL); //更新提货量
+
+        nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
+                'Where C_ID=''%s''';
+        nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
+        FListA.Add(nSQL); //冻结量
+
+        if FSeal <> '' then
+        begin
+          nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
+                  'Where C_ID=''%s''';
+          nSQL := Format(nSQL, [sTable_YT_CodeInfo, f, FSeal]);
+          FListA.Add(nSQL); //冻结量
+        end;
+
+        if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard, FMemo, '',
+           @nOut) then
         begin
           nData := nOut.FData;
           Exit;
         end; //读取订单
 
         FListB.Text := PackerDecodeStr(nOut.FData);
+        FListC.Text := PackerDecodeStr(FListB[0]);
         //订单信息
 
-        if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard,
-               FListB[0], '', @nOut) then
+        if FCusID <> FListC.Values['XCB_Client'] then
+        begin
+          nData := '客户信息不一致,详情如下:' + #13#10#13#10 +
+                   '※.提货客户: %s' + #13#10 +
+                   '※.合单客户: %s' + #13#10#13#10 +
+                   '请确认提货单号是否正确.';
+          nData := Format(nData, [FCusName, FListC.Values['XCB_ClientName']]);
+          Exit;
+        end;
+
+        if FStockNo <> FListC.Values['XCB_Cement'] then
+        begin
+          nData := '水泥品种信息不一致,详情如下:' + #13#10#13#10 +
+                   '※.提货品种: %s' + #13#10 +
+                   '※.合单品种: %s' + #13#10#13#10 +
+                   '请确认提货单号是否正确.';
+          nData := Format(nData, [FStockName, FListC.Values['XCB_CementName']]);
+          Exit;
+        end;
+
+        if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard, FListB[0],
+           sFlag_Yes, @nOut) then
         begin
           nData := nOut.FData;
           Exit;
         end; //验证订单有效性和可提量
 
         FListB.Text := PackerDecodeStr(nOut.FData);
-        m := StrToFloat(FListB.Values['XCB_RemainNum']);
+        nVal := StrToFloat(FListB.Values['XCB_RemainNum']);
         //订单剩余量
 
-        m := Float2Float(f - m, cPrecision, False);
+        m := Float2Float(FKZValue - nVal, cPrecision, False);
         //可用量是否够用
 
         if m > 0 then
         begin
           nData := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
                    '※.订单编号: %s' + #13#10 +
-                   '※.提货净重: %.2f吨' + #13#10 +
-                   '※.需 补 交: %.2f吨' + #13#10+#13#10 +
-                   '请到财务室办理"补交货款"手续,然后再次称重.';
-          nData := Format(nData, [FCusID, FCusName, FProject, FValue, m]);
+                   '※.订单可用: %.2f吨' + #13#10 +
+                   '※.订单缺少: %.2f吨' + #13#10+#13#10 +
+                   '请到财务室办理补单手续,然后再次称重.';
+          nData := Format(nData, [FCusID, FCusName, FMemo, nVal, m]);
           Exit;
         end;
+
+        //----------------------------------------------------------------------
+        FListC.Values['Group'] :=sFlag_BusGroup;
+        FListC.Values['Object'] := sFlag_BillNo;
+        //to get serial no
+
+        if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+              FListC.Text, sFlag_Yes, @nOut) then
+          raise Exception.Create(nOut.FData);
+        //xxxxx
+
+        nSQL := MakeSQLByStr([SF('L_ID', nOut.FData),
+                SF('L_Card', FCard),
+                SF('L_ZhiKa', FListB.Values['XCB_ID']),
+                SF('L_Project', FListB.Values['XCB_CardId']),
+                SF('L_Area', FListB.Values['pcb_name']),
+                SF('L_CusID', FListB.Values['XCB_Client']),
+                SF('L_CusName', FListB.Values['XCB_ClientName']),
+                SF('L_CusPY', GetPinYinOfStr(FListB.Values['XCB_ClientName'])),
+
+                SF('L_Type', FType),
+                SF('L_StockNo', FListB.Values['XCB_Cement']),
+                SF('L_StockName', FListB.Values['XCB_CementName']),
+                SF('L_Value', FKZValue, sfVal),
+                SF('L_Price', '0', sfVal),
+
+                SF('L_ZKMoney', sFlag_No),
+                SF('L_Truck', FTruck),
+                SF('L_Status', sFlag_TruckBFM),
+                SF('L_NextStatus', sFlag_TruckOut),
+                SF('L_InTime', sField_SQLServer_Now, sfVal),
+                SF('L_PDate', sField_SQLServer_Now, sfVal),
+                SF('L_PValue', '0', sfVal),
+                SF('L_MDate', sField_SQLServer_Now, sfVal),
+                SF('L_MValue', FKZValue, sfVal),
+                SF('L_LadeTime', sField_SQLServer_Now, sfVal),
+                                    
+                SF('L_Lading', sFlag_TiHuo),
+                SF('L_IsVIP', sFlag_TypeCommon),
+                SF('L_Seal', FListB.Values['XCB_CementCodeID']),
+                SF('L_HYDan', FListB.Values['XCB_CementCode']),
+                SF('L_Man', FIn.FBase.FFrom.FUser),
+                SF('L_Date', sField_SQLServer_Now, sfVal)
+                ], sTable_Bill, '', True);
+        FListA.Add(nSQL); //交货单
+
+        nStr := 'Select Count(*) From %s Where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CardInfo, FListB.Values['XCB_ID']]);
+
+        with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+        begin
+          if Fields[0].AsInteger > 0 then
+          begin
+            nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+            nSQL := Format(nSQL, [sTable_YT_CardInfo, FKZValue,
+                    FListB.Values['XCB_ID']]);
+            FListA.Add(nSQL);
+          end else
+          begin
+            nSQL := MakeSQLByStr([
+              SF('C_ID', FListB.Values['XCB_ID']),
+              SF('C_Card', FListB.Values['XCB_CardId']),
+              SF('C_Stock', FListB.Values['XCB_Cement']),
+              SF('C_Freeze', FKZValue, sfVal),
+              SF('C_HasDone', '0', sfVal)
+              ], sTable_YT_CardInfo, '', True);
+            FListA.Add(nSQL);
+          end;
+        end; //冻结开单量
+
+        if FListB.Values['XCB_CementCodeID'] <> '' then
+        begin
+          nStr := 'Select Count(*) From %s Where C_ID=''%s''';
+          nStr := Format(nStr, [sTable_YT_CodeInfo, FListB.Values['XCB_CementCodeID']]);
+
+          with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+          begin
+            if Fields[0].AsInteger > 0 then
+            begin
+              nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+              nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                      FKZValue, FListB.Values['XCB_CementCodeID']]);
+              FListA.Add(nSQL);
+            end else
+            begin
+              nSQL := MakeSQLByStr([
+                SF('C_ID', FListB.Values['XCB_CementCodeID']),
+                SF('C_Code', FListB.Values['XCB_CementCode']),
+                SF('C_Stock', FListB.Values['XCB_Cement']),
+                SF('C_Freeze', FKZValue, sfVal),
+                SF('C_HasDone', '0', sfVal)
+                ], sTable_YT_CodeInfo, '', True);
+              FListA.Add(nSQL);
+            end;
+          end;
+        end; //更新水泥编号冻结量        
       end;
-
-      nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal)
-              ], sTable_Bill, SF('L_ID', FID), False);
-      FListA.Add(nSQL); //更新提货量
-
-      nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
-              'Where C_ID=''%s''';
-      nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
-      FListA.Add(nSQL); //更新冻结量
     end;
 
+    //--------------------------------------------------------------------------
     nVal := 0;
     for nIdx:=Low(nBills) to High(nBills) do
     with nBills[nIdx] do

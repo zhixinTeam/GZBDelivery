@@ -16,7 +16,7 @@ inherited fFrameZTDispatch: TfFrameZTDispatch
     Width = 656
     Height = 37
     ButtonHeight = 35
-    ButtonWidth = 67
+    ButtonWidth = 79
     EdgeBorders = []
     Flat = True
     Images = FDM.ImageBar
@@ -31,7 +31,7 @@ inherited fFrameZTDispatch: TfFrameZTDispatch
       OnClick = BtnAddClick
     end
     object S1: TToolButton
-      Left = 67
+      Left = 79
       Top = 0
       Width = 8
       Caption = 'S1'
@@ -39,21 +39,22 @@ inherited fFrameZTDispatch: TfFrameZTDispatch
       Style = tbsSeparator
     end
     object BtnPrint: TToolButton
-      Left = 75
+      Left = 87
       Top = 0
-      Caption = ' '#35843#24230#27169#24335' '
+      Caption = #35843#24230#27169#24335
       ImageIndex = 19
+      Visible = False
       OnClick = BtnPrintClick
     end
     object BtnRefresh: TToolButton
-      Left = 142
+      Left = 166
       Top = 0
-      Caption = #21047#26032
+      Caption = '    '#21047#26032'    '
       ImageIndex = 14
       OnClick = BtnRefreshClick
     end
     object S3: TToolButton
-      Left = 209
+      Left = 245
       Top = 0
       Width = 8
       Caption = 'S3'
@@ -61,7 +62,7 @@ inherited fFrameZTDispatch: TfFrameZTDispatch
       Style = tbsSeparator
     end
     object BtnExit: TToolButton
-      Left = 217
+      Left = 253
       Top = 0
       Caption = #20851#38381
       ImageIndex = 7

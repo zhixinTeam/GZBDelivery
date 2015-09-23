@@ -32,7 +32,7 @@ inherited fFrameTruckQuery: TfFrameTruckQuery
     Height = 150
     object cxTextEdit1: TcxTextEdit [0]
       Left = 81
-      Top = 96
+      Top = 93
       Hint = 'T.L_Truck'
       ParentFont = False
       TabOrder = 3
@@ -54,7 +54,7 @@ inherited fFrameTruckQuery: TfFrameTruckQuery
     end
     object cxTextEdit3: TcxTextEdit [2]
       Left = 269
-      Top = 96
+      Top = 93
       Hint = 'T.L_StockName'
       ParentFont = False
       TabOrder = 4
@@ -90,7 +90,7 @@ inherited fFrameTruckQuery: TfFrameTruckQuery
     end
     object cxTextEdit5: TcxTextEdit [5]
       Left = 457
-      Top = 96
+      Top = 93
       Hint = 'T.L_Status'
       ParentFont = False
       TabOrder = 5
@@ -175,6 +175,14 @@ inherited fFrameTruckQuery: TfFrameTruckQuery
     object N1: TMenuItem
       Tag = 30
       Caption = #24050#20986#21378#36710#36742
+      OnClick = N1Click
+    end
+    object N5: TMenuItem
+      Caption = '-'
+    end
+    object N6: TMenuItem
+      Tag = 40
+      Caption = #25353#21457#36135#26102#38388
       OnClick = N1Click
     end
   end

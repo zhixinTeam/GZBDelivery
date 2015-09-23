@@ -1,7 +1,7 @@
 inherited fFormGetTruck: TfFormGetTruck
   Left = 503
-  Width = 448
-  Height = 309
+  Width = 491
+  Height = 332
   BorderStyle = bsSizeable
   Constraints.MinHeight = 220
   Constraints.MinWidth = 400
@@ -10,17 +10,17 @@ inherited fFormGetTruck: TfFormGetTruck
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
-    Width = 440
-    Height = 282
+    Width = 483
+    Height = 305
     inherited BtnOK: TButton
-      Left = 294
-      Top = 249
+      Left = 337
+      Top = 272
       Caption = #30830#23450
       TabOrder = 4
     end
     inherited BtnExit: TButton
-      Left = 364
-      Top = 249
+      Left = 407
+      Top = 272
       TabOrder = 5
     end
     object EditTruck: TcxButtonEdit [2]
@@ -62,6 +62,12 @@ inherited fFormGetTruck: TfFormGetTruck
       RowSelect = True
       SmallImages = FDM.ImageBar
       Style.Edges = [bLeft, bTop, bRight, bBottom]
+      Style.Font.Charset = GB2312_CHARSET
+      Style.Font.Color = clBlack
+      Style.Font.Height = -19
+      Style.Font.Name = #23435#20307
+      Style.Font.Style = []
+      Style.IsFontAssigned = True
       TabOrder = 2
       ViewStyle = vsReport
       OnDblClick = ListTruckDblClick
@@ -76,7 +82,7 @@ inherited fFormGetTruck: TfFormGetTruck
     end
     object Check1: TcxCheckBox [5]
       Left = 11
-      Top = 249
+      Top = 272
       Caption = #26174#31034#20840#37096#36710#36742
       ParentFont = False
       TabOrder = 3

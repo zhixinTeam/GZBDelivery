@@ -23,11 +23,11 @@ uses
   UFrameInvoice, UFormInvoice, UFormInvoiceAdjust,UFrameInvoiceK, UFormInvoiceK,
   UFrameInvoiceDtl, UFrameInvoiceZZ, UFormInvoiceZZAll, UFormInvoiceZZCus,
   UFormGetZhiKa, UFrameZhiKaDetail, UFormZhiKaFreeze,
-  UFormZhiKaPrice,
+  UFormZhiKaPrice, UFramePoundAuto, 
   {$ENDIF}
   UFrameBill, UFormBill, UFormGetTruck, UFrameQueryDiapatch, UFrameTruckQuery,
   UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
-  UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
+  UFormLadingSan, UFramePoundManual, UFramePMaterails,
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
   UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,

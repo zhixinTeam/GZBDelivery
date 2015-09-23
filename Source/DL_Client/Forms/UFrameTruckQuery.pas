@@ -34,6 +34,8 @@ type
     N2: TMenuItem;
     N3: TMenuItem;
     N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
@@ -43,6 +45,7 @@ type
     { Private declarations }
   protected
     FStart,FEnd: TDate;
+    FTimeS,FTimeE: TDate;
     //时间区间
     FFilteDate: Boolean;
     //筛选日期
@@ -70,6 +73,9 @@ end;
 procedure TfFrameTruckQuery.OnCreateFrame;
 begin
   inherited;
+  FTimeS := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+  FTimeE := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+  
   FFilteDate := True;
   InitDateRange(Name, FStart, FEnd);
 end;
@@ -159,6 +165,16 @@ begin
      begin
        FWhere := '';
        InitFormData('L_OutFact Is not Null');
+     end;
+    40: //按发货时间
+     begin
+       if ShowDateFilterForm(FTimeS, FTimeE, True) then
+       begin
+         FFilteDate := False;
+         FWhere := '(L_LadeTime>=''%s'' and L_LadeTime <''%s'')';
+         FWhere := Format(FWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
+         InitFormData(FWhere);
+       end;
      end;
   end;
 end;

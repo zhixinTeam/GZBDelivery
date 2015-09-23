@@ -1,8 +1,8 @@
 inherited fFrameBill: TfFrameBill
-  Width = 1028
-  Height = 493
+  Width = 1065
+  Height = 513
   inherited ToolBar1: TToolBar
-    Width = 1028
+    Width = 1065
     inherited BtnAdd: TToolButton
       Caption = #24320#21333
       OnClick = BtnAddClick
@@ -16,17 +16,17 @@ inherited fFrameBill: TfFrameBill
   end
   inherited cxGrid1: TcxGrid
     Top = 205
-    Width = 1028
-    Height = 288
+    Width = 1065
+    Height = 308
     inherited cxView1: TcxGridDBTableView
       PopupMenu = PMenu1
     end
   end
   inherited dxLayout1: TdxLayoutControl
-    Width = 1028
+    Width = 1065
     Height = 138
     object EditCus: TcxButtonEdit [0]
-      Left = 244
+      Left = 249
       Top = 36
       ParentFont = False
       Properties.Buttons = <
@@ -37,10 +37,10 @@ inherited fFrameBill: TfFrameBill
       Properties.OnButtonClick = EditIDPropertiesButtonClick
       TabOrder = 1
       OnKeyPress = OnCtrlKeyPress
-      Width = 125
+      Width = 105
     end
-    object EditCard: TcxButtonEdit [1]
-      Left = 432
+    object EditTruck: TcxButtonEdit [1]
+      Left = 417
       Top = 36
       ParentFont = False
       Properties.Buttons = <
@@ -51,14 +51,14 @@ inherited fFrameBill: TfFrameBill
       Properties.OnButtonClick = EditIDPropertiesButtonClick
       TabOrder = 2
       OnKeyPress = OnCtrlKeyPress
-      Width = 125
+      Width = 105
     end
     object cxTextEdit1: TcxTextEdit [2]
       Left = 81
       Top = 94
       Hint = 'T.L_ID'
       ParentFont = False
-      TabOrder = 5
+      TabOrder = 6
       Width = 100
     end
     object cxTextEdit2: TcxTextEdit [3]
@@ -66,7 +66,7 @@ inherited fFrameBill: TfFrameBill
       Top = 94
       Hint = 'T.L_CusName'
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 7
       Width = 125
     end
     object cxTextEdit4: TcxTextEdit [4]
@@ -74,7 +74,7 @@ inherited fFrameBill: TfFrameBill
       Top = 94
       Hint = 'T.L_Truck'
       ParentFont = False
-      TabOrder = 8
+      TabOrder = 9
       Width = 100
     end
     object cxTextEdit3: TcxTextEdit [5]
@@ -82,11 +82,11 @@ inherited fFrameBill: TfFrameBill
       Top = 94
       Hint = 'T.L_Value'
       ParentFont = False
-      TabOrder = 9
+      TabOrder = 10
       Width = 100
     end
     object EditDate: TcxButtonEdit [6]
-      Left = 620
+      Left = 753
       Top = 36
       ParentFont = False
       Properties.Buttons = <
@@ -95,7 +95,7 @@ inherited fFrameBill: TfFrameBill
           Kind = bkEllipsis
         end>
       Properties.OnButtonClick = EditDatePropertiesButtonClick
-      TabOrder = 3
+      TabOrder = 4
       Width = 176
     end
     object EditLID: TcxButtonEdit [7]
@@ -110,24 +110,38 @@ inherited fFrameBill: TfFrameBill
       Properties.OnButtonClick = EditIDPropertiesButtonClick
       TabOrder = 0
       OnKeyPress = OnCtrlKeyPress
-      Width = 100
+      Width = 105
     end
     object Edit1: TcxTextEdit [8]
       Left = 432
       Top = 94
       Hint = 'T.L_StockName'
       ParentFont = False
-      TabOrder = 7
+      TabOrder = 8
       Width = 125
     end
     object CheckDelete: TcxCheckBox [9]
-      Left = 801
+      Left = 934
       Top = 36
       Caption = #26597#35810#24050#21024#38500
       ParentFont = False
-      TabOrder = 4
+      TabOrder = 5
       Transparent = True
       OnClick = CheckDeleteClick
+      Width = 105
+    end
+    object EditYTCard: TcxButtonEdit [10]
+      Left = 585
+      Top = 36
+      ParentFont = False
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      Properties.OnButtonClick = EditIDPropertiesButtonClick
+      TabOrder = 3
+      OnKeyPress = OnCtrlKeyPress
       Width = 105
     end
     inherited dxGroup1: TdxLayoutGroup
@@ -143,8 +157,13 @@ inherited fFrameBill: TfFrameBill
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item2: TdxLayoutItem
-          Caption = #30913#21345#32534#21495':'
-          Control = EditCard
+          Caption = #36710#29260#21495#30721':'
+          Control = EditTruck
+          ControlOptions.ShowBorder = False
+        end
+        object dxlytmLayout1Item11: TdxLayoutItem
+          Caption = #21345#29255#32534#21495':'
+          Control = EditYTCard
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item7: TdxLayoutItem
@@ -190,15 +209,15 @@ inherited fFrameBill: TfFrameBill
   end
   inherited cxSplitter1: TcxSplitter
     Top = 197
-    Width = 1028
+    Width = 1065
   end
   inherited TitlePanel1: TZnBitmapPanel
-    Width = 1028
+    Width = 1065
     inherited TitleBar: TcxLabel
       Caption = #24320#25552#36135#21333#35760#24405#26597#35810
       Style.IsFontAssigned = True
-      Width = 1028
-      AnchorX = 514
+      Width = 1065
+      AnchorX = 533
       AnchorY = 11
     end
   end

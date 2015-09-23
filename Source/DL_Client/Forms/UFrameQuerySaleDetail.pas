@@ -36,11 +36,14 @@ type
     dxLayout1Item4: TdxLayoutItem;
     EditBill: TcxButtonEdit;
     dxLayout1Item7: TdxLayoutItem;
+    N1: TMenuItem;
+    N2: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
+    procedure N2Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -91,7 +94,7 @@ function TfFrameSaleDetailQuery.InitFormDataSQL(const nWhere: string): string;
 begin
   FEnableBackDB := True;
   EditDate.Text := Format('%s жа %s', [Date2Str(FStart), Date2Str(FEnd)]);
-  Result := 'Select *,(L_Value*L_Price) as L_Money From $Bill b ';
+  Result := 'Select b.* From $Bill b ';
 
   if FJBWhere = '' then
   begin
@@ -166,8 +169,20 @@ begin
   if ShowDateFilterForm(FTimeS, FTimeE, True) then
   try
     FJBWhere := '(L_OutFact>=''%s'' and L_OutFact <''%s'')';
-    FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE),
-                sFlag_BillPick, sFlag_BillPost]);
+    FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
+    InitFormData('');
+  finally
+    FJBWhere := '';
+  end;
+end;
+
+//Desc:
+procedure TfFrameSaleDetailQuery.N2Click(Sender: TObject);
+begin
+  if ShowDateFilterForm(FTimeS, FTimeE, True) then
+  try
+    FJBWhere := '(L_LadeTime>=''%s'' and L_LadeTime <''%s'')';
+    FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
     InitFormData('');
   finally
     FJBWhere := '';

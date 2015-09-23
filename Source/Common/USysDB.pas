@@ -646,7 +646,7 @@ ResourceString
 
   sSQL_NewBill = 'Create Table $Table(R_ID $Inc, L_ID varChar(20),' +
        'L_Card varChar(16), L_ZhiKa varChar(25), L_Project varChar(100),' +
-       'L_Area varChar(50),' +
+       'L_Area varChar(50), L_WorkAddr varChar(100),' +
        'L_CusID varChar(25), L_CusName varChar(80), L_CusPY varChar(80),' +
        'L_SaleID varChar(25), L_SaleMan varChar(32),' +
        'L_Type Char(1), L_StockNo varChar(20), L_StockName varChar(80),' +
@@ -669,6 +669,7 @@ ResourceString
    *.L_Card: 磁卡号
    *.L_ZhiKa: 纸卡号
    *.L_Area: 区域
+   *.L_WorkAddr: 工地
    *.L_CusID,L_CusName,L_CusPY:客户
    *.L_SaleID,L_SaleMan:业务员
    *.L_Type: 类型(袋,散)

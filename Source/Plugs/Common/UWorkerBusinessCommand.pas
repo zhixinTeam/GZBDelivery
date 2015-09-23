@@ -909,7 +909,8 @@ begin
           '  XCB_SourceType,' +                   //来源类型
           '  XCB_Option,' +                       //控制方式:0,控单价;1,控数量
           '  XCB_Client,' +                       //客户编号
-          '  XOB_Name as XCB_ClientName,' +       //客户名称
+          '  xob.XOB_Name as XCB_ClientName,' +   //客户名称
+          '  xgd.XOB_Name as XCB_WorkAddr,' +     //工程工地
           '  XCB_Alias,' +                        //客户别名
           '  XCB_OperMan,' +                      //业务员
           '  XCB_Area,' +                         //销售区域
@@ -936,6 +937,7 @@ begin
           '  pcb.pcb_id, pcb.pcb_name ' +         //销售片区
           'from XS_Card_Base xcb' +
           '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
+          '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
           '  left join PB_Code_Material pcm on pcm.PCM_ID = xcb.XCB_CementType' +
           '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
           '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
@@ -981,6 +983,7 @@ begin
         FListB.Values['XCB_Option']     := FieldByName('XCB_Option').AsString;
         FListB.Values['XCB_Client']     := FieldByName('XCB_Client').AsString;
         FListB.Values['XCB_ClientName'] := FieldByName('XCB_ClientName').AsString;
+        FListB.Values['XCB_WorkAddr']   := FieldByName('XCB_WorkAddr').AsString;
         FListB.Values['XCB_Alias']      := FieldByName('XCB_Alias').AsString;
         FListB.Values['XCB_OperMan']    := FieldByName('XCB_OperMan').AsString;
         FListB.Values['XCB_Area']       := FieldByName('XCB_Area').AsString;
@@ -1179,7 +1182,7 @@ begin
           Exit;
         end;
       end;
-
+     {
       if Values['XCB_CementCode'] = '' then
       begin
         nData := '※.品种编号: %s' + #13#10 +
@@ -1188,6 +1191,7 @@ begin
         nData := Format(nData, [Values['XCB_Cement'], Values['XCB_CementName']]);
         Exit;
       end;
+     }
     finally
       gDBConnManager.ReleaseConnection(nWorker);
     end;
@@ -1371,7 +1375,7 @@ begin
 
         nSQL := MakeSQLByStr([SF('XLB_ID', nRID),
                 SF('XLB_LadeId', nBills[nIdx].FID),
-                SF('XLB_SetDate', 'sysdate', sfVal),
+                SF('XLB_SetDate', 'trunc(sysdate)', sfVal),
                 SF('XLB_LadeType', '103'),
                 SF('XLB_Origin', '101'),
                 SF('XLB_Client', nBills[nIdx].FCusID),
