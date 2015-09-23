@@ -298,6 +298,7 @@ end;
 procedure TfFormMaterails.BtnOKClick(Sender: TObject);
 var nStr,nID,nTmp,nSQL: string;
     i,nPos,nCount: Integer;
+    nList: TStrings;
 begin
   EditID.Text := Trim(EditID.Text);
   if EditID.Text = '' then
@@ -325,17 +326,21 @@ begin
     ShowMsg('时限为>0的整数', sHint); Exit;
   end;
 
+  nList := TStringList.Create;
+  nList.Text := SF('M_PY', GetPinYinOfStr(EditName.Text));
+
+  if FRecordID = '' then
+  begin
+    nSQL := MakeSQLByForm(Self, sTable_Materails, '', True, GetData, nList);
+  end else
+  begin
+    nStr := 'M_ID=''' + FRecordID + '''';
+    nSQL := MakeSQLByForm(Self, sTable_Materails, nStr, False, GetData, nList);
+  end;      
+
+  nList.Free;
   FDM.ADOConn.BeginTrans;
   try
-    if FRecordID = '' then
-    begin
-      nSQL := MakeSQLByForm(Self, sTable_Materails, '', True, GetData);
-    end else
-    begin
-      nStr := 'M_ID=''' + FRecordID + '''';
-      nSQL := MakeSQLByForm(Self, sTable_Materails, nStr, False, GetData);
-    end;
-
     FDM.ExecuteSQL(nSQL);
     if FRecordID = '' then
     begin

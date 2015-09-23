@@ -765,9 +765,9 @@ ResourceString
        'D_PValue $Float, D_PDate DateTime, D_PMan varChar(32),' +
        'D_MValue $Float, D_MDate DateTime, D_MMan varChar(32),' +
        'D_YTime DateTime, D_YMan varChar(32), ' +
-       'D_KZValue $Float, D_AKValue $Float,' +
+       'D_Value $Float,D_KZValue $Float, D_AKValue $Float,' +
        'D_YLine varChar(15), D_YLineName varChar(32), ' +
-       'D_DelMan varChar(32), D_DelDate DateTime, ' +
+       'D_DelMan varChar(32), D_DelDate DateTime, D_YSResult Char(1), ' +
        'D_OutFact DateTime, D_OutMan varChar(32), D_Memo varChar(500))';
   {-----------------------------------------------------------------------------
    采购订单明细表: OrderDetail
@@ -782,8 +782,9 @@ ResourceString
    *.D_PValue,D_PDate,D_PMan: 称皮重
    *.D_MValue,D_MDate,D_MMan: 称毛重
    *.D_YTime,D_YMan: 收货时间,验收人,
-   *.D_KZValue,D_AKValue: 验收扣除(明扣),暗扣
+   *.D_Value,D_KZValue,D_AKValue: 收货量,验收扣除(明扣),暗扣
    *.D_YLine,D_YLineName: 收货通道
+   *.D_YSResult: 验收结果
    *.D_OutFact,D_OutMan: 出厂放行
   -----------------------------------------------------------------------------}
 

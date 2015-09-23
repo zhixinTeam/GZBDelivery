@@ -200,7 +200,7 @@ procedure TfFrameOrderDetail.N3Click(Sender: TObject);
 var nStr, nSQL, nP, nID, nOrderID,nCardType: string;
     nOutFact : Boolean;
     nIdx: Integer;
-    nVal: Double;
+    nVal, nFreeze: Double;
 begin
   inherited;
   if cxView1.DataController.GetSelectedCount > 0 then
@@ -209,9 +209,11 @@ begin
     if not QueryDlg('确认删除该采购订单么?', sAsk) then Exit;
 
     nP       := SQLQuery.FieldByName('D_MDate').AsString;
-    nVal     := SQLQuery.FieldByName('O_Value').AsFloat;
     nOrderID := SQLQuery.FieldByName('D_OID').AsString;
     nCardType:= SQLQuery.FieldByName('O_CType').AsString;
+
+    nFreeze  := SQLQuery.FieldByName('O_Value').AsFloat;
+    nVal     := SQLQuery.FieldByName('D_NetWeight').AsFloat;
 
     if nP <> '' then
          nOutFact := True
@@ -235,34 +237,30 @@ begin
     try
       if nOutFact then
       begin
-        nSQL := 'Update $OrderBase Set B_SentValue=B_SentValue-$Val,' +
-                'B_RestValue=B_RestValue+$Val '+
-                'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'') and '+
-                'B_Value>0';
-        nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
-                MI('$Order', sTable_Order),MI('$ID', nOrderID),
-                MI('$Val', FloatToStr(nVal))]);
-        FDM.ExecuteSQL(nSQL);
-
         nSQL := 'Update $OrderBase Set B_SentValue=B_SentValue-$Val ' +
-                'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'') and '+
-                'B_Value<=0';
+                'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'')';
         nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
                 MI('$Order', sTable_Order),MI('$ID', nOrderID),
                 MI('$Val', FloatToStr(nVal))]);
         FDM.ExecuteSQL(nSQL);
+        //减少已验收量
       end else
       begin
         if nCardType = sFlag_OrderCardL then
         begin
-          nSQL := 'Update $OrderBase Set B_FreezeValue=B_FreezeValue-$Val  ' +
+          nSQL := 'Update $OrderBase Set B_FreezeValue=B_FreezeValue-$FreezeVal  ' +
                   'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'') and '+
                   'B_Value>0'; 
 
           nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
                   MI('$Order', sTable_Order),MI('$ID', nOrderID),
-                  MI('$Val', FloatToStr(nVal))]);
+                  MI('$FreezeVal', FloatToStr(nFreeze))]);
           FDM.ExecuteSQL(nSQL);
+
+          nSQL := 'Update $Order Set O_Value=0.00 Where O_ID=''$ID'''; 
+          nSQL := MacroValue(nSQL, [MI('$Order', sTable_Order),MI('$ID', nOrderID)]);
+          FDM.ExecuteSQL(nSQL);
+          //防止二次进厂删除重复冻结量
         end;
       end;  
 

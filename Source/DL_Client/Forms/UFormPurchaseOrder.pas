@@ -185,7 +185,8 @@ begin
     EditSalesMan.Text := Values['SQ_SaleName'];
     EditArea.Text     := Values['SQ_Area'];
     EditProject.Text  := Values['SQ_Project'];
-    EditValue.Text    := Values['SQ_RestValue'];
+    //EditValue.Text    := Values['SQ_RestValue'];
+    EditValue.Text    := '0.00';
   end;
 end;
 

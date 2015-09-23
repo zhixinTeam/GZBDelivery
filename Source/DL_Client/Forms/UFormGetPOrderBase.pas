@@ -146,7 +146,7 @@ begin
   ListQuery.Items.Clear;
 
   nStr := 'Select *,(B_Value-B_SentValue-B_FreezeValue) As B_MaxValue From $TB ' +
-          'Where ((B_RestValue>0) or (B_Value=0)) ' +
+          'Where ((B_Value-B_SentValue>0) or (B_Value=0)) ' +
           'And B_BStatus=''Y'' ';
   if nQueryType = '1' then //π©”¶…Ã
   begin

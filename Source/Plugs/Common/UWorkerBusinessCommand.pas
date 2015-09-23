@@ -1815,9 +1815,13 @@ begin
             ], sTable_Order, '', True);
     gDBConnManager.WorkerExec(FDBConn, nStr);
 
-    nStr := 'Update %s Set B_FreezeValue=B_FreezeValue+%.2f Where B_ID=''%s''';
-    nStr := Format(nStr, [sTable_OrderBase, nVal, FListA.Values['SQID']]);
-    gDBConnManager.WorkerExec(FDBConn, nStr);
+    if FListA.Values['CardType'] = sFlag_OrderCardL then
+    begin
+      nStr := 'Update %s Set B_FreezeValue=B_FreezeValue+%.2f ' +
+              'Where B_ID = ''%s'' and B_Value>0';
+      nStr := Format(nStr, [sTable_OrderBase, nVal,FListA.Values['SQID']]);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+    end;
 
     nIdx := Length(FOut.FData);
     if Copy(FOut.FData, nIdx, 1) = ',' then
@@ -2150,8 +2154,10 @@ begin
     end;
   end;
 
-  nStr := 'Select D_ID,D_OID,D_PID,D_YLine,D_Status,D_NextStatus,D_KZValue,' +
-          'P_PStation,P_PValue,P_PDate,P_MStation,P_PMan,P_MValue,P_MDate,P_MMan ' +
+  nStr := 'Select D_ID,D_OID,D_PID,D_YLine,D_Status,D_NextStatus,' +
+          'D_KZValue,D_Memo,D_YSResult,' +
+          'P_PStation,P_PValue,P_PDate,P_PMan,' +
+          'P_MStation,P_MValue,P_MDate,P_MMan ' +
           'From $OD od Left join $PD pd on pd.P_Order=od.D_ID ' +
           'Where D_OutFact Is Null And D_OID=''$OID''';
   //xxxxx
@@ -2234,7 +2240,9 @@ begin
           FOperator := FieldByName('P_MMan').AsString;
         end;
 
-        FKZValue  := FieldByName('D_KZValue').AsFloat;  
+        FKZValue  := FieldByName('D_KZValue').AsFloat;
+        FMemo     := FieldByName('D_Memo').AsString;
+        FYSValid  := FieldByName('D_YSResult').AsString;
         FSelected := True;
 
         Inc(nIdx);
@@ -2387,6 +2395,7 @@ begin
               SF('D_YTime', sField_SQLServer_Now, sfVal),
               SF('D_YMan', FIn.FBase.FFrom.FUser),
               SF('D_KZValue', FKZValue, sfVal),
+              SF('D_YSResult', FYSValid),
               SF('D_Memo', FMemo)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL);
@@ -2401,6 +2410,7 @@ begin
       nStr := SF('P_Order', FID);
       //where
 
+      nVal := FMData.FValue - FPData.FValue -FKZValue;
       if FNextStatus = sFlag_TruckBFP then
       begin
         nSQL := MakeSQLByStr([
@@ -2424,7 +2434,8 @@ begin
                 SF('D_PMan', FIn.FBase.FFrom.FUser),
                 SF('D_MValue', FMData.FValue, sfVal),
                 SF('D_MDate', DateTime2Str(FMData.FDate)),
-                SF('D_MMan', FMData.FOperator)
+                SF('D_MMan', FMData.FOperator),
+                SF('D_Value', nVal, sfVal)
                 ], sTable_OrderDtl, SF('D_ID', FID), False);
         FListA.Add(nSQL);
 
@@ -2444,38 +2455,31 @@ begin
                 SF('D_NextStatus', sFlag_TruckOut),
                 SF('D_MValue', FMData.FValue, sfVal),
                 SF('D_MDate', sField_SQLServer_Now, sfVal),
-                SF('D_MMan', FMData.FOperator)
+                SF('D_MMan', FMData.FOperator),
+                SF('D_Value', nVal, sfVal)
                 ], sTable_OrderDtl, SF('D_ID', FID), False);
         FListA.Add(nSQL);
       end;
 
-      nVal := FMData.FValue - FPData.FValue -FKZValue;
-      nSQL := 'Update $OrderBase Set B_SentValue=B_SentValue+$Val,' +
-              'B_RestValue=B_RestValue-$Val,B_FreezeValue=B_FreezeValue-$KDVal '+
+      if FYSValid <> sFlag_NO then  //验收成功，调整已收货量
+      begin
+        nSQL := 'Update $OrderBase Set B_SentValue=B_SentValue+$Val ' +
+                'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'')';
+        nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
+                MI('$Order', sTable_Order),MI('$ID', FZhiKa),
+                MI('$Val', FloatToStr(nVal))]);
+        FListA.Add(nSQL);
+        //调整已收货；
+      end;
+
+      nSQL := 'Update $OrderBase Set B_FreezeValue=B_FreezeValue-$KDVal ' +
               'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'''+
               ' And O_CType= ''L'') and B_Value>0';
       nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
               MI('$Order', sTable_Order),MI('$ID', FZhiKa),
-              MI('$KDVal', FloatToStr(FValue)),
-              MI('$Val', FloatToStr(nVal))]);
+              MI('$KDVal', FloatToStr(FValue))]);
       FListA.Add(nSQL);
-
-      nVal := FMData.FValue - FPData.FValue -FKZValue;
-      nSQL := 'Update $OrderBase Set B_SentValue=B_SentValue+$Val ' +
-              'Where B_ID = (select O_BID From $Order Where O_ID=''$ID'') and '+
-              'B_Value<=0';
-      nSQL := MacroValue(nSQL, [MI('$OrderBase', sTable_OrderBase),
-              MI('$Order', sTable_Order),MI('$ID', FZhiKa),
-              MI('$KDVal', FloatToStr(FValue)),
-              MI('$Val', FloatToStr(nVal))]);
-      FListA.Add(nSQL);
-      //调整已发送和剩余量,冻结量
-
-      nSQL := 'Update $Order Set O_Value=$Val Where O_ID=''$ID''';
-      nSQL := MacroValue(nSQL, [MI('$Order', sTable_Order),MI('$ID', FZhiKa),
-              MI('$Val', FloatToStr(nVal))]);
-      FListA.Add(nSQL);
-      //调整已发送和剩余量,冻结量
+      //调整冻结量
     end;
   end else
 

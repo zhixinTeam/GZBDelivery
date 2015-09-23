@@ -146,6 +146,7 @@ type
     FPoundID    : string;          //称重记录
     FSelected   : Boolean;         //选中状态
 
+    FYSValid    : string;          //验收通过'Y';拒收'N'
     FKZValue    : Double;          //供应扣除
     FMemo       : string;          //动作备注
   end;
@@ -278,6 +279,7 @@ begin
              FKZValue := StrToFloatDef(nStr, 0)
         else FKZValue := 0;
 
+        FYSValid := Values['YSValid'];
         FMemo := Values['Memo'];
       end;
 
@@ -353,6 +355,7 @@ begin
              Values['Selected'] := 'Y'
         else Values['Selected'] := 'N';
 
+        Values['YSValid']    := FYSValid;
         Values['KZValue']    := FloatToStr(FKZValue);
         Values['Memo']       := FMemo;
       end;

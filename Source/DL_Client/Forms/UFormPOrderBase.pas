@@ -334,10 +334,10 @@ begin
     Values['SaleMan']       := GetStrValue(EditSalesMan.Text);
 
     Values['ProviderID']    := FProvider.FID;
-    Values['ProviderName']  := FProvider.FName;
+    Values['ProviderName']  := Trim(EditProvider.Text);
 
     Values['StockNO']       := FMeterail.FID;
-    Values['StockName']     := FMeterail.FName;
+    Values['StockName']     := Trim(EditMate.Text);
 
     Values['Value']         := Format('%.2f', [nVal]);
     Values['LimValue']      := Format('%.2f', [nLimVal]);

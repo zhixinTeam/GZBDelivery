@@ -26,6 +26,7 @@ type
     Label1: TLabel;
     Label2: TLabel;
     EditKZMemo: TComboEdit;
+    CheckBox1: TCheckBox;
     procedure tmrGetOrderTimer(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
@@ -33,6 +34,7 @@ type
     procedure BtnCancelClick(Sender: TObject);
     procedure BtnOKClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
+    procedure CheckBox1Change(Sender: TObject);
   private
     { Private declarations }
   public
@@ -57,11 +59,17 @@ begin
 end;
 
 procedure TFrmShowOrderInfo.BtnOKClick(Sender: TObject);
+var nYSVaid: string;
 begin
   inherited;
   if Length(gOrders)>0 then
   with gOrders[0] do
   begin
+    if CheckBox1.IsChecked then
+          nYSVaid := 'N'
+    else  nYSVaid := 'Y';
+
+    FYSValid := nYSVaid;
     FKZValue := StrToFloatDef(EditKZValue.Text, 0);
     FMemo    := EditKZMemo.Text;
 
@@ -72,6 +80,14 @@ begin
     end;
 
   end;
+end;
+
+procedure TFrmShowOrderInfo.CheckBox1Change(Sender: TObject);
+begin
+  inherited;
+  if CheckBox1.IsChecked then
+       Label2.Text := '拒收原因'
+  else Label2.Text := '扣减原因';
 end;
 
 procedure TFrmShowOrderInfo.FormActivate(Sender: TObject);
@@ -139,7 +155,7 @@ begin
   for nIdx := Low(gOrders) to High(gOrders) do
   with gOrders[nIdx] do
   begin
-    FSelected := (FNextStatus='X') or (FNextStatus='M') or (FStatus='M');
+    FSelected := (FNextStatus='X') or (FNextStatus='M');
     if FSelected then Inc(nInt);
   end;
 

@@ -137,6 +137,7 @@ type
 
     FSeal       : string;          //编号ID
     FHYDan      : string;          //水泥编号
+    FYSValid    : string;          //验收结果，Y验收成功；N拒收；
     FKZValue    : Double;          //供应扣除
     FMemo       : string;          //动作备注
   end;
@@ -268,7 +269,8 @@ begin
 
         FSeal   := Values['Seal'];
         FHYDan  := Values['HYDan'];
-        FMemo   := Values['Memo'];
+        FMemo   := Values['Memo']; 
+        FYSValid:= Values['YSValid'];
       end;
 
       Inc(nInt);
@@ -347,6 +349,8 @@ begin
         Values['Seal']       := FSeal;
         Values['HYDan']      := FHYDan;
         Values['KZValue']    := FloatToStr(FKZValue);
+        
+        Values['YSValid']    := FYSValid;
         Values['Memo']       := FMemo;
       end;
 

@@ -16,12 +16,12 @@ inherited fFormPurchasing: TfFormPurchasing
       Left = 324
       Top = 495
       Caption = #25918#34892
-      TabOrder = 6
+      TabOrder = 7
     end
     inherited BtnExit: TButton
       Left = 394
       Top = 495
-      TabOrder = 7
+      TabOrder = 8
     end
     object ListInfo: TcxMCListBox [2]
       Left = 23
@@ -102,6 +102,15 @@ inherited fFormPurchasing: TfFormPurchasing
       TabOrder = 5
       Width = 176
     end
+    object YSValid: TcxCheckBox [8]
+      Left = 11
+      Top = 495
+      Caption = #25298#25910
+      ParentFont = False
+      TabOrder = 6
+      Transparent = True
+      Width = 121
+    end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
         Caption = #37319#36141#21333#20449#24687
@@ -157,6 +166,14 @@ inherited fFormPurchasing: TfFormPurchasing
             Control = EditMemo
             ControlOptions.ShowBorder = False
           end
+        end
+      end
+      inherited dxLayout1Group1: TdxLayoutGroup
+        object dxLayout1Item8: TdxLayoutItem [0]
+          Caption = 'cxCheckBox1'
+          ShowCaption = False
+          Control = YSValid
+          ControlOptions.ShowBorder = False
         end
       end
     end

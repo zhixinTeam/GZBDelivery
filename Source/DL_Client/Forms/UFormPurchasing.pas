@@ -10,7 +10,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   USysBusiness, UFormNormal, cxGraphics, cxControls, cxLookAndFeels,
   cxLookAndFeelPainters, ComCtrls, cxContainer, cxEdit, cxTextEdit,
-  cxListView, cxMCListBox, dxLayoutControl, StdCtrls;
+  cxListView, cxMCListBox, dxLayoutControl, StdCtrls, cxCheckBox;
 
 type
   TfFormPurchasing = class(TfFormNormal)
@@ -29,6 +29,8 @@ type
     EditMemo: TcxTextEdit;
     dxLayout1Item6: TdxLayoutItem;
     dxLayout1Group3: TdxLayoutGroup;
+    YSValid: TcxCheckBox;
+    dxLayout1Item8: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ListBillSelectItem(Sender: TObject; Item: TListItem;
@@ -86,7 +88,7 @@ begin
   for nIdx:=Low(gBills) to High(gBills) do
   with gBills[nIdx] do
   begin
-    FSelected := FNextStatus = sFlag_TruckXH;
+    FSelected := (FNextStatus = sFlag_TruckXH) or (FNextStatus = sFlag_TruckBFM);
     if FSelected then
     begin
       Inc(nInt);
@@ -163,8 +165,9 @@ begin
     Caption := FID;
     SubItems.Add(Format('%.3f', [FValue]));
     SubItems.Add(FStockName);
-
     ImageIndex := 11;
+    EditMemo.Text := FMemo;
+
     Data := Pointer(nIdx);
   end;
 
@@ -188,6 +191,7 @@ begin
 
       EditKZValue.Text := FloatToStr(FKZValue);
       EditMemo.Text := FMemo;
+      YSValid.Checked := FYSValid = sFlag_No;
     end;
 
     FItemIndex := nIdx;
@@ -214,6 +218,13 @@ end;
 
 procedure TfFormPurchasing.BtnOKClick(Sender: TObject);
 begin
+  with gBills[0] do
+  begin
+    if YSValid.Checked then
+          FYSValid := sFlag_NO
+    else  FYSValid := sFlag_Yes;
+  end;
+
   if SavePurchaseOrders(sFlag_TruckXH, gBills) then
   begin
     ShowMsg('原材料验收成功', sHint);

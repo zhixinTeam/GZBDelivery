@@ -1,16 +1,16 @@
 inherited FrmShowOrderInfo: TFrmShowOrderInfo
   Caption = 'frmFormBase1'
-  ClientWidth = 351
+  ClientWidth = 311
   OnActivate = FormActivate
   OnKeyUp = FormKeyUp
   OnShow = FormShow
   DesignerMasterStyle = 0
   inherited MainVertScrollBox: TScrollBox
-    Size.Width = 351.000000000000000000
-    Viewport.Width = 351.000000000000000000
+    Size.Width = 311.000000000000000000
+    Viewport.Width = 311.000000000000000000
     Viewport.Height = 480.000000000000000000
     inherited MainLayout: TLayout
-      Size.Width = 351.000000000000000000
+      Size.Width = 311.000000000000000000
       object Label6: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
@@ -53,7 +53,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
         TabOrder = 9
         TextSettings.Font.Size = 16.000000000000000000
         Position.X = 96.000000000000000000
-        Position.Y = 280.000000000000000000
+        Position.Y = 264.000000000000000000
         Size.Width = 193.000000000000000000
         Size.Height = 24.000000000000000000
         Size.PlatformDefault = False
@@ -63,7 +63,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object Label10: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 280.000000000000000000
+        Position.Y = 264.000000000000000000
         Size.Width = 105.000000000000000000
         Size.Height = 23.000000000000000000
         Size.PlatformDefault = False
@@ -73,7 +73,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object Label8: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 232.000000000000000000
+        Position.Y = 224.000000000000000000
         Size.Width = 82.000000000000000000
         Size.Height = 23.000000000000000000
         Size.PlatformDefault = False
@@ -83,7 +83,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object lblTruck: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 104.000000000000000000
-        Position.Y = 232.000000000000000000
+        Position.Y = 224.000000000000000000
         Size.Width = 209.000000000000000000
         Size.Height = 23.000000000000000000
         Size.PlatformDefault = False
@@ -139,7 +139,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object Label2: TLabel
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 328.000000000000000000
+        Position.Y = 304.000000000000000000
         Size.Width = 105.000000000000000000
         Size.Height = 23.000000000000000000
         Size.PlatformDefault = False
@@ -153,14 +153,27 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
         Items.Strings = (
           #27700#20998
           #26434#36136
+          #19981#21512#26684
           #20854#23427)
         ItemIndex = -1
         Position.X = 96.000000000000000000
-        Position.Y = 328.000000000000000000
+        Position.Y = 304.000000000000000000
         Size.Width = 193.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
         OnMouseEnter = EditMouseEnter
+      end
+      object CheckBox1: TCheckBox
+        StyledSettings = [Family, Style, FontColor]
+        Position.X = 8.000000000000000000
+        Position.Y = 344.000000000000000000
+        Size.Width = 265.000000000000000000
+        Size.Height = 33.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 12
+        Text = #25298#25910
+        TextSettings.Font.Size = 24.000000000000000000
+        OnChange = CheckBox1Change
       end
     end
   end
