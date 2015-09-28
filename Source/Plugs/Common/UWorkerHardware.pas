@@ -293,9 +293,26 @@ end;
 //Parm: °õÕ¾ºÅ[FIn.FData]
 //Desc: »ñÈ¡Ö¸¶¨°õÕ¾¶Á¿¨Æ÷ÉÏµÄ´Å¿¨ºÅ
 function THardwareCommander.PoundCardNo(var nData: string): Boolean;
-var nStr: string;
+var nStr, nPoundID: string;
+    nIdx: Integer;
 begin
   Result := True;
+  if FIn.FExtParam = sFlag_Yes then
+  begin
+    FListA.Clear;
+    FListB.Clear;
+    if not SplitStr(FIn.FData, FListA, 0, ',') then Exit;
+
+    for nIdx:=0 to FListA.Count - 1 do
+    begin
+      nPoundID := FListA[nIdx];
+      FListB.Values[nPoundID] := gHardwareHelper.GetPoundCard(nPoundID);
+    end;
+
+    FOut.FData := FListB.Text;
+    Exit;
+  end;
+
   FOut.FData := gHardwareHelper.GetPoundCard(FIn.FData);
   if FOut.FData = '' then Exit;
 
@@ -419,7 +436,7 @@ begin
     //¹Ì¶¨ÅçÂë
   end else
   begin
-    nStr := 'Select L_ID,L_Seal From %s Where L_ID=''%s''';
+    nStr := 'Select * From %s Where L_ID=''%s''';
     nStr := Format(nStr, [sTable_Bill, FIn.FData]);
 
     with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -431,13 +448,20 @@ begin
       end;
 
       {$IFDEF XAZL}
-      nCode := StringReplace(Fields[0].AsString, 'TH', '', [rfIgnoreCase]);
-      nCode := Fields[1].AsString + ' ' + nCode;
+      nCode := StringReplace(FieldByName('L_ID').AsString, 'TH', '', [rfIgnoreCase]);
+      nCode := FieldByName('L_Seal').AsString.AsString + ' ' + nCode;
       {$ENDIF}
 
       {$IFDEF RDHX}
-      nCode := Trim(Fields[1].AsString);
+      nCode := Trim(FieldByName('L_Seal').AsString);
       nCode := nCode + Date2Str(Now, False);;
+      {$ENDIF}
+
+      {$IFDEF GZBJM}
+      nStr := FieldByName('L_ID').AsString;
+      nCode:= Copy(nStr, 3, 6);
+      nCode:= nCode + 'P' + FieldByName('L_HYDan').AsString;
+      nCode:= nCode + Copy(nStr, 9, Length(nStr)-8);
       {$ENDIF}
     end;
   end;

@@ -62,6 +62,9 @@ type
     cxLabel9: TcxLabel;
     cxLabel10: TcxLabel;
     Timer2: TTimer;
+    CheckZD: TcxCheckBox;
+    CheckSound: TcxCheckBox;
+    Timer_Savefail: TTimer;
     procedure Timer1Timer(Sender: TObject);
     procedure N1Click(Sender: TObject);
     procedure N3Click(Sender: TObject);
@@ -76,6 +79,9 @@ type
     procedure EditMIDPropertiesChange(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
     procedure BtnReadCardClick(Sender: TObject);
+    procedure HintLabelClick(Sender: TObject);
+    procedure CheckZDClick(Sender: TObject);
+    procedure Timer_SavefailTimer(Sender: TObject);
   private
     { Private declarations }
     FCardUsed: string;
@@ -84,11 +90,18 @@ type
     //磅站通道
     FLastGS,FLastBT,FLastBQ: Int64;
     //上次活动
+    FCardNo, FCardNOSync: string;
+    //磁卡编号
     FBillItems: TLadingBillItems;
     FUIData,FInnerData: TLadingBillItem;
     //称重数据
     FListA, FListB: TStrings;
     //数据列表
+    FTitleHeight: Integer;
+    FPanelHeight: Integer;
+    //折叠参数
+    FCardReader: Integer;
+    //xxxxx
     procedure InitUIData;
     procedure SetUIData(const nReset: Boolean; const nOnlyData: Boolean = False);
     //界面数据
@@ -108,13 +121,24 @@ type
     function SavePoundData: Boolean;
     //保存称重     
     procedure PlayVoice(const nStrtext: string);
-    //播放语音
+    //播发语音
+    procedure PlaySoundWhenCardArrived;
+    //播放声音
+    procedure CollapsePanel(const nCollapse: Boolean; const nAuto: Boolean = True);
+    //折叠面板
   public
     { Public declarations }
     class function FrameID: integer; override;
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     //子类继承
+    function ReDrawReadCardButton: Boolean;
+    procedure ReadCardSync(const nCardNO: string;
+      var nResult: Boolean);
+    //异步读卡
+    procedure LoadCollapseConfig(const nCollapse: Boolean);
+    //折叠配置
+    property CardReader: Integer read FCardReader write FCardReader;
     property PoundTunnel: PPTTunnelItem read FPoundTunnel write SetTunnel;
     //属性相关
     property Additional: TStrings read FListA write FListA;
@@ -127,7 +151,8 @@ implementation
 uses
   ULibFun, UAdjustForm, UFormBase, {$IFDEF HR1847}UKRTruckProber,
   {$ELSE}UMgrTruckProbe,{$ENDIF} UMgrRemoteVoice, UMgrVoiceNet, UDataModule,
-  USysBusiness, UBusinessPacker, UFormInputbox, UFormWait, USysConst, USysDB;
+  USysBusiness, UBusinessPacker, UFormInputbox, UFormWait, USysConst, USysDB,
+  UPoundCardReader, UMgrSndPlay, IniFiles;
 
 const
   cFlag_ON    = 10;
@@ -141,6 +166,9 @@ end;
 procedure TfFrameManualPoundItem.OnCreateFrame;
 begin
   inherited;
+  FPanelHeight := Height;
+  FTitleHeight := HintLabel.Height + 1;
+
   FListA := TStringList.Create;
   FListB := TStringList.Create;
 
@@ -152,6 +180,13 @@ procedure TfFrameManualPoundItem.OnDestroyFrame;
 begin
   gPoundTunnelManager.ClosePort(FPoundTunnel.FID);
   //关闭表头端口
+
+  with gPoundCardReader do
+  begin
+    DelCardReader(FCardReader);
+    if CardReaderUser<1 then StopCardReader;
+  end;
+  //关闭自动读卡
 
   AdjustStringsItem(EditMID.Properties.Items, True);
   AdjustStringsItem(EditPID.Properties.Items, True);
@@ -180,6 +215,19 @@ begin
       nImage.Picture.Bitmap := ImageOn.Picture.Bitmap;
     end;
   end;
+end;
+
+//Desc: 折叠或展开面板
+procedure TfFrameManualPoundItem.CollapsePanel(const nCollapse,nAuto: Boolean);
+var nCol: Boolean;
+begin
+  if nAuto then
+       nCol := Height > FTitleHeight
+  else nCol := nCollapse;
+
+  if nCol then
+       Height := FTitleHeight
+  else Height := FPanelHeight;
 end;
 
 //------------------------------------------------------------------------------
@@ -213,6 +261,7 @@ var nStr: string;
 begin
   if nReset then
   begin
+    FCardNo := '';
     FillChar(nItem, SizeOf(nItem), #0);
     //init
 
@@ -348,7 +397,8 @@ begin
     SetUIData(True);
     Exit;
   end;
-  
+
+  FCardNo := nCard;
   nHint := '';
   nInt := 0;
 
@@ -471,6 +521,51 @@ begin
   {$ENDIF}
 end;
 
+//Desc: 折叠面板
+procedure TfFrameManualPoundItem.HintLabelClick(Sender: TObject);
+begin
+  CollapsePanel(True);
+end;
+
+//Desc: 保存配置
+procedure TfFrameManualPoundItem.CheckZDClick(Sender: TObject);
+var nIni: TIniFile;
+begin
+  if not (CheckZD.Focused or CheckSound.Focused) then Exit;
+  //只处理用户动作
+
+  nIni := TIniFile.Create(gPath + sFormConfig);
+  try
+    if CheckZD.Checked then
+         nIni.WriteString(Name, 'AutoCollapse', 'Y')
+    else nIni.WriteString(Name, 'AutoCollapse', 'N');
+
+    if CheckSound.Checked then
+         nIni.WriteString(Name, 'PlaySound', 'Y')
+    else nIni.WriteString(Name, 'PlaySound', 'N');
+  finally
+    nIni.Free;
+  end;
+end;
+
+//Desc: 读取折叠配置
+procedure TfFrameManualPoundItem.LoadCollapseConfig(const nCollapse: Boolean);
+var nIni: TIniFile;
+begin
+  nIni := TIniFile.Create(gPath + sFormConfig);
+  try
+    CheckSound.Checked := nIni.ReadString(Name, 'PlaySound', 'Y') = 'Y';
+    CheckZD.Checked := nIni.ReadString(Name, 'AutoCollapse', 'N') = 'Y';
+    
+    if nCollapse and CheckZD.Checked then
+      CollapsePanel(True);
+    //折叠面板
+  finally
+    nIni.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
 //Desc: 表头数据
 procedure TfFrameManualPoundItem.OnPoundData(const nValue: Double);
 begin
@@ -593,6 +688,18 @@ var nVal: Double;
 begin
   if not IsNumber(EditValue.Text, True) then Exit;
   nVal := StrToFloat(EditValue.Text);
+  if FloatRelation(nVal, FPoundTunnel.FPort.FMinValue, rtLE, 1000) then Exit;
+  //读数小于过磅最低值时,退出
+
+  {$IFDEF HR1847}
+  if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
+  {$ELSE}
+  if not gProberManager.IsTunnelOK(FPoundTunnel.FID) then
+  {$ENDIF}
+  begin
+    ShowMsg('车辆未站稳,请稍后', sHint);
+    Exit;
+  end;
 
   if (Length(FBillItems) > 0) and (FCardUsed <> sFlag_Provide) then
   begin
@@ -636,23 +743,45 @@ begin
   nCard := '';
   try
     BtnReadCard.Enabled := False;
-    nInit := GetTickCount;
 
+    nInit := GetTickCount;
     while GetTickCount - nInit < 5 * 1000 do
     begin
       ShowWaitForm(ParentForm, '正在读卡', False);
-      nStr := ReadPoundCard(FPoundTunnel.FID);
 
-      if nStr <> '' then
+      if Assigned(gPoundCardReader) then
       begin
-        nCard := nStr;
-        Break;
-      end else Sleep(1000);
+        FCardNOSync := gPoundCardReader.GetCardNOSync(FCardReader);
+        if FCardNOSync='' then Continue;
+
+        nStr := 'Select C_Card From $TB Where C_Card=''$CD'' or ' +
+            'C_Card2=''$CD'' or C_Card3=''$CD''';
+        nStr := MacroValue(nStr, [MI('$TB', sTable_Card), MI('$CD', FCardNOSync)]);
+
+        with FDM.QueryTemp(nStr) do
+        if RecordCount > 0 then
+        begin
+          nCard := Fields[0].AsString;
+          Break;
+        end;
+      end
+      else
+      begin
+        nStr := ReadPoundCard(FPoundTunnel.FID);
+
+        if nStr <> '' then
+        begin
+          nCard := nStr;
+          Break;
+        end else Sleep(1000);
+      end;
     end;
 
     if nCard = '' then Exit;
     EditBill.Text := nCard;
+    
     nChar := #13;
+    FCardNOSync := '';
     EditBillKeyPress(nil, nChar);
   finally
     CloseWaitForm;
@@ -986,8 +1115,7 @@ end;
 //Desc: 保存称重
 procedure TfFrameManualPoundItem.BtnSaveClick(Sender: TObject);
 var nBool: Boolean;
-begin
-  
+begin  
   {$IFDEF HR1847}
   if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
   {$ELSE}
@@ -1030,12 +1158,57 @@ begin
 
       SetUIData(True);
       BroadcastFrameCommand(Self, cCmd_RefreshData);
+
+      if CheckZD.Checked then
+        CollapsePanel(True, False);
       ShowMsg('称重保存完毕', sHint);
-    end;
+    end else Timer_Savefail.Enabled := True;
   finally
     BtnSave.Enabled := not nBool;
     CloseWaitForm;
   end;
+end;
+
+procedure TfFrameManualPoundItem.PlaySoundWhenCardArrived;
+begin
+  if CheckSound.Checked and (Height = FTitleHeight) then
+    gSoundPlayManager.PlaySound(gPath + 'sound.wav');
+  //xxxxx
+end;
+
+function TfFrameManualPoundItem.ReDrawReadCardButton: Boolean;
+var
+  nRect: TRect;
+  nCanvas: TCanvas;
+begin
+  Result := False;
+  if not BtnReadCard.Enabled then Exit;
+
+  PlaySoundWhenCardArrived;
+  //播放声音
+  CollapsePanel(False, False);
+  //展开面板
+
+  nCanvas := TCanvas.Create;
+  try
+    nRect := GetControlRect(BtnReadCard);
+    nCanvas.Handle := GetDC(BtnReadCard.Handle);
+
+    nCanvas.Pen.Color := clRed;
+    nCanvas.Pen.Width := 10;
+    nCanvas.Brush.Style := bsClear;
+    nCanvas.Rectangle(nRect);
+  finally
+    nCanvas.Free;
+  end;
+
+  Result := True;
+end;
+
+procedure TfFrameManualPoundItem.ReadCardSync(const nCardNO: string;
+  var nResult: Boolean);
+begin
+  nResult := ReDrawReadCardButton;
 end;
 
 procedure TfFrameManualPoundItem.PlayVoice(const nStrtext: string);
@@ -1043,6 +1216,20 @@ begin
   if UpperCase(Additional.Values['Voice'])='NET' then
        gNetVoiceHelper.PlayVoice(nStrtext, FPoundTunnel.FID, 'pound')
   else gVoiceHelper.PlayVoice(nStrtext);
+end;
+
+procedure TfFrameManualPoundItem.Timer_SavefailTimer(Sender: TObject);
+begin
+  inherited;
+  try
+    Timer_SaveFail.Enabled := False;
+
+    gPoundTunnelManager.ClosePort(FPoundTunnel.FID);
+    //关闭表头
+    SetUIData(True);
+  except
+    raise;
+  end;
 end;
 
 end.

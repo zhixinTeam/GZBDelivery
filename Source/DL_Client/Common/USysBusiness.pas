@@ -148,7 +148,7 @@ function GetTruckPoundItem(const nTruck: string;
 function SaveTruckPoundItem(const nTunnel: PPTTunnelItem;
  const nData: TLadingBillItems): Boolean;
 //保存车辆过磅记录
-function ReadPoundCard(const nTunnel: string): string;
+function ReadPoundCard(const nTunnel: string; nReadOnly: String = ''): string;
 //读取指定磅站读头上的卡号
 procedure CapturePicture(const nTunnel: PPTTunnelItem; const nList: TStrings);
 //抓拍指定通道
@@ -974,10 +974,10 @@ end;
 //Date: 2014-10-02
 //Parm: 通道号
 //Desc: 读取nTunnel读头上的卡号
-function ReadPoundCard(const nTunnel: string): string;
+function ReadPoundCard(const nTunnel: string; nReadOnly: String = ''): string;
 var nOut: TWorkerBusinessCommand;
 begin
-  if CallBusinessHardware(cBC_GetPoundCard, nTunnel, '', @nOut) then
+  if CallBusinessHardware(cBC_GetPoundCard, nTunnel, nReadOnly, @nOut, False) then
        Result := nOut.FData
   else Result := '';
 end;

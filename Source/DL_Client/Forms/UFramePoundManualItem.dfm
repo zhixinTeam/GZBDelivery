@@ -1,6 +1,7 @@
 inherited fFrameManualPoundItem: TfFrameManualPoundItem
   Width = 1019
   Height = 309
+  VertScrollBar.Visible = False
   Font.Height = -15
   object GroupBox1: TGroupBox
     Left = 8
@@ -187,6 +188,7 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
     Properties.Alignment.Horz = taCenter
     Properties.Alignment.Vert = taVCenter
     Properties.LabelStyle = cxlsRaised
+    OnClick = HintLabelClick
     Height = 27
     Width = 1019
     AnchorX = 510
@@ -523,7 +525,7 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
   object cxLabel1: TcxLabel
     Left = 385
     Top = 51
-    Caption = #20132#36135#21333#21495':'
+    Caption = #21333#25454#32534#21495':'
     ParentFont = False
     Style.Font.Charset = GB2312_CHARSET
     Style.Font.Color = clBlack
@@ -536,7 +538,7 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
   object cxLabel2: TcxLabel
     Left = 385
     Top = 211
-    Caption = #20132#36135#21333#21495':'
+    Caption = #25551#36848#20449#24687':'
     ParentFont = False
     Style.Font.Charset = GB2312_CHARSET
     Style.Font.Color = clBlack
@@ -650,6 +652,26 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
     Style.TextColor = clBlack
     Style.IsFontAssigned = True
   end
+  object CheckZD: TcxCheckBox
+    Left = 3
+    Top = 2
+    Caption = #33258#21160#25240#21472
+    ParentFont = False
+    TabOrder = 29
+    Transparent = True
+    OnClick = CheckZDClick
+    Width = 80
+  end
+  object CheckSound: TcxCheckBox
+    Left = 85
+    Top = 2
+    Caption = #25773#25918#22768#38899
+    ParentFont = False
+    TabOrder = 28
+    Transparent = True
+    OnClick = CheckZDClick
+    Width = 80
+  end
   object Timer1: TTimer
     OnTimer = Timer1Timer
     Left = 654
@@ -676,5 +698,12 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
     OnTimer = Timer2Timer
     Left = 626
     Top = 258
+  end
+  object Timer_Savefail: TTimer
+    Enabled = False
+    Interval = 100
+    OnTimer = Timer_SavefailTimer
+    Left = 712
+    Top = 256
   end
 end

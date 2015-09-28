@@ -160,7 +160,7 @@ begin
   FPacker.UnPackIn(nData, @FIn);
 
   case FIn.FType of
-   cQF_Bill: 
+   cQF_Bill:
     FOut.FData := '*';
   end;
 
@@ -1219,12 +1219,22 @@ begin
     Result := Parameters.ParamByName('P2').Value;
   end;
 end;
+//------------------------------------------------------------------------------
+//Date: 2015/9/26
+//Parm: 
+//Desc: 转OracleDateTime
+function DateTime2StrOracle(const nDT: TDateTime): string;
+var nStr :string;
+begin
+  nStr := 'to_date(''%s'', ''yyyy-mm-dd hh24-mi-ss'')';
+  Result := Format(nStr, [DateTime2Str(nDT)]);
+end;
 
 //Date: 2015-09-16
 //Parm: 交货单(多个)[FIn.FData]
 //Desc: 同步交货单发货数据到云天发货表中
 function TWorkerBusinessCommander.SyncNC_Sale(var nData: string): Boolean;
-var nStr,nSQL,nRID: string;
+var nStr,nSQL,nRID,nPID: string;
     nIdx: Integer;
     nVal,nPrice: Double;
     nDS: TDataSet;
@@ -1421,7 +1431,7 @@ begin
                 SF('XLB_ISONLY', '1'),
                 SF('XLB_ISSUPPLY', '0')
                 ], 'XS_Lade_Base', '', True);
-        FListA.Add(nSQL + ';'); //发货基准表
+        FListA.Add(nSQL + ';'); //销售提货单表
 
         nPrice := FieldByName('XCB_Price').AsFloat;
         nVal := nPrice * nBills[nIdx].FValue;
@@ -1445,7 +1455,51 @@ begin
                 SF('XLD_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
                    nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
                 ], 'XS_Lade_Detail', '', True);
-        FListA.Add(nSQL + ';'); //发货明细表
+        FListA.Add(nSQL + ';'); //销售提货单明细表
+
+        nPID := YT_NewID('DB_TURN_PRODUOUT', nWorker);
+        nSQL := MakeSQLByStr([SF('DTP_ID', nPID),
+                SF('DTP_Card', nBills[nIdx].FZhiKa),
+                SF('DTP_ScaleBill', nBills[nIdx].FID),
+                SF('DTP_Origin',  '101'),
+
+                SF('DTP_Vehicle', nBills[nIdx].FTruck),
+                SF('DTP_OutDate', 'trunc(sysdate)', sfVal),
+                SF('DTP_Material', nBills[nIdx].FStockNo),
+                SF('DTP_CementCode', nBills[nIdx].FHYDan),
+                SF('DTP_Lade', nRID),
+
+                SF('DTP_Scale',  nBills[nIdx].FPData.FStation),
+                SF('DTP_Creator', nBills[nIdx].FPData.FOperator),
+                SF('DTP_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
+                SF('DTP_SecondScale',  nBills[nIdx].FMData.FStation),
+                SF('DTP_GMan', nBills[nIdx].FMData.FOperator),
+                SF('DTP_GDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+
+                SF('DTP_Firm', FieldByName('XCB_Firm').AsString),
+                SF('DTP_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+                SF('DTP_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+                SF('DTP_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                   nBills[nIdx].FPData.FValue, cPrecision, True), sfVal),
+
+                SF('DTP_ISBalance', '0'),
+                SF('DTP_IsSupply', '0'),
+                SF('DTP_Status', '1'),
+                SF('DTP_Del', '0')
+                ], 'DB_Turn_ProduOut', '', True);
+        FListA.Add(nSQL + ';'); //水泥熟料出厂表
+
+        nSQL := MakeSQLByStr([SF('DTU_ID', YT_NewID('DB_TURN_PRODUDTL', nWorker)),
+                SF('DTU_Del', '0'),
+                SF('DTU_PID', nPID),
+                SF('DTU_LadeID', nRID),
+                SF('DTU_Firm', FieldByName('XCB_Firm').AsString),
+                SF('DTU_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+                SF('DTU_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+                SF('DTU_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                   nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
+                ], 'DB_Turn_ProduDtl', '', True);
+        FListA.Add(nSQL + ';'); //水泥熟料出厂明细表
 
         nSQL := 'Update %s Set XCB_FactNum=XCB_FactNum+(%.2f),' +
                 'XCB_RemainNum=XCB_RemainNum-(%.2f) Where XCB_ID=''%s''';
@@ -1476,6 +1530,7 @@ begin
         FListA.Add(nStr);
         //oracle需明确提交
 
+       WriteLog(FListA.Text); 
        gDBConnManager.WorkerExec(nWorker, FListA.Text);
        //执行脚本
 
