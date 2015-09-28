@@ -943,7 +943,8 @@ begin
   Result := False;
   nStr := FInnerData.FProject;
 
-  if not (YT_ReadCardInfo(nStr) and YT_VerifyCardInfo(nStr)) then
+  if not (YT_ReadCardInfo(nStr) and
+          YT_VerifyCardInfo(nStr, sFlag_AllowZeroNum)) then
   begin
     ShowDlg(nStr, sHint);
     Exit;

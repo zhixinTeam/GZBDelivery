@@ -111,7 +111,7 @@ function IsCustomerCreditValid(const nCusID: string): Boolean;
 
 function YT_ReadCardInfo(var nCard: string): Boolean;
 //读取云天XS_Card_Base卡片信息
-function YT_VerifyCardInfo(var nCard: string): Boolean;
+function YT_VerifyCardInfo(var nCard: string; nParam: string = ''): Boolean;
 //验证能否开单
 function IsStockValid(const nStocks: string): Boolean;
 //品种是否可以发货
@@ -1250,12 +1250,16 @@ begin
 end;
 
 //Date: 2015-09-14
-//Parm: 卡片数据[in];提示信息[out]
+//Parm: 卡片数据[in];提示信息[out];参数
 //Desc: 验证nCard能否开具提货单据
-function YT_VerifyCardInfo(var nCard: string): Boolean;
+function YT_VerifyCardInfo(var nCard: string; nParam: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
-  Result := CallBusinessCommand(cBC_VerifyYTCard, nCard, sFlag_Yes, @nOut, False);
+  if nParam = '' then
+    nParam := sFlag_LoadExtInfo;
+  //xxxxx
+
+  Result := CallBusinessCommand(cBC_VerifyYTCard, nCard, nParam, @nOut, False);
   if Result then
        nCard := nOut.FData
   else nCard := nOut.FBase.FErrDesc;

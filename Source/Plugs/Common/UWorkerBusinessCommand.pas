@@ -1059,7 +1059,7 @@ begin
       nData := nData + Format(nStr, [Values['XCB_CardId']]);
       Exit;
     end;
-
+    {
     nVal := StrToFloat(nStr);
     if FloatRelation(nVal, 0, rtLE, cPrecision) then
     begin
@@ -1067,23 +1067,40 @@ begin
       nData := nData + Format(nStr, [Values['XCB_CardId']]);
       Exit;
     end;
-
+    }
     if nData <> ''  then Exit;
     //已有错误,不再校验冻结量
 
     //--------------------------------------------------------------------------
-    nStr := 'Select * From %s Where C_ID=''%s''';
-    nStr := Format(nStr, [sTable_YT_CardInfo, Values['XCB_ID']]);
+    nWorker := nil;
+    try
+      nStr := 'select XCB_FactRemain from V_CARD_BASE1 t where XCB_ID=''%s''';
+      nStr := Format(nStr, [Values['XCB_ID']]);
+      //查询剩余量
+      
+      with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
+      begin
+        if RecordCount > 0 then
+             nVal := Fields[0].AsFloat
+        else nVal := 0;
+      end;
 
-    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
-    if RecordCount > 0 then
-    begin
-      First;
-      nVal := nVal - FieldByName('C_Freeze').AsFloat;
-      //扣除已开未提
+      if nVal > 0 then
+      begin
+        nStr := 'Select * From %s Where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CardInfo, Values['XCB_ID']]);
 
-      nVal := Float2Float(nVal, cPrecision, False);
-      if nVal <= 0 then
+        with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+        if RecordCount > 0 then
+        begin
+          First;
+          nVal := nVal - FieldByName('C_Freeze').AsFloat;
+          //扣除已开未提
+          nVal := Float2Float(nVal, cPrecision, False); 
+        end;
+      end;
+
+      if (nVal <= 0) and (Pos(sFlag_AllowZeroNum, FIn.FExtParam) < 1) then
       begin
         nStr := '※.单据:[ %s ]可开票量为0,无法提货.' + #13#10;
         nData := nData + Format(nStr, [Values['XCB_CardId']]);
@@ -1091,37 +1108,35 @@ begin
       end;
 
       Values['XCB_RemainNum'] := FloatToStr(nVal);
-    end;
+      //可用量
 
-    //--------------------------------------------------------------------------
-    if FIn.FExtParam <> sFlag_Yes then
-    begin
-      FOut.FData := PackerEncodeStr(FListA.Text);
-      Result := True;
-      Exit;
-    end; //是否加载订单附加信息
-
-    nStr := 'Select D_Memo From %s Where D_ParamB=''%s''';
-    nStr := Format(nStr, [sTable_SysDict, Values['XCB_Cement']]);
-
-    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
-    begin
-      if RecordCount < 1 then
+      //--------------------------------------------------------------------------
+      if Pos(sFlag_LoadExtInfo, FIn.FExtParam) < 1 then
       begin
-        nStr := '品种[ %s.%s ]没有在字典中配置,请联系管理员.';
-        nStr := Format(nStr, [Values['XCB_Cement'], Values['XCB_CementName']]);
-
-        nData := nStr;
+        FOut.FData := PackerEncodeStr(FListA.Text);
+        Result := True;
         Exit;
+      end; //是否加载订单附加信息
+
+      nStr := 'Select D_Memo From %s Where D_ParamB=''%s''';
+      nStr := Format(nStr, [sTable_SysDict, Values['XCB_Cement']]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if RecordCount < 1 then
+        begin
+          nStr := '品种[ %s.%s ]没有在字典中配置,请联系管理员.';
+          nStr := Format(nStr, [Values['XCB_Cement'], Values['XCB_CementName']]);
+
+          nData := nStr;
+          Exit;
+        end;
+
+        Values['XCB_CementType'] := Fields[0].AsString;
+        //包散类型
       end;
 
-      Values['XCB_CementType'] := Fields[0].AsString;
-      //包散类型
-    end;
-
-    //--------------------------------------------------------------------------
-    nWorker := nil;
-    try
+      //------------------------------------------------------------------------
       nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count from ' +
               'CF_Notify_OutWorkDtl cnd' +
               ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
@@ -1136,7 +1151,7 @@ begin
       nStr := Format(nStr, [Values['XCB_Cement']]);
       //查询批次号记录
 
-      with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
+      with gDBConnManager.WorkerQuery(nWorker, nStr) do
       if RecordCount > 0 then
       begin
         First;
@@ -1191,13 +1206,12 @@ begin
         nData := Format(nData, [Values['XCB_Cement'], Values['XCB_CementName']]);
         Exit;
       end;
-     }
+     } 
+      FOut.FData := PackerEncodeStr(FListA.Text);
+      Result := True;
     finally
       gDBConnManager.ReleaseConnection(nWorker);
     end;
-
-    FOut.FData := PackerEncodeStr(FListA.Text);
-    Result := True;
   end;
 end;
 
@@ -1530,7 +1544,6 @@ begin
         FListA.Add(nStr);
         //oracle需明确提交
 
-       WriteLog(FListA.Text); 
        gDBConnManager.WorkerExec(nWorker, FListA.Text);
        //执行脚本
 

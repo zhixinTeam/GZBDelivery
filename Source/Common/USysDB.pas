@@ -161,6 +161,9 @@ ResourceString
   sFlag_InvRequst     = 'R';                         //申请开出
   sFlag_InvDaily      = 'D';                         //日常开出
 
+  sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
+  sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量
+
   sFlag_SysParam      = 'SysParam';                  //系统参数
   sFlag_EnableBakdb   = 'Uses_BackDB';               //备用库
   sFlag_ValidDate     = 'SysValidDate';              //有效期
