@@ -93,8 +93,8 @@ begin
   inherited;
   if Key = vkHardwareBack then//如果按下物理返回键
   begin
-    if Layout_Menu.Visible then Layout_Menu.Visible := False;
-    {else
+    if Layout_Menu.Visible then Layout_Menu.Visible := False
+    else
       MessageDlg('确认退出吗？', System.UITypes.TMsgDlgType.mtConfirmation,
       [System.UITypes.TMsgDlgBtn.mbOK, System.UITypes.TMsgDlgBtn.mbCancel], -1,
 
@@ -102,7 +102,7 @@ begin
       begin
         if AResult = mrOK then BtnExitClick(Self);
       end
-      );}
+      );
       //退出程序
 
     Key := 0;//必须的，不然按否也会退出

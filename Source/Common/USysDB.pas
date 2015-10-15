@@ -706,9 +706,9 @@ ResourceString
        'B_Value $Float, B_SentValue $Float,B_RestValue $Float,' +
        'B_LimValue $Float, B_WarnValue $Float,B_FreezeValue $Float,' +
        'B_BStatus Char(1),B_Area varChar(50), B_Project varChar(100),' +
-       'B_ProID varChar(15), B_ProName varChar(80), B_ProPY varChar(80),' +
-       'B_SaleID varChar(15), B_SaleMan varChar(32), B_SalePY varChar(80),' +
-       'B_StockType Char(1), B_StockNo varChar(20), B_StockName varChar(80),' +
+       'B_ProID varChar(32), B_ProName varChar(80), B_ProPY varChar(80),' +
+       'B_SaleID varChar(32), B_SaleMan varChar(80), B_SalePY varChar(80),' +
+       'B_StockType Char(1), B_StockNo varChar(32), B_StockName varChar(80),' +
        'B_Man varChar(32), B_Date DateTime,' +
        'B_DelMan varChar(32), B_DelDate DateTime, B_Memo varChar(500))';
   {-----------------------------------------------------------------------------
@@ -734,9 +734,9 @@ ResourceString
   sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, O_ID varChar(20),' +
        'O_BID varChar(20),O_Card varChar(16), O_CType varChar(1),' +
        'O_Value $Float,O_Area varChar(50), O_Project varChar(100),' +
-       'O_ProID varChar(15), O_ProName varChar(80), O_ProPY varChar(80),' +
-       'O_SaleID varChar(15), O_SaleMan varChar(32), O_SalePY varChar(80),' +
-       'O_Type Char(1), O_StockNo varChar(20), O_StockName varChar(80),' +
+       'O_ProID varChar(32), O_ProName varChar(80), O_ProPY varChar(80),' +
+       'O_SaleID varChar(32), O_SaleMan varChar(80), O_SalePY varChar(80),' +
+       'O_Type Char(1), O_StockNo varChar(32), O_StockName varChar(80),' +
        'O_Truck varChar(15), O_OStatus Char(1),' +
        'O_Man varChar(32), O_Date DateTime,' +
        'O_DelMan varChar(32), O_DelDate DateTime, O_Memo varChar(500))';

@@ -108,6 +108,7 @@ begin
     Result := Result + ' Where (' + FJBWhere + ')';
   end;
 
+  Result := Result + ' And L_OutFact is not NULL';
   Result := MacroValue(Result, [MI('$Bill', sTable_Bill),
             MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx

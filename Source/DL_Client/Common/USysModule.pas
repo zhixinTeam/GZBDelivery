@@ -30,7 +30,7 @@ uses
   UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
   UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
-  UFormRFIDCard, UFormBillNew,
+  UFormRFIDCard, UFormBillNew,UFrameCustomer, UFormCustomer, UFormGetCustom,
 
   UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing,
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,

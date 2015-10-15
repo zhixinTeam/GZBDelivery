@@ -234,7 +234,7 @@ end;
 //Desc: 查询nCard信息
 procedure TfFormMain.QueryCard(const nCard: string);
 var nVal: Double;
-    nStr,nStock,nBill,nVip,nLine,nPoundQueue: string;
+    nStr,nStock,nBill,nVip,nLine,nPoundQueue,nTruck: string;
     nDate: TDateTime;
 begin
   mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
@@ -284,9 +284,10 @@ begin
         Next;
       end;
 
-      nBill :=  FieldByName('L_ID').AsString;
+      nBill  := FieldByName('L_ID').AsString;
+      nVip   := FieldByName('L_IsVip').AsString;
+      nTruck := FieldByName('L_Truck').AsString;
       nStock := FieldByName('L_StockNo').AsString;
-      nVip := FieldByName('L_IsVip').AsString;
 
       LabelBill.Caption := '交货单号: ' + FieldByName('L_ID').AsString;
       LabelOrder.Caption := '销售订单: ' + FieldByName('L_ZhiKa').AsString;
@@ -307,7 +308,7 @@ begin
 
     //--------------------------------------------------------------------------
     nStr := 'Select T_line,T_InTime,T_Valid From %s ZT ' +
-             'Where T_Bill=''%s'' ';
+             'Where T_HKBills like ''%%%s%%'' ';
     nStr := Format(nStr, [sTable_ZTTrucks, nBill]);
 
     with FDM.SQLQuery(nStr) do

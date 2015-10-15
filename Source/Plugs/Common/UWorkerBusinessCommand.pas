@@ -88,6 +88,11 @@ type
     //发货单到榜单
     function SyncNC_Provide(var nData: string): Boolean;
     //供应订单到榜单
+    function SyncRemoteTransit(var nData: string): Boolean;
+    function SyncRemoteSaleMan(var nData: string): Boolean;
+    function SyncRemoteCustomer(var nData: string): Boolean;
+    function SyncRemoteProviders(var nData: string): Boolean;
+    function SyncRemoteMaterails(var nData: string): Boolean;
   public
     constructor Create; override;
     destructor destroy; override;
@@ -364,6 +369,11 @@ begin
    cBC_VerifyYTCard        : Result := VerifyYTCard(nData);
    cBC_SyncStockBill       : Result := SyncNC_Sale(nData);
    cBC_SyncStockOrder      : Result := SyncNC_Provide(nData);
+
+   cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
+   cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
+   cBC_SyncProvider        : Result := SyncRemoteProviders(nData);
+   cBC_SyncMaterails       : Result := SyncRemoteMaterails(nData);
    else
     begin
       Result := False;
@@ -1215,6 +1225,309 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2015/10/13
+//Parm: 
+//Desc: 同步云天系统客户信息
+function TWorkerBusinessCommander.SyncRemoteCustomer(var nData: string): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nDBWorker: PDBWorker;
+begin
+  FListA.Clear;
+  Result := True;
+
+  nStr := 'Select C_Param From %s Where C_XuNi<>''%s''';
+  nStr := Format(nStr, [sTable_Customer, sFlag_No]);
+
+  FListB.Clear;
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount>0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      if Fields[0].AsString<>'' then FListB.Add(Fields[0].AsString);
+
+      Next;
+    end;  
+  end;
+
+  nDBWorker := nil;
+  try
+    nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status ' +
+            'From XS_Compy_Base ' +
+            'Where XOB_IsClient=''1''';
+    //xxxxx
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      try
+        if FieldByName('XOB_ID').AsString = '' then Continue;
+        //invalid
+
+        if FieldByName('XOB_Status').AsString = '1' then
+        begin  //Add
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          Continue;
+          //Has Saved
+
+          nStr := MakeSQLByStr([SF('C_ID', FieldByName('XOB_Code').AsString),
+                  SF('C_Name', FieldByName('XOB_Name').AsString),
+                  SF('C_PY', FieldByName('XOB_JianPin').AsString),
+                  SF('C_Param', FieldByName('XOB_ID').AsString),
+                  SF('C_XuNi', sFlag_No)
+                  ], sTable_Customer, '', True);
+          FListA.Add(nStr);
+
+        end else
+        begin  //valid
+          nStr := 'Delete From %s Where C_Param=''%s''';
+          nStr := Format(nStr, [sTable_Customer, FieldByName('XOB_ID').AsString]);
+          //xxxxx
+
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          FListA.Add(nStr);
+          //Has Saved
+        end;
+      finally
+        Next;
+      end;
+    end;
+
+    if FListA.Count > 0 then
+    try
+      FDBConn.FConn.BeginTrans;
+      //开启事务
+    
+      for nIdx:=0 to FListA.Count - 1 do
+        gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]);
+      FDBConn.FConn.CommitTrans;
+    except
+      if FDBConn.FConn.InTransaction then
+        FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/10/13
+//Parm: 
+//Desc: 同步云天系统业务员信息
+function TWorkerBusinessCommander.SyncRemoteSaleMan(var nData: string): Boolean;
+begin
+  Result := True;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/10/13
+//Parm: 
+//Desc: 同步云天系统供应商信息
+function TWorkerBusinessCommander.SyncRemoteProviders(var nData: string): Boolean;
+var nStr,nSaler: string;
+    nIdx: Integer;
+    nDBWorker: PDBWorker;
+begin
+  FListA.Clear;
+  Result := True;
+
+  FListB.Clear;
+  nStr := 'Select P_ID From P_Provider';
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount>0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      if Fields[0].AsString<>'' then FListB.Add(Fields[0].AsString);
+
+      Next;
+    end;  
+  end;
+
+  nDBWorker := nil;
+  try
+    nSaler := '待分配业务员';
+    nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status ' +
+            'From XS_Compy_Base ' +
+            'Where XOB_IsSupy=''1'' or XOB_IsMetals=''1''';
+    //xxxxx
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      try
+        if FieldByName('XOB_ID').AsString = '' then Continue;
+        //invalid
+
+        if FieldByName('XOB_Status').AsString = '1' then
+        begin  //Add
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          Continue;
+          //Has Saved
+
+          nStr := MakeSQLByStr([SF('P_ID', FieldByName('XOB_ID').AsString),
+                  SF('P_Name', FieldByName('XOB_Name').AsString),
+                  SF('P_PY', FieldByName('XOB_JianPin').AsString),
+                  SF('P_Memo', FieldByName('XOB_Code').AsString),
+                  SF('P_Saler', nSaler)
+                  ], sTable_Provider, '', True);
+          //xxxxx
+
+          FListA.Add(nStr);
+
+        end else
+        begin  //valid
+          nStr := 'Delete From %s Where P_ID=''%s''';
+          nStr := Format(nStr, [sTable_Provider, FieldByName('XOB_ID').AsString]);
+          //xxxxx
+
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          FListA.Add(nStr);
+          //Has Saved
+        end;
+      finally
+        Next;
+      end;
+    end;
+
+    if FListA.Count > 0 then
+    try
+      FDBConn.FConn.BeginTrans;
+      //开启事务
+
+      for nIdx:=0 to FListA.Count - 1 do
+        gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]);
+      FDBConn.FConn.CommitTrans;
+    except
+      if FDBConn.FConn.InTransaction then
+        FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/10/13
+//Parm:
+//Desc: 同步云天系统原材料信息
+function TWorkerBusinessCommander.SyncRemoteMaterails(var nData: string): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nDBWorker: PDBWorker;
+begin
+  FListA.Clear;
+  Result := True;
+
+  FListB.Clear;
+  nStr := 'Select M_ID From P_Materails';
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount>0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      if Fields[0].AsString<>'' then FListB.Add(Fields[0].AsString);
+
+      Next;
+    end;  
+  end;
+
+  nDBWorker := nil;
+  try
+    nStr := 'Select PCM_ID,PCM_MaterId,PCM_Name,PCM_Kind,PCY_Name,PCM_Status ' +
+            'From PB_Code_Material pcm ' +
+            'Left join PB_Code_MaterType pcy on pcm.PCM_Kind=pcy.PCY_ID ' +
+            'Where PCY_Name Like ''%%原%%''';
+    //xxxxx
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      begin
+        if FieldByName('PCM_ID').AsString = '' then Continue;
+        //invalid
+
+        if FieldByName('PCM_Status').AsString = '1' then
+        begin  //Add
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>0) then
+          Continue;
+          //Has Saved
+
+          nStr := MakeSQLByStr([SF('M_ID', FieldByName('PCM_ID').AsString),
+                SF('M_Name', FieldByName('PCM_Name').AsString),
+                SF('M_PY', GetPinYinOfStr(FieldByName('PCM_Name').AsString)),
+                SF('M_Memo', FieldByName('PCM_MaterId').AsString +
+                  FieldByName('PCY_Name').AsString)
+                ], sTable_Materails, '', True);
+          //xxxxx
+
+          FListA.Add(nStr);
+
+        end else
+        begin  //valid
+          nStr := 'Delete From %s Where M_ID=''%s''';
+          nStr := Format(nStr, [sTable_Materails, FieldByName('PCM_ID').AsString]);
+          //xxxxx
+
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>0) then
+          FListA.Add(nStr);
+          //Has Saved
+        end;
+        Next;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
+
+  if FListA.Count > 0 then
+  try
+    FDBConn.FConn.BeginTrans;
+
+    for nIdx:=0 to FListA.Count - 1 do
+      gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]);
+    FDBConn.FConn.CommitTrans;
+  except
+    if FDBConn.FConn.InTransaction then
+      FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/10/13
+//Parm:
+//Desc: 同步云天系统运输单位信息
+function TWorkerBusinessCommander.SyncRemoteTransit(var nData: string): Boolean;
+begin
+  Result := True;
+end;
+
 //Date: 2015-09-16
 //Parm: 表名;数据链路
 //Desc: 生成nTable的唯一记录号
@@ -1567,8 +1880,190 @@ end;
 //Parm: 榜单号(单个)[FIn.FData]
 //Desc: 同步原料过磅数据到云天采购表中
 function TWorkerBusinessCommander.SyncNC_Provide(var nData: string): Boolean;
+var nStr,nSQL,nRID: string;
+    nIdx,nErrNum: Integer;
+    nDateMin: TDateTime;
+    nWorker: PDBWorker;
+    nBills: TLadingBillItems;
+    nOut: TWorkerBusinessCommand;
 begin
   Result := False;
+  FListA.Text := FIn.FData;
+  nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
+
+  nSQL := 'Select D_ID,D_OID,O_ProID,O_StockNo,O_Truck,' +
+          'D_Value,D_KZValue,D_AKValue,' +
+          'D_PValue,D_PDate,D_PMan,' +
+          'D_MValue,D_MDate,D_MMan,' +
+          'D_InTime,D_OutFact,D_PID ' +
+          'From %s ' +
+          '  Left Join %s On D_OID=O_ID ' +
+          'Where D_ID In (%s) And D_YSResult=''%s''';
+  nSQL := Format(nSQL, [sTable_OrderDtl, sTable_Order, nStr, sFlag_Yes]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '采购入库单[ %s ]信息已丢失.';
+      nData := Format(nData, [CombinStr(FListA, ',', False)]);
+      Exit;
+    end;
+
+    FListC.Clear;
+    FListC.Values['Group'] := sFlag_BusGroup;
+    FListC.Values['Object'] := sFlag_PoundID;
+
+    SetLength(nBills, RecordCount);
+    nIdx := 0;
+
+    FListA.Clear;
+    First;
+
+    while not Eof do
+    begin
+      with nBills[nIdx] do
+      begin
+        FID         := FieldByName('D_ID').AsString;
+        FZhiKa      := FieldByName('D_OID').AsString;
+
+        FCusID      := FieldByName('O_ProID').AsString;
+        FTruck      := FieldByName('O_Truck').AsString;
+        FStockNo    := FieldByName('O_StockNo').AsString;
+        FValue      := FieldByName('D_Value').AsFloat;
+        FKZValue    := FieldByName('D_KZValue').AsFloat;
+
+        if FListA.IndexOf(FZhiKa) < 0 then
+          FListA.Add(FZhiKa);
+        //订单项
+
+        FPoundID := FieldByName('D_PID').AsString;
+        //榜单编号
+        if FPoundID = '' then
+        begin
+          if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+            FListC.Text, sFlag_Yes, @nOut) then
+            raise Exception.Create(nOut.FData);
+          FPoundID := nOut.FData;
+        end;
+
+        nDateMin := Str2Date('2000-01-01');
+        //最小日期参考
+
+        with FPData do
+        begin
+          FValue    := FieldByName('D_PValue').AsFloat;
+          FDate     := FieldByName('D_PDate').AsDateTime;
+          FOperator := FieldByName('D_PMan').AsString;
+
+          if FDate < nDateMin then
+            FDate := FieldByName('D_InTime').AsDateTime;
+          //xxxxx
+
+          if FDate < nDateMin then
+            FDate := Date();
+          //xxxxx
+        end;
+
+        with FMData do
+        begin
+          FValue    := FieldByName('D_MValue').AsFloat;
+          FDate     := FieldByName('D_MDate').AsDateTime;
+          FOperator := FieldByName('D_MMan').AsString;
+
+          if FDate < nDateMin then
+            FDate := FieldByName('D_OutFact').AsDateTime;
+          //xxxxx
+
+          if FDate < nDateMin then
+            FDate := Date();
+          //xxxxx
+        end;
+      end;
+
+      Inc(nIdx);
+      Next;
+    end;
+  end;
+
+  nWorker := nil;
+  try
+    nWorker := gDBConnManager.GetConnection(sFlag_DB_YT, nErrNum);
+
+    if not Assigned(nWorker) then
+    begin
+      nStr := Format('连接[ %s ]数据库失败(ErrCode: %d).', [sFlag_DB_YT, nErrNum]);
+      WriteLog(nStr);
+      raise Exception.Create(nStr);
+    end;
+
+    if not nWorker.FConn.Connected then
+      nWorker.FConn.Connected := True;
+    //conn db
+
+    FListA.Clear;
+    FListA.Add('begin');
+    //init sql list
+
+    for nIdx:=Low(nBills) to High(nBills) do
+    begin
+      nRID := YT_NewID('DB_TURN_MATERIN', nWorker);
+      //记录编号
+
+      nSQL := MakeSQLByStr([SF('DTM_ID', nRID),
+              SF('DTM_Card', nBills[nIdx].FZhiKa),
+              SF('DTM_ScaleBill', nBills[nIdx].FID),
+
+              SF('DTM_IsTBalance', '0'),
+              SF('DTM_IsBalance', '0'),
+              SF('DTM_IsStore', '0'),
+              SF('DTM_Status', '1'),
+              SF('DTM_Del', '0'),
+
+              SF('DTM_Vehicle', nBills[nIdx].FTruck),
+
+              SF('DTM_InDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+              SF('DTM_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
+              SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+              SF('DTM_Material', nBills[nIdx].FStockNo),
+              SF('DTM_Company', nBills[nIdx].FCusID),
+              SF('DTM_FIRM', '10011001002000000000'),
+
+              SF('DTM_RWeight', nBills[nIdx].FKZValue, sfVal),
+              SF('DTM_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+              SF('DTM_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+              SF('DTM_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                   nBills[nIdx].FPData.FValue-nBills[nIdx].FKZValue, cPrecision,
+                   True), sfVal)
+              ], 'DB_Turn_MaterIn', '', True);
+      FListA.Add(nSQL + ';'); //材料进厂表
+    end;
+
+    //nWorker.FConn.BeginTrans;
+    try
+      nStr := 'commit;' + #13#10 +
+              'exception' + #13#10 +
+              ' when others then rollback; raise;' + #13#10 +
+              'end;';
+      FListA.Add(nStr);
+      //oracle需明确提交
+
+     gDBConnManager.WorkerExec(nWorker, FListA.Text);
+     //执行脚本
+
+      //nWorker.FConn.CommitTrans;
+      Result := True;
+    except
+      on E:Exception do
+      begin
+        //nWorker.FConn.RollbackTrans;
+        nData := '同步云天数据时发生错误,描述: ' + E.Message;
+        Exit;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -2565,14 +3060,12 @@ begin
       FListA.Add(nSQL); //更新采购单
     end;
 
-    {$IFDEF XAZL}
     nStr := nPound[0].FID;
     if not TWorkerBusinessCommander.CallMe(cBC_SyncStockOrder, nStr, '', @nOut) then
     begin
       nData := nOut.FData;
       Exit;
     end;
-    {$ENDIF}
 
     nSQL := 'Select O_CType,O_Card From %s Where O_ID=''%s''';
     nSQL := Format(nSQL, [sTable_Order, nPound[0].FZhiKa]);

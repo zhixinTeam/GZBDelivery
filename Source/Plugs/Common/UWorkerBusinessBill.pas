@@ -1747,7 +1747,7 @@ begin
         end;
 
         if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard, FListB[0],
-           sFlag_Yes, @nOut) then
+           sFlag_LoadExtInfo, @nOut) then
         begin
           nData := nOut.FData;
           Exit;

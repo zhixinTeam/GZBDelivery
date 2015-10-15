@@ -137,16 +137,6 @@ begin
     ShowMsg('请选择要删除的记录', sHint); Exit;
   end;
 
-  nStr := SQLQuery.FieldByName('C_ID').AsString;
-  nSQL := 'Select Count(*) From %s Where Z_Customer=''%s''';
-  nSQL := Format(nSQL, [sTable_ZhiKa, nStr]);
-
-  with FDM.QueryTemp(nSQL) do
-  if Fields[0].AsInteger > 0 then
-  begin
-    ShowMsg('该客户不能删除', '已办纸卡'); Exit;
-  end;
-
   nStr := SQLQuery.FieldByName('C_Name').AsString;
   if not QueryDlg('确定要删除名称为[ ' + nStr + ' ]的客户吗', sAsk) then Exit;
 
