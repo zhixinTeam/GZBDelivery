@@ -2022,12 +2022,13 @@ begin
 
               SF('DTM_Vehicle', nBills[nIdx].FTruck),
 
-              SF('DTM_InDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+              SF('DTM_InDate', 'trunc(sysdate)', sfVal),
               SF('DTM_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
               SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
               SF('DTM_Material', nBills[nIdx].FStockNo),
               SF('DTM_Company', nBills[nIdx].FCusID),
               SF('DTM_FIRM', '10011001002000000000'),
+              SF('DTM_TYPE', '101'),
 
               SF('DTM_RWeight', nBills[nIdx].FKZValue, sfVal),
               SF('DTM_GWeight', nBills[nIdx].FMData.FValue, sfVal),

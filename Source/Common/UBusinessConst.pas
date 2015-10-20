@@ -65,6 +65,7 @@ const
   cBC_PrintCode               = $0056;
   cBC_PrintFixCode            = $0057;   //喷码
   cBC_PrinterEnable           = $0058;   //喷码机启停
+  cBC_GetQueueList            = $0059;   //获取队列数据
 
   cBC_JSStart                 = $0060;
   cBC_JSStop                  = $0061;

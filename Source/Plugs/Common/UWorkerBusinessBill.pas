@@ -1781,7 +1781,10 @@ begin
           raise Exception.Create(nOut.FData);
         //xxxxx
 
-        nSQL := MakeSQLByStr([SF('L_ID', nOut.FData),
+        nTmp := nOut.FData;
+        //Save L_ID
+
+        nSQL := MakeSQLByStr([SF('L_ID', nTmp),
                 SF('L_Card', FCard),
                 SF('L_ZhiKa', FListB.Values['XCB_ID']),
                 SF('L_Project', FListB.Values['XCB_CardId']),
@@ -1793,7 +1796,7 @@ begin
                 SF('L_Type', FType),
                 SF('L_StockNo', FListB.Values['XCB_Cement']),
                 SF('L_StockName', FListB.Values['XCB_CementName']),
-                SF('L_Value', FKZValue, sfVal),
+                SF('L_Value', FKZValue, sfVal),                                 //补单量
                 SF('L_Price', '0', sfVal),
 
                 SF('L_ZKMoney', sFlag_No),
@@ -1802,9 +1805,9 @@ begin
                 SF('L_NextStatus', sFlag_TruckOut),
                 SF('L_InTime', sField_SQLServer_Now, sfVal),
                 SF('L_PDate', sField_SQLServer_Now, sfVal),
-                SF('L_PValue', '0', sfVal),
+                SF('L_PValue', FPData.FValue, sfVal),                           //原始皮重
                 SF('L_MDate', sField_SQLServer_Now, sfVal),
-                SF('L_MValue', FKZValue, sfVal),
+                SF('L_MValue', FPData.FValue + FKZValue, sfVal),                //皮重+补单量
                 SF('L_LadeTime', sField_SQLServer_Now, sfVal),
                                     
                 SF('L_Lading', sFlag_TiHuo),
@@ -1816,6 +1819,49 @@ begin
                 ], sTable_Bill, '', True);
         FListA.Add(nSQL); //交货单
 
+        //----------------------------------------------------------------------
+        FListC.Values['Group'] :=sFlag_BusGroup;
+        FListC.Values['Object'] := sFlag_PoundID;
+        //to get serial no
+
+        if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+              FListC.Text, sFlag_Yes, @nOut) then
+          raise Exception.Create(nOut.FData);
+        //xxxxx
+
+        nSQL := MakeSQLByStr([
+              SF('P_ID', nOut.FData),
+              SF('P_Type', sFlag_Sale),
+              SF('P_Bill', nTmp),
+              SF('P_Truck', FTruck),
+              SF('P_CusID', FCusID),
+              SF('P_CusName', FCusName),
+              SF('P_MID', FStockNo),
+              SF('P_MName', FStockName),
+              SF('P_MType', FType),
+              SF('P_LimValue', FKZValue),                                       //补单量
+              SF('P_KZValue', 0, sfVal),
+              SF('P_PValue', FPData.FValue, sfVal),                             //原始皮重
+              SF('P_PDate', sField_SQLServer_Now, sfVal),
+              SF('P_PMan', FIn.FBase.FFrom.FUser),
+              SF('P_PStation', FMData.FStation),
+              SF('P_MValue', FPData.FValue + FKZValue, sfVal),                  //补单量+皮重
+              SF('P_MDate', sField_SQLServer_Now, sfVal),
+              SF('P_MMan', FIn.FBase.FFrom.FUser),
+              SF('P_MStation', FMData.FStation),
+              SF('P_FactID', FFactory),
+              SF('P_Direction', '出厂'),
+              SF('P_PModel', FPModel),
+              SF('P_Status', sFlag_TruckBFP),
+              SF('P_Valid', sFlag_Yes),
+              SF('P_PrintNum', 1, sfVal)
+              ], sTable_PoundLog, '', True);
+        FListA.Add(nSQL);
+
+        nMVal:= nMVal - FKZValue;
+        //减去补单毛重
+
+        //----------------------------------------------------------------------
         nStr := 'Select Count(*) From %s Where C_ID=''%s''';
         nStr := Format(nStr, [sTable_YT_CardInfo, FListB.Values['XCB_ID']]);
 

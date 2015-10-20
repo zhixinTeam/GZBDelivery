@@ -1,5 +1,5 @@
 //----------------------------------- 通用 -------------------------------------
-{$DEFINE DEBUG}
+{.$DEFINE DEBUG}
 //调试模式
 
 {.$DEFINE TrialVersion}
@@ -23,7 +23,7 @@
 {.$DEFINE ClientMon}
 //进程守护客户端
 
-{.$DEFINE HardMon}
+{$DEFINE HardMon}
 //编译硬件守护
 
 {.$DEFINE GenRODL}
@@ -57,9 +57,13 @@
 {$IFDEF GZBJM}
   {$DEFINE COMMON}
   //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
   {$DEFINE SyncRemote}
   //远程同步
   {$DEFINE AppAtTaskBar}
   //状态栏显示
+  {$DEFINE MicroMsg}
+  //微信支持
 {$ENDIF}
 
