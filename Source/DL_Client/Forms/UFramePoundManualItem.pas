@@ -953,10 +953,9 @@ begin
   FListB.Text := PackerDecodeStr(nStr);
   //读取订单
   m := StrToFloat(FListB.Values['XCB_RemainNum']);
-  m := Float2Float(m, cPrecision, False);
   //订单剩余量
 
-  f := Float2Float(nValue - FInnerData.FValue, cPrecision, True);
+  f := nValue - FInnerData.FValue;
   //开单量和净重差额
   m := f - m;
   //可用量是否够用

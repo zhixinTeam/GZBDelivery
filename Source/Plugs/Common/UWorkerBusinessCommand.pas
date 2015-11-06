@@ -1106,7 +1106,6 @@ begin
           First;
           nVal := nVal - FieldByName('C_Freeze').AsFloat;
           //扣除已开未提
-          nVal := Float2Float(nVal, cPrecision, False); 
         end;
       end;
 
@@ -1117,6 +1116,7 @@ begin
         Exit;
       end;
 
+      nVal := Float2Float(nVal, cPrecision, False);      
       Values['XCB_RemainNum'] := FloatToStr(nVal);
       //可用量
 
