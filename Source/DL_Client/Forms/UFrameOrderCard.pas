@@ -167,10 +167,11 @@ begin
     //xxxxx
 
     if FWhere = '' then
-         nStr := nStr + 'Where ((C_Date>=''$S'' and C_Date<''$End'')'
-    else nStr := nStr + 'Where ((' + FWhere + ')';
+         nStr := nStr + 'Where ((C_Date>=''$S'' and C_Date<''$End'') '+
+                 'or O_CType=''$CTYPE'') '
+    else nStr := nStr + 'Where (' + FWhere + ')';
 
-    nStr := nStr + ' or O_CType=''$CTYPE'') and C_Used=''$CUSED'' ';
+    nStr := nStr + ' and C_Used=''$CUSED'' ';
 
     nStr := MacroValue(nStr, [MI('$BC', sTable_Card),
             MI('$Order', sTable_Order),
@@ -180,14 +181,15 @@ begin
   end;
 
   if not FQueryNo then Exit;
-  nStr := 'Select * From $Order o Left Join $OrderDtl ob On o.O_ID = ob.D_OID ' +
-          'Where (O_Card Is Null) And D_OutFact is NULL';
+  nStr := 'Select * From $Order o Where (O_Card Is Null)';
 
   if FWhereNo = '' then
-       nStr := nStr + ' And (O_Date>=''$S'' and O_Date<''$End'')'
+       nStr := nStr + ' And ((O_Date>=''$S'' and O_Date<''$End'') ' +
+               'or O_CType=''$CTYPE'') '
   else nStr := nStr + ' And (' + FWhereNo + ')';
 
   nStr := MacroValue(nStr, [MI('$Order', sTable_Order),
+          MI('$CUSED', sFlag_Provide), MI('$CTYPE', sFlag_OrderCardG),
           MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx
 

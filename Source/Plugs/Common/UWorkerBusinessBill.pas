@@ -18,6 +18,7 @@ type
     FStock: string;         //品种
     FGroup: string;         //分组
     FRecord: string;        //记录
+    FHKRecord: string;      //合卡
   end;
 
   TBillLadingLine = record
@@ -38,6 +39,7 @@ type
     FIn: TWorkerBusinessCommand;
     FOut: TWorkerBusinessCommand;
     //io
+    FSaveHKRecord: Boolean;
     FSanMultiBill: Boolean;
     //散装多单
     FStockItems: array of TStockMatchItem;
@@ -48,12 +50,14 @@ type
   protected
     procedure GetInOutData(var nIn,nOut: PBWDataBase); override;
     function DoDBWork(var nData: string): Boolean; override;
-    //base funciton
+    //base funciton    
+    function GetHKRecord:string;
     function GetStockGroup(const nStock: string): string;
     function GetMatchRecord(const nStock: string): string;
-    //物料分组
+    //物料分组                                            
     function GetInBillInterval: Integer;
     function AllowedSanMultiBill: Boolean;
+    function AllowedSaveHKRecord: Boolean;
     function VerifyBeforSave(var nData: string): Boolean;
     function SaveBills(var nData: string): Boolean;
     //保存交货单
@@ -196,6 +200,23 @@ begin
   end;
 end;
 
+//Date: 2015/11/3
+//Parm:
+//Desc: 获取车辆队列中合单记录
+function TWorkerBusinessBills.GetHKRecord: string;
+var nIdx: Integer;
+begin
+  Result := '';
+  //init
+
+  for nIdx:=Low(FMatchItems) to High(FMatchItems) do
+  if FMatchItems[nIdx].FHKRecord <> '' then
+  begin
+    Result := FMatchItems[nIdx].FHKRecord;
+    Exit;
+  end;
+end;
+
 //Date: 2014-09-16
 //Parm: 车牌号;
 //Desc: 验证nTruck是否有效
@@ -241,6 +262,20 @@ begin
   Result := False;
   nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
   nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_SanMultiBill]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := Fields[0].AsString = sFlag_Yes;
+  end;
+end;
+
+function TWorkerBusinessBills.AllowedSaveHKRecord: Boolean;
+var nStr: string;
+begin
+  Result := False;
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_SaveHKRecord]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   if RecordCount > 0 then
@@ -323,6 +358,7 @@ begin
   SetLength(FMatchItems, 0);
   //init
 
+  FSaveHKRecord := AllowedSaveHKRecord;
   FSanMultiBill := AllowedSanMultiBill;
   //散装允许开多单
 
@@ -347,8 +383,7 @@ begin
     end;
   end;
 
-  nStr := 'Select R_ID,T_Bill,T_StockNo,T_Type,T_InFact,T_Valid From %s ' +
-          'Where T_Truck=''%s'' ';
+  nStr := 'Select * From %s Where T_Truck=''%s'' ';
   nStr := Format(nStr, [sTable_ZTTrucks, nTruck]);
   //还在队列中车辆
 
@@ -388,6 +423,10 @@ begin
         FStock := FieldByName('T_StockNo').AsString;
         FGroup := GetStockGroup(FStock);
         FRecord := FieldByName('R_ID').AsString;
+
+        if Assigned(FindField('T_HKRecord')) then
+              FHKRecord := FieldByName('T_HKRecord').AsString
+        else  FHKRecord := '';
       end;
 
       Inc(nIdx);
@@ -424,7 +463,7 @@ end;
 //Date: 2014-09-15
 //Desc: 保存交货单
 function TWorkerBusinessBills.SaveBills(var nData: string): Boolean;
-var nStr,nSQL: string;
+var nStr,nSQL,nHKID: string;
     nIdx,nInt: Integer;
     nOut: TWorkerBusinessCommand;
 begin
@@ -442,6 +481,28 @@ begin
 
     for nIdx:=0 to FListB.Count - 1 do
     begin
+      if FSaveHKRecord then
+      begin
+        nHKID := GetHKRecord;
+
+        if nHKID='' then
+        begin
+          FListC.Clear;
+          FListC.Values['Group'] :=sFlag_BusGroup;
+          FListC.Values['Object'] := sFlag_HKRecord;
+          //to get serial no
+
+          if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+                FListC.Text, sFlag_Yes, @nOut) then
+            raise Exception.Create(nOut.FData);
+          //xxxxx
+
+          nHKID := nOut.FData;
+        end;
+      end;
+      //获取队列中的合卡记录  
+
+      FListC.Clear;
       FListC.Values['Group'] :=sFlag_BusGroup;
       FListC.Values['Object'] := sFlag_BillNo;
       //to get serial no
@@ -549,9 +610,22 @@ begin
             FStock := FListC.Values['StockNO'];
             FGroup := GetStockGroup(FStock);
             FRecord := nStr;
+            FHKRecord:= nHKID;
           end;
         end;
       end;
+
+      if FSaveHKRecord then
+      begin
+        nSQL := MakeSQLByStr([SF('L_HKRecord', nHKID)],
+            sTable_Bill, SF('L_ID', nOut.FData), False);
+        gDBConnManager.WorkerExec(FDBConn, nSQL);
+
+        nSQL := 'Update %s Set T_HKRecord=''%s'' Where T_HKBills Like ''%%%s%%''';
+        nSQL := Format(nSQL, [sTable_ZTTrucks, nHKID, nOut.FData]); 
+        gDBConnManager.WorkerExec(FDBConn, nSQL);
+      end;
+      //更新合卡记录
 
       if FListA.Values['BuDan'] = sFlag_Yes then //补单
       begin
@@ -1350,7 +1424,8 @@ begin
 
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
-          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan From $Bill b ';
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord '+
+          'From $Bill b ';
   //xxxxx
 
   if nIsBill then
@@ -1397,7 +1472,8 @@ begin
 
       FCard       := FieldByName('L_Card').AsString;
       FIsVIP      := FieldByName('L_IsVIP').AsString;
-      FStatus     := FieldByName('L_Status').AsString;
+      FStatus     := FieldByName('L_Status').AsString; 
+      FHKRecord   := FieldByName('L_HKRecord').AsString;
       FNextStatus := FieldByName('L_NextStatus').AsString;
 
       if FIsVIP = sFlag_TypeShip then
@@ -1698,6 +1774,16 @@ begin
         f := FValue - nVal;
         //原开票新增冻结
 
+        nStr := '补单时详细信息：' + #13#10 +
+                '※.皮重:[%f] ' + #13#10 +
+                '※.毛重:[%f] ' + #13#10 +
+                '※.原订单:[%s]=>提货量:[%f] ' + #13#10 +
+                '※.实际净重:[%f] ' + #13#10 +
+                '※.补单量:[%f]';
+        nStr := Format(nStr, [FPData.FValue, FMData.FValue,FID,FValue,
+                FValue +FKZValue, FKZValue]);
+        WriteLog(nStr);
+
         nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal)
               ], sTable_Bill, SF('L_ID', FID), False);
         FListA.Add(nSQL); //更新提货量
@@ -1801,6 +1887,7 @@ begin
 
                 SF('L_ZKMoney', sFlag_No),
                 SF('L_Truck', FTruck),
+                SF('L_HKRecord', FHKRecord),
                 SF('L_Status', sFlag_TruckBFM),
                 SF('L_NextStatus', sFlag_TruckOut),
                 SF('L_InTime', sField_SQLServer_Now, sfVal),
@@ -2034,8 +2121,15 @@ begin
     begin
       FListB.Add(FID);
       //交货单列表
-      
+
+      if TWorkerBusinessCommander.CallMe(cBC_DaiPercentToZero,'','', @nOut) then
+           f := StrToFloatDef(nOut.FData, 0)
+      else f := 0;
+      nVal := TWorkerBusinessCommander.VerifyDaiValue(nBills[nIdx],f);
+      //获取订单正确的发货量
+
       nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
+              SF('L_Value', nVal, sfVal),
               SF('L_NextStatus', ''),
               SF('L_Card', ''),
               SF('L_OutFact', sField_SQLServer_Now, sfVal),
@@ -2045,14 +2139,14 @@ begin
 
       nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
               'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
-      nSQL := Format(nSQL, [sTable_YT_CardInfo, FValue, FValue, FZhiKa]);
+      nSQL := Format(nSQL, [sTable_YT_CardInfo, nVal, FValue, FZhiKa]);
       FListA.Add(nSQL); //更新订单
 
       if FSeal <> '' then
       begin
         nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
                 'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
-        nSQL := Format(nSQL, [sTable_YT_CodeInfo, FValue, FValue, FSeal]);
+        nSQL := Format(nSQL, [sTable_YT_CodeInfo, nVal, FValue, FSeal]);
         FListA.Add(nSQL); //更新水泥编号
       end;
     end;

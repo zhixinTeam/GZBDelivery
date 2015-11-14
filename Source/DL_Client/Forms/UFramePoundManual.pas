@@ -106,10 +106,10 @@ begin
   begin
     gProberManager := TProberManager.Create;
     gProberManager.LoadConfig(gPath + 'TruckProber.xml');
+  end;          
 
-    Inc(gSysParam.FProberUser);
-    gProberManager.StartProber;
-  end;
+  Inc(gSysParam.FProberUser);
+  gProberManager.StartProber;
   {$ENDIF}
 
   if gSysParam.FVoiceUser < 1 then

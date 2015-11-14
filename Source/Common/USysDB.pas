@@ -184,6 +184,7 @@ ResourceString
   sFlag_PoundIfDai    = 'PoundIFDai';                //袋装是否过磅
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
+  sFlag_DaiPercentToZero = 'DaiPercentToZero';       //不统计为发货量的比例
 
   sFlag_CommonItem    = 'CommonItem';                //公共信息
   sFlag_CardItem      = 'CardItem';                  //磁卡信息项
@@ -220,6 +221,7 @@ ResourceString
   sFlag_DelayQueue    = 'DelayQueue';                //延迟排队(厂内)
   sFlag_PoundQueue    = 'PoundQueue';                //延迟排队(厂内依据过皮时间)
   sFlag_NetPlayVoice  = 'NetPlayVoice';              //使用网络语音播发
+  sFlag_SaveHKRecord  = 'SaveHKRecord';              //保存合单表信息
 
   sFlag_BusGroup      = 'BusFunction';               //业务编码组
   sFlag_BillNo        = 'Bus_Bill';                  //交货单号
@@ -233,6 +235,7 @@ ResourceString
   sFlag_Order         = 'Bus_Order';                 //采购单号
   sFlag_OrderBase     = 'Bus_OrderBase';             //采购申请单号
   sFlag_OrderDtl      = 'Bus_OrderDtl';              //采购单号
+  sFlag_HKRecord      = 'Bus_HKRecord';              //合单编号
 
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组

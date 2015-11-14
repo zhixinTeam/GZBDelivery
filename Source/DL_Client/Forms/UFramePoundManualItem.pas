@@ -152,11 +152,16 @@ uses
   ULibFun, UAdjustForm, UFormBase, {$IFDEF HR1847}UKRTruckProber,
   {$ELSE}UMgrTruckProbe,{$ENDIF} UMgrRemoteVoice, UMgrVoiceNet, UDataModule,
   USysBusiness, UBusinessPacker, UFormInputbox, UFormWait, USysConst, USysDB,
-  UPoundCardReader, UMgrSndPlay, IniFiles;
+  UPoundCardReader, UMgrSndPlay, IniFiles, USysLoger;
 
 const
   cFlag_ON    = 10;
   cFlag_OFF   = 20;
+
+procedure WriteSysLog(const nEvent: string);
+begin
+  gSysLoger.AddLog(TfFrameManualPoundItem, '手动称重业务', nEvent);
+end;
 
 class function TfFrameManualPoundItem.FrameID: integer;
 begin
@@ -957,6 +962,16 @@ begin
 
   f := nValue - FInnerData.FValue;
   //开单量和净重差额
+  nStr := '提货单号[%s]详情如下:' + #13#10 +
+          '※.提货净重: %s吨' + #13#10 +
+          '※.开 票 量: %s吨' + #13#10 +
+          '※.订单剩余: %s吨' + #13#10 +
+          '※.超发数量: %s吨' + #13#10 +
+          '请核对信息!';
+  nStr := Format(nStr, [FInnerData.FID, FloatToStr(nValue),
+          FloatToStr(FInnerData.FValue),FloatToStr(m),FloatToStr(f)]);
+  WriteSysLog(nStr);
+
   m := f - m;
   //可用量是否够用
 
@@ -971,6 +986,7 @@ begin
     
     nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
             FInnerData.FProject, nValue, m]);
+    WriteSysLog(nStr);
     if not QueryDlg(nStr, sHint) then Exit;
 
     nStr := '';

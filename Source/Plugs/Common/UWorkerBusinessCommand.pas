@@ -75,6 +75,7 @@ type
     //获取纸卡可用金
     function CustomerHasMoney(var nData: string): Boolean;
     //验证客户是否有钱
+    function GetDaiPercentToZero(var nData: string): Boolean;
     function SaveTruck(var nData: string): Boolean;
     //保存车辆到Truck表
     function GetTruckPoundData(var nData: string): Boolean;
@@ -103,6 +104,9 @@ type
     class function CallMe(const nCmd: Integer; const nData,nExt: string;
       const nOut: PWorkerBusinessCommand): Boolean;
     //local call
+    class function VerifyDaiValue(nBill: TLadingBillItem;
+      const nPercent: Double=0):Double;
+    //袋装发货量
   end;
 
   TWorkerBusinessOrders = class(TMITDBWorker)
@@ -304,6 +308,30 @@ begin
   FDataOutNeedUnPack := False;
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2015/10/22
+//Parm: 订单记录
+//Desc: 矫正袋装发货量,如果是散装，直接返回发货量；袋装则进行矫正
+class function TWorkerBusinessCommander.VerifyDaiValue(nBill: TLadingBillItem;
+    const nPercent: Double): Double;
+var nNet, nTmpVal, nTmpNet: Double;
+begin
+  Result := nBill.FValue;
+
+  with nBill do
+  begin
+    if (FType = sFlag_San) or (nPercent<=0) then Exit;
+
+    nNet := FMData.FValue - FPData.FValue;
+
+    nTmpVal := Float2Float(FValue * nPercent * 1000, cPrecision, False);
+    nTmpNet := Float2Float(nNet * 1000, cPrecision, False);
+
+    if nTmpVal>=nTmpNet then Result := 0;
+    //净重\票重比率小于50%（可设置)时，认为该车出现问题，发货量记为0
+  end;  
+end;
+
 //Date: 2014-09-15
 //Parm: 命令;数据;参数;输出
 //Desc: 本地调用业务对象
@@ -359,6 +387,7 @@ begin
    cBC_GetCustomerMoney    : Result := GetCustomerValidMoney(nData);
    cBC_GetZhiKaMoney       : Result := GetZhiKaValidMoney(nData);
    cBC_CustomerHasMoney    : Result := CustomerHasMoney(nData);
+   cBC_DaiPercentToZero    : Result := GetDaiPercentToZero(nData);
    cBC_SaveTruckInfo       : Result := SaveTruck(nData);
    cBC_GetTruckPoundData   : Result := GetTruckPoundData(nData);
    cBC_SaveTruckPoundData  : Result := SaveTruckPoundData(nData);
@@ -732,6 +761,28 @@ begin
   end;
 end;
 
+//Date: 2015-10-22
+//Desc:
+function TWorkerBusinessCommander.GetDaiPercentToZero(var nData: string): Boolean;
+var nPercent: Double;
+    nStr: string;
+begin
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' ' +
+          'And D_Memo=''%s'' ';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_PoundWuCha,
+          sFlag_DaiPercentToZero]);
+  //xxxxx
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount>0 then
+        nPercent := Fields[0].AsFloat
+  else  nPercent := 0;
+
+  FOut.FData := FloatToStr(nPercent);
+  Result := True;
+  //固定比率
+end;
+
 //Date: 2014-10-02
 //Parm: 车牌号[FIn.FData];
 //Desc: 保存车辆到sTable_Truck表
@@ -1093,6 +1144,10 @@ begin
         if RecordCount > 0 then
              nVal := Fields[0].AsFloat
         else nVal := 0;
+
+        nStr := '单据:[%s]=>云天系统剩余量[%f]';
+        nStr := Format(nStr, [Values['XCB_ID'], Fields[0].AsFloat]);
+        WriteLog(nStr);
       end;
 
       if nVal > 0 then
@@ -1106,6 +1161,11 @@ begin
           First;
           nVal := nVal - FieldByName('C_Freeze').AsFloat;
           //扣除已开未提
+          nVal := Float2Float(nVal, cPrecision, False);
+
+          nStr := '单据:[%s]=>一卡通系统冻结量[%f]';
+          nStr := Format(nStr, [Values['XCB_ID'], FieldByName('C_Freeze').AsFloat]);
+          WriteLog(nStr);
         end;
       end;
 
@@ -1116,7 +1176,6 @@ begin
         Exit;
       end;
 
-      nVal := Float2Float(nVal, cPrecision, False);      
       Values['XCB_RemainNum'] := FloatToStr(nVal);
       //可用量
 
@@ -1238,7 +1297,7 @@ begin
   Result := True;
 
   nStr := 'Select C_Param From %s Where C_XuNi<>''%s''';
-  nStr := Format(nStr, [sTable_Customer, sFlag_No]);
+  nStr := Format(nStr, [sTable_Customer, sFlag_Yes]);
 
   FListB.Clear;
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -1274,7 +1333,7 @@ begin
         if FieldByName('XOB_Status').AsString = '1' then
         begin  //Add
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
           Continue;
           //Has Saved
 
@@ -1293,7 +1352,7 @@ begin
           //xxxxx
 
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
           FListA.Add(nStr);
           //Has Saved
         end;
@@ -1377,13 +1436,13 @@ begin
         if FieldByName('XOB_Status').AsString = '1' then
         begin  //Add
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
           Continue;
           //Has Saved
 
           nStr := MakeSQLByStr([SF('P_ID', FieldByName('XOB_ID').AsString),
                   SF('P_Name', FieldByName('XOB_Name').AsString),
-                  SF('P_PY', FieldByName('XOB_JianPin').AsString),
+                  SF('P_PY', GetPinYinOfStr(FieldByName('XOB_Name').AsString)),
                   SF('P_Memo', FieldByName('XOB_Code').AsString),
                   SF('P_Saler', nSaler)
                   ], sTable_Provider, '', True);
@@ -1398,7 +1457,7 @@ begin
           //xxxxx
 
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
           FListA.Add(nStr);
           //Has Saved
         end;
@@ -1456,8 +1515,7 @@ begin
   try
     nStr := 'Select PCM_ID,PCM_MaterId,PCM_Name,PCM_Kind,PCY_Name,PCM_Status ' +
             'From PB_Code_Material pcm ' +
-            'Left join PB_Code_MaterType pcy on pcm.PCM_Kind=pcy.PCY_ID ' +
-            'Where PCY_Name Like ''%%原%%''';
+            'Left join PB_Code_MaterType pcy on pcm.PCM_Kind=pcy.PCY_ID ';
     //xxxxx
 
     with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
@@ -1466,14 +1524,14 @@ begin
       First;
 
       while not Eof do
-      begin
+      try
         if FieldByName('PCM_ID').AsString = '' then Continue;
         //invalid
 
         if FieldByName('PCM_Status').AsString = '1' then
         begin  //Add
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>=0) then
           Continue;
           //Has Saved
 
@@ -1494,10 +1552,11 @@ begin
           //xxxxx
 
           if (FListB.Count>0) and
-          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>0) then
+          (FListB.IndexOf(FieldByName('PCM_ID').AsString)>=0) then
           FListA.Add(nStr);
           //Has Saved
         end;
+      finally
         Next;
       end;
     end;
@@ -1546,6 +1605,71 @@ begin
     Result := Parameters.ParamByName('P2').Value;
   end;
 end;
+
+//Date: 2015/11/3
+//Parm: 数据链路
+//Desc: 获取云天系统班次区分
+function YT_GetSpell(const nWorker: PDBWorker): string;
+var nBegin, nEnd, nNow: TDateTime;
+begin
+  Result := '';
+  //init
+
+  nNow := Time;
+  with nWorker.FExec do
+  begin
+    Close;
+    SQL.Text := 'select * from PB_Code_Spell';
+    Open;
+
+    if RecordCount<=0 then  Exit;
+
+    First;
+    while not Eof do
+    try
+      nBegin := FieldByName('PCP_BEGINTIME').AsDateTime;
+      nEnd   := FieldByName('PCP_ENDTIME').AsDateTime;
+
+      if nBegin>nEnd then nEnd := nEnd + 1;
+
+      if nBegin>nNow then Continue;
+      //当前时间小于开始时间
+
+      if nEnd < nNow then Continue;
+      //结束时间大于开始时间
+
+      Result := FieldByName('PCP_ID').AsString;
+      Exit;
+    finally
+      Next;
+    end;
+  end;
+end;
+
+//Date: 2015-11-03
+//Parm: 数据库语句；数据链路
+//Desc: 生成插入事物表语句
+function YT_NewInsertLog(const nSQL: string; const nWorker: PDBWorker): string;
+var nStr, nSQLTmp, nPltID: string;
+begin
+  Result := '';
+  //init
+
+  nPltID := YT_NewID('PB_LOG_TRANSACTION', nWorker);
+  nStr := MakeSQLByStr([SF('PLT_ID', nPltID),
+          SF('PLT_Status', '0')
+          ], 'PB_Log_Transaction', '', True);
+  Result := Result + nStr + ';';
+  //同步事务表
+
+  nSQLTmp := StringReplace(nSQL, '''', '''''', [rfReplaceAll, rfIgnoreCase]);
+  nStr := MakeSQLByStr([SF('PLS_TRANSACTION', nPltID),
+          SF('PLS_ORDER', 0),
+          SF('PLS_SQL', nSQLTmp)
+          ], 'PB_Log_Sql', '', True);
+  Result := Result + nStr + ';';
+  //同步事务执行语句表
+end;
 //------------------------------------------------------------------------------
 //Date: 2015/9/26
 //Parm: 
@@ -1561,9 +1685,9 @@ end;
 //Parm: 交货单(多个)[FIn.FData]
 //Desc: 同步交货单发货数据到云天发货表中
 function TWorkerBusinessCommander.SyncNC_Sale(var nData: string): Boolean;
-var nStr,nSQL,nRID,nPID: string;
+var nStr,nSQL,nRID,nPID,nSpell: string;
     nIdx: Integer;
-    nVal,nPrice: Double;
+    nVal,nPrice,nPercent: Double;
     nDS: TDataSet;
     nDateMin: TDateTime;
     nWorker: PDBWorker;
@@ -1668,6 +1792,13 @@ begin
     end;
   end;
 
+  if CallMe(cBC_DaiPercentToZero, '', '', @nOut) then
+       nPercent := StrToFloatDef(nOut.FData, 0)
+  else nPercent := 0;
+
+  for nIdx:=Low(nBills) to High(nBills) do
+    nBills[nIdx].FValue := VerifyDaiValue(nBills[nIdx], nPercent);
+
   //----------------------------------------------------------------------------
   nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
   //订单列表
@@ -1696,6 +1827,9 @@ begin
       begin
         First;
         //init cursor
+
+        if nBills[nIdx].FValue<=0 then Continue;
+        //发货量为0
 
         while not Eof do
         begin
@@ -1760,6 +1894,10 @@ begin
                 ], 'XS_Lade_Base', '', True);
         FListA.Add(nSQL + ';'); //销售提货单表
 
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
+
         nPrice := FieldByName('XCB_Price').AsFloat;
         nVal := nPrice * nBills[nIdx].FValue;
         nVal := Float2Float(nVal, cPrecision, True);
@@ -1783,6 +1921,10 @@ begin
                    nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
                 ], 'XS_Lade_Detail', '', True);
         FListA.Add(nSQL + ';'); //销售提货单明细表
+
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
 
         nPID := YT_NewID('DB_TURN_PRODUOUT', nWorker);
         nSQL := MakeSQLByStr([SF('DTP_ID', nPID),
@@ -1816,6 +1958,10 @@ begin
                 ], 'DB_Turn_ProduOut', '', True);
         FListA.Add(nSQL + ';'); //水泥熟料出厂表
 
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
+
         nSQL := MakeSQLByStr([SF('DTU_ID', YT_NewID('DB_TURN_PRODUDTL', nWorker)),
                 SF('DTU_Del', '0'),
                 SF('DTU_PID', nPID),
@@ -1828,11 +1974,34 @@ begin
                 ], 'DB_Turn_ProduDtl', '', True);
         FListA.Add(nSQL + ';'); //水泥熟料出厂明细表
 
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
+
+        nSpell := YT_GetSpell(nWorker);
+        nSQL := MakeSQLByStr([SF('XLO_Lade', nRID),
+                SF('XLO_SetDate', 'sysdate', sfVal),
+                SF('XLO_Creator', 'zx-delivery'),
+                SF('XLO_CDate', 'sysdate', sfVal),
+                SF('XLO_FIRM', FieldByName('XCB_Firm').AsString),
+                SF('XLO_SPELL', nSpell),
+                SF('XLO_ISCANDEL', '0')
+                ], 'XS_Lade_OutDoor', '', True);
+        FListA.Add(nSQL + ';'); //提货单出门登记表
+
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
+
         nSQL := 'Update %s Set XCB_FactNum=XCB_FactNum+(%.2f),' +
                 'XCB_RemainNum=XCB_RemainNum-(%.2f) Where XCB_ID=''%s''';
         nSQL := Format(nSQL, ['XS_Card_Base', nBills[nIdx].FValue,
                 nBills[nIdx].FValue, nBills[nIdx].FZhiKa]);
         FListA.Add(nSQL + ';'); //更新订单
+
+        nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+        FListA.Add(nSQL);
+        //插入同步事物表
 
         if nBills[nIdx].FSeal <> '' then
         begin
@@ -1845,6 +2014,10 @@ begin
                   SF('XLM_NUMBER', nBills[nIdx].FValue, sfVal)
                   ], 'XS_Lade_CementCode', '', True);
           FListA.Add(nSQL + ';'); //更新批次号使用量
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
         end;
       end;
 
@@ -1892,14 +2065,14 @@ begin
   nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
 
   nSQL := 'Select D_ID,D_OID,O_ProID,O_StockNo,O_Truck,' +
-          'D_Value,D_KZValue,D_AKValue,' +
+          'D_Value,D_KZValue,D_AKValue,D_YSResult,' +
           'D_PValue,D_PDate,D_PMan,' +
           'D_MValue,D_MDate,D_MMan,' +
           'D_InTime,D_OutFact,D_PID ' +
           'From %s ' +
           '  Left Join %s On D_OID=O_ID ' +
-          'Where D_ID In (%s) And D_YSResult=''%s''';
-  nSQL := Format(nSQL, [sTable_OrderDtl, sTable_Order, nStr, sFlag_Yes]);
+          'Where D_ID In (%s) ';
+  nSQL := Format(nSQL, [sTable_OrderDtl, sTable_Order, nStr]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
   begin
@@ -1909,6 +2082,12 @@ begin
       nData := Format(nData, [CombinStr(FListA, ',', False)]);
       Exit;
     end;
+
+    if FieldByName('D_YSResult').AsString=sFlag_No then
+    begin   //材料拒收，不回传信息
+      Result := True;
+      Exit;
+    end;  
 
     FListC.Clear;
     FListC.Values['Group'] := sFlag_BusGroup;
@@ -2038,6 +2217,9 @@ begin
                    True), sfVal)
               ], 'DB_Turn_MaterIn', '', True);
       FListA.Add(nSQL + ';'); //材料进厂表
+
+      nSQL := YT_NewInsertLog(nSQL + ';', nWorker);
+      FListA.Add(nSQL);
     end;
 
     //nWorker.FConn.BeginTrans;

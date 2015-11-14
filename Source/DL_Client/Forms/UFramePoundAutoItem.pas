@@ -444,7 +444,13 @@ begin
   //初始化样本
   
   if not FPoundTunnel.FUserInput then
-    gPoundTunnelManager.ActivePort(FPoundTunnel.FID, OnPoundDataEvent, True);
+  if not gPoundTunnelManager.ActivePort(FPoundTunnel.FID,
+          OnPoundDataEvent, True) then
+  begin
+    WriteSysLog('连接地磅表头失败，请检查硬件连接');
+    Timer_SaveFail.Enabled := True;
+    Exit;
+  end;
   FIsWeighting := True;
 end;
 
@@ -521,11 +527,21 @@ begin
   FListB.Text := PackerDecodeStr(nStr);
   //读取订单
   m := StrToFloat(FListB.Values['XCB_RemainNum']);
-  m := Float2Float(m, cPrecision, False);
   //订单剩余量
 
-  f := Float2Float(nValue - FInnerData.FValue, cPrecision, True);
+  f := nValue - FInnerData.FValue;
   //开单量和净重差额
+
+  nStr := '提货单号[%s]详情如下:' + #13#10 +
+          '※.提货净重: %s吨' + #13#10 +
+          '※.开 票 量: %s吨' + #13#10 +
+          '※.订单剩余: %s吨' + #13#10 +
+          '※.超发数量: %s吨' + #13#10 +
+          '请核对信息';
+  nStr := Format(nStr, [FInnerData.FID, FloatToStr(nValue),
+          FloatToStr(FInnerData.FValue),FloatToStr(m),FloatToStr(f)]);
+  WriteSysLog(nStr);
+
   m := f - m;
   //可用量是否够用
 
@@ -675,6 +691,10 @@ begin
       FValue := FUIData.FMData.FValue;
       FOperator := gSysParam.FUserID;
     end;
+
+    FMemo := FUIData.FMemo;
+    FKZValue := FUIData.FKZValue;
+    //散装并单信息
 
     FPoundID := sFlag_Yes;
     //标记该项有称重数据
@@ -832,7 +852,7 @@ begin
   try
     TimerDelay.Enabled := False;
     FLastCardDone := GetTickCount;
-    WriteLog(Format('对车辆[ %s ]称重完毕.', [FUIData.FTruck]));
+    WriteSysLog(Format('对车辆[ %s ]称重完毕.', [FUIData.FTruck]));
 
     PlayVoice(#9 + FUIData.FTruck);
     //播放语音
@@ -914,6 +934,7 @@ begin
   try
     Timer_SaveFail.Enabled := False;
     FLastCardDone := GetTickCount;
+    FLastCard     := '';
 
     gPoundTunnelManager.ClosePort(FPoundTunnel.FID);
     //关闭表头

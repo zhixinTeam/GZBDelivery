@@ -89,7 +89,7 @@ procedure TFrmSetup.FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
   Shift: TShiftState);
 begin
   inherited;
-  {if Key = vkHardwareBack then//如果按下物理返回键
+  if Key = vkHardwareBack then//如果按下物理返回键
   begin
     MessageDlg('确认退出吗？', System.UITypes.TMsgDlgType.mtConfirmation,
       [System.UITypes.TMsgDlgBtn.mbOK, System.UITypes.TMsgDlgBtn.mbCancel], -1,
@@ -103,7 +103,7 @@ begin
 
     Key := 0;//必须的，不然按否也会退出
     Exit;
-  end;}
+  end;
 end;
 
 end.

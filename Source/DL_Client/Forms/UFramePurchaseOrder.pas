@@ -187,7 +187,7 @@ begin
     EditID.Text := Trim(EditID.Text);
     if EditID.Text = '' then Exit;
 
-    FWhere := 'con.O_ID like ''%' + EditID.Text + '%''';
+    FWhere := 'O_ID like ''%' + EditID.Text + '%''';
     InitFormData(FWhere);
   end else
 

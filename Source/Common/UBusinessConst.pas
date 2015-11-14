@@ -31,6 +31,7 @@ const
   cBC_GetCustomerMoney        = $0010;   //获取客户可用金
   cBC_GetZhiKaMoney           = $0011;   //获取纸卡可用金
   cBC_CustomerHasMoney        = $0012;   //客户是否有余额
+  cBC_DaiPercentToZero        = $0014;   //将袋装发货量转为0的比率
 
   cBC_SaveTruckInfo           = $0013;   //保存车辆信息
   cBC_GetTruckPoundData       = $0015;   //获取车辆称重数据
@@ -134,6 +135,7 @@ type
     FPModel     : string;          //称重模式
     FPType      : string;          //业务类型
     FPoundID    : string;          //称重记录
+    FHKRecord   : string;          //合单记录
     FSelected   : Boolean;         //选中状态
 
     FSeal       : string;          //编号ID
@@ -272,6 +274,7 @@ begin
         FHYDan  := Values['HYDan'];
         FMemo   := Values['Memo']; 
         FYSValid:= Values['YSValid'];
+        FHKRecord:= Values['HKRecord'];
       end;
 
       Inc(nInt);
@@ -353,6 +356,7 @@ begin
         
         Values['YSValid']    := FYSValid;
         Values['Memo']       := FMemo;
+        Values['HKRecord']   := FHKRecord;
       end;
 
       nListA.Add(PackerEncodeStr(nListB.Text));

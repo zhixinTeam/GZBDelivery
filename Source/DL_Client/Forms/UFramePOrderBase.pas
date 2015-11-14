@@ -183,7 +183,7 @@ begin
   begin
     nParam.FCommand := cCmd_ViewData;
     nParam.FParamA := SQLQuery.FieldByName('B_ID').AsString;
-    CreateBaseFormItem(cFI_FormOrderBase, PopedomItem, @nParam);
+    //CreateBaseFormItem(cFI_FormOrderBase, PopedomItem, @nParam);
   end;
 end;
 
