@@ -251,6 +251,7 @@ function PrintBillReport(const nBill: string; var nHint: string;
  const nPrinter: string = ''; const nMoney: string = '0'): Boolean;
 var nStr: string;
     nDS: TDataSet;
+    nParam: TReportParamItem;
 begin
   Result := False;
   nStr := 'Select *,%s As L_ValidMoney From %s b Where L_ID=''%s''';
@@ -276,6 +277,30 @@ begin
   if nPrinter = '' then
        FDR.Report1.PrintOptions.Printer := 'My_Default_Printer'
   else FDR.Report1.PrintOptions.Printer := nPrinter;
+
+  nParam.FName := 'HKRecords';
+  nParam.FValue := '';
+
+  if nDS.FieldByName('L_HKRecord').AsString<>'' then
+  begin
+    nStr := 'Select L_ID From %s b Where L_HKRecord =''%s''';
+    nStr := Format(nStr, [sTable_Bill,
+            nDS.FieldByName('L_HKRecord').AsString]);
+    //xxxxx
+
+    if FDM.SQLQuery(nStr, FDM.SQLTemp).RecordCount > 0 then
+      with FDM.SQLTemp do
+      while not Eof do
+      try
+        nStr := FieldByName('L_ID').AsString;
+        if Pos(nStr, nBill)>0 then Continue;
+
+        nParam.FValue := nParam.FValue + nStr + '.';
+      finally
+        Next;
+      end;
+  end;
+  FDR.AddParamItem(nParam);
 
   FDR.Dataset1.DataSet := FDM.SQLQuery1;
   FDR.PrintReport;

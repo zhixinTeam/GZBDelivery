@@ -1891,6 +1891,30 @@ begin
     ShowMsg(nStr, sHint); Exit;
   end;
 
+  nParam.FName := 'HKRecords';
+  nParam.FValue := '';
+
+  if FDM.SqlTemp.FieldByName('L_HKRecord').AsString<>'' then
+  begin
+    nStr := 'Select L_ID From %s b Where L_HKRecord =''%s''';
+    nStr := Format(nStr, [sTable_Bill,
+            FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
+    //xxxxx
+
+    if FDM.QuerySQL(nStr).RecordCount > 0 then
+      with FDM.SqlQuery do
+      while not Eof do
+      try
+        nStr := FieldByName('L_ID').AsString;
+        if Pos(nStr, nBill)>0 then Continue;
+
+        nParam.FValue := nParam.FValue + nStr + '.';
+      finally
+        Next;
+      end;
+  end;
+  FDR.AddParamItem(nParam);  
+
   nParam.FName := 'UserName';
   nParam.FValue := gSysParam.FUserID;
   FDR.AddParamItem(nParam);
