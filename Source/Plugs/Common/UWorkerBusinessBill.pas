@@ -403,8 +403,8 @@ begin
         Exit;
       end else
 
-      if (FieldByName('T_Type').AsString = sFlag_Dai) and
-         (FieldByName('T_InFact').AsString <> '') then
+      //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
+      if (FieldByName('T_InFact').AsString <> '') then
       begin
         nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
         nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
@@ -1298,6 +1298,40 @@ begin
     end;
   end;
 
+  //----------------------------------------------------------------------------
+  nSQL := 'Select T_HKBills From %s Where T_Truck=''%s'' ';
+  nSQL := Format(nSQL, [sTable_ZTTrucks, nTruck]);
+
+  //还在队列中车辆
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  if RecordCount > 0 then nStr := Fields[0].AsString;
+
+  nStr := AdjustListStrFormat(nStr, '''', True, ',', False);
+  //队列中交货单列表
+
+  nSQL := 'Select L_Card From %s Where L_ID In (%s)';
+  nSQL := Format(nSQL, [sTable_Bill, nStr]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  if RecordCount > 0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      if (Fields[0].AsString <> '') and
+         (Fields[0].AsString <> FIn.FExtParam) then
+      begin
+        nData := '车辆[ %s ]正在使用磁卡[%s],新磁卡编号为[%s],请使用同一磁卡.';
+        nData := Format(nData, [nTruck, Fields[0].AsString, FIn.FExtParam]);
+        Exit;
+      end;
+
+      Next;
+    end;  
+  end;
+
+  //----------------------------------------------------------------------------
   FDBConn.FConn.BeginTrans;
   try
     if FIn.FData <> '' then

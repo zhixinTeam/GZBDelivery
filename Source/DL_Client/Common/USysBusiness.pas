@@ -1896,7 +1896,7 @@ begin
 
   if FDM.SqlTemp.FieldByName('L_HKRecord').AsString<>'' then
   begin
-    nStr := 'Select L_ID From %s b Where L_HKRecord =''%s''';
+    nStr := 'Select * From %s b Where L_HKRecord =''%s''';
     nStr := Format(nStr, [sTable_Bill,
             FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
     //xxxxx
@@ -1905,9 +1905,7 @@ begin
       with FDM.SqlQuery do
       while not Eof do
       try
-        nStr := FieldByName('L_ID').AsString;
-        if Pos(nStr, nBill)>0 then Continue;
-
+        nStr := FieldByName('L_ID').AsString;  
         nParam.FValue := nParam.FValue + nStr + '.';
       finally
         Next;
@@ -1924,6 +1922,7 @@ begin
   FDR.AddParamItem(nParam);
 
   FDR.Dataset1.DataSet := FDM.SqlTemp;
+  FDR.Dataset2.DataSet := FDM.SqlQuery;
   FDR.ShowReport;
   Result := FDR.PrintSuccess;
 end;

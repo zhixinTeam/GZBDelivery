@@ -491,10 +491,11 @@ begin
     gHardwareHelper.OpenDoor(nReader);
   //抬杆
 
-  for nIdx:=Low(nTrucks) to High(nTrucks) do
+  //发起一次打印
+  with nTrucks[0] do
   begin
     {$IFDEF PrintBillMoney}
-    if CallBusinessCommand(cBC_GetZhiKaMoney,nTrucks[nIdx].FZhiKa,'',@nOut) then
+    if CallBusinessCommand(cBC_GetZhiKaMoney, FZhiKa,'',@nOut) then
          nStr := #8 + nOut.FData
     else nStr := #8 + '0';
     {$ELSE}
@@ -505,9 +506,10 @@ begin
     //磁卡类型
 
     if nPrinter = '' then
-         gRemotePrinter.PrintBill(nTrucks[nIdx].FID + nStr)
-    else gRemotePrinter.PrintBill(nTrucks[nIdx].FID + #9 + nPrinter + nStr);
-  end; //打印报表
+         gRemotePrinter.PrintBill(FID + nStr)
+    else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
+  end;  
+  //打印报表
 end;
 
 //Date: 2012-10-19

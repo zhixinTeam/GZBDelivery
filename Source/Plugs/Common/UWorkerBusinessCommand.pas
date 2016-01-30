@@ -1681,6 +1681,13 @@ begin
   Result := Format(nStr, [DateTime2Str(nDT)]);
 end;
 
+function Date2StrOracle(const nDT: TDateTime): string;
+var nStr :string;
+begin
+  nStr := 'to_date(''%s'', ''yyyy-mm-dd'')';
+  Result := Format(nStr, [Date2Str(nDT)]);
+end;
+
 //Date: 2015-09-16
 //Parm: 交货单(多个)[FIn.FData]
 //Desc: 同步交货单发货数据到云天发货表中
@@ -1689,7 +1696,7 @@ var nStr,nSQL,nRID,nPID,nSpell: string;
     nIdx: Integer;
     nVal,nPrice,nPercent: Double;
     nDS: TDataSet;
-    nDateMin: TDateTime;
+    nDateMin, nSetDate: TDateTime;
     nWorker: PDBWorker;
     nBills: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
@@ -1841,12 +1848,15 @@ begin
         if Eof then Continue;
         //订单丢失则不予处理
 
+        nSetDate := nBills[nIdx].FMData.FDate;
+        //nSetDate
+
         nRID := YT_NewID('XS_LADE_BASE', nWorker);
         //记录编号
 
         nSQL := MakeSQLByStr([SF('XLB_ID', nRID),
                 SF('XLB_LadeId', nBills[nIdx].FID),
-                SF('XLB_SetDate', 'trunc(sysdate)', sfVal),
+                SF('XLB_SetDate', Date2StrOracle(nSetDate), sfVal),
                 SF('XLB_LadeType', '103'),
                 SF('XLB_Origin', '101'),
                 SF('XLB_Client', nBills[nIdx].FCusID),
@@ -1867,8 +1877,8 @@ begin
                 SF('XLB_CarCode', nBills[nIdx].FTruck),
                 SF('XLB_Quantity', '0', sfVal),
                 SF('XLB_PrintNum', '0', sfVal),
-                SF('XLB_OutTime', 'sysdate', sfVal),
-                SF('XLB_DoorTime', 'sysdate', sfVal),
+                SF('XLB_OutTime', DateTime2StrOracle(nSetDate), sfVal),
+                SF('XLB_DoorTime', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_IsCarry', '1'),
                 SF('XLB_IsOut', '1'),
                 SF('XLB_IsCheck', '0'),
@@ -1886,9 +1896,9 @@ begin
                 SF('XLB_Status', '1'),
                 SF('XLB_Del', '0'),
                 SF('XLB_Creator', 'zx-delivery'),
-                SF('XLB_CDate', 'sysdate', sfVal),
+                SF('XLB_CDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_PROID', FieldByName('XCB_SubLader').AsString),
-                SF('XLB_KDATE', 'sysdate', sfVal),
+                SF('XLB_KDATE', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_ISONLY', '1'),
                 SF('XLB_ISSUPPLY', '0')
                 ], 'XS_Lade_Base', '', True);
@@ -1933,7 +1943,7 @@ begin
                 SF('DTP_Origin',  '101'),
 
                 SF('DTP_Vehicle', nBills[nIdx].FTruck),
-                SF('DTP_OutDate', 'trunc(sysdate)', sfVal),
+                SF('DTP_OutDate', Date2StrOracle(nSetDate), sfVal),
                 SF('DTP_Material', nBills[nIdx].FStockNo),
                 SF('DTP_CementCode', nBills[nIdx].FHYDan),
                 SF('DTP_Lade', nRID),
@@ -1980,9 +1990,9 @@ begin
 
         nSpell := YT_GetSpell(nWorker);
         nSQL := MakeSQLByStr([SF('XLO_Lade', nRID),
-                SF('XLO_SetDate', 'sysdate', sfVal),
+                SF('XLO_SetDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLO_Creator', 'zx-delivery'),
-                SF('XLO_CDate', 'sysdate', sfVal),
+                SF('XLO_CDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLO_FIRM', FieldByName('XCB_Firm').AsString),
                 SF('XLO_SPELL', nSpell),
                 SF('XLO_ISCANDEL', '0')
@@ -2201,7 +2211,7 @@ begin
 
               SF('DTM_Vehicle', nBills[nIdx].FTruck),
 
-              SF('DTM_InDate', 'trunc(sysdate)', sfVal),
+              SF('DTM_InDate', Date2StrOracle(nBills[nIdx].FMData.FDate), sfVal),
               SF('DTM_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
               SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
               SF('DTM_Material', nBills[nIdx].FStockNo),
