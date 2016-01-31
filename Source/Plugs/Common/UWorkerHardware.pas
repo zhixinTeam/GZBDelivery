@@ -425,6 +425,7 @@ end;
 //Desc: 在指定通道上喷码
 function THardwareCommander.PrintCode(var nData: string): Boolean;
 var nStr,nCode: string;
+    nPrefixLen, nIDLen: Integer;
 begin
   Result := True;
   if not gCodePrinterManager.EnablePrinter then Exit;
@@ -433,12 +434,29 @@ begin
   nStr := Format(nStr, [FIn.FExtParam, FIn.FData]);
   WriteLog(nStr);
 
+  nStr := 'Select B_Prefix,B_IDLen From %s ' +
+          'Where B_Group=''%s'' And B_Object=''%s''';
+  nStr := Format(nStr, [sTable_SerialBase,sFlag_BusGroup, sFlag_BillNo]);
+  //xxxxx
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+   if RecordCount>0 then
+   begin
+     nPrefixLen := Length(Fields[0].AsString);
+     nIDLen     := Fields[1].AsInteger;
+   end else begin
+     nPrefixLen := -1;
+     nIDLen     := -1;
+   end;
+  //xxxxx
+
   if Pos('@', FIn.FData) = 1 then
   begin
     nCode := Copy(FIn.FData, 2, Length(FIn.FData) - 1);
     //固定喷码
   end else
   begin
+    if (nPrefixLen<0) or (nIDLen<0) then Exit;
+
     nStr := 'Select * From %s Where L_ID=''%s''';
     nStr := Format(nStr, [sTable_Bill, FIn.FData]);
 
@@ -462,9 +480,9 @@ begin
 
       {$IFDEF GZBJM}
       nStr := FieldByName('L_ID').AsString;
-      nCode:= Copy(nStr, 3, 6);
+      nCode:= Copy(nStr, nPrefixLen + 1, 6);
       nCode:= nCode + 'P' + FieldByName('L_HYDan').AsString;
-      nCode:= nCode + Copy(nStr, 9, Length(nStr)-8);
+      nCode := nCode + Copy(nStr, nPrefixLen + 7, nIDLen-nPreFixLen-6);
       {$ENDIF}
     end;
   end;
