@@ -52,7 +52,7 @@ implementation
 
 uses
   UMgrChannel, UChannelChooser, UDataModule, USysDB, USysMAC, SysUtils,
-  USysLoger, USysConst;
+  USysLoger, USysConst,UMemDataPool;
 
 //Desc: 初始化系统对象
 procedure InitSystemObject;
@@ -60,6 +60,10 @@ begin
   if not Assigned(gSysLoger) then
     gSysLoger := TSysLoger.Create(gPath + sLogDir);
   //system loger
+
+  if not Assigned(gMemDataManager) then
+    gMemDataManager := TMemDataManager.Create;
+  //Memory Manager
 
   gChannelManager := TChannelManager.Create;
   gChannelManager.ChannelMax := 20;

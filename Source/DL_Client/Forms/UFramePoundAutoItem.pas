@@ -602,6 +602,25 @@ begin
       WriteLog('请先称量皮重');
       Exit;
     end;
+    
+    nNet := GetTruckEmptyValue(FUIData.FTruck);
+    nVal := nNet * 1000 - FUIData.FPData.FValue * 1000;
+
+    if (nNet > 0) and (Abs(nVal) > gSysParam.FPoundSanF) then
+    begin
+      nStr := '车辆[%s]实时皮重误差较大,请通知司机检验车厢';
+      nStr := Format(nStr, [FUIData.FTruck]);
+      PlayVoice(nStr);
+
+      nStr := '车辆[ %s ]实时皮重误差较大,详情如下:' + #13#10#13#10 +
+              '※.实时皮重: %.2f吨' + #13#10 +
+              '※.历史皮重: %.2f吨' + #13#10 +
+              '※.误差量: %.2f公斤' + #13#10#13#10 +
+              '是否继续保存?';
+      nStr := Format(nStr, [FUIData.FTruck, FUIData.FPData.FValue,
+              nNet, nVal]);
+      if not QueryDlg(nStr, sAsk) then Exit;
+    end;
   end else
   begin
     if FUIData.FMData.FValue <= 0 then
@@ -637,9 +656,11 @@ begin
 
       if ((FType = sFlag_Dai) and (
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
-          ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF)))) then
+          ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF)))){  or
+         ((FType = sFlag_San) and (
+          (nVal < 0) and (FPoundSanF > 0) and (-nVal > FPoundSanF))) }then
       begin
-        nStr := '车辆[%s]实际装车量误差较大，请通知司机点验包数';
+        nStr := '车辆[%s]实际装车量误差较大，请通知司机检验载重';
         nStr := Format(nStr, [FTruck]);
         PlayVoice(nStr);
 

@@ -34,6 +34,7 @@ const
   cBC_DaiPercentToZero        = $0014;   //将袋装发货量转为0的比率
 
   cBC_SaveTruckInfo           = $0013;   //保存车辆信息
+  cBC_UpdateTruckInfo         = $0017;   //更新车辆信息
   cBC_GetTruckPoundData       = $0015;   //获取车辆称重数据
   cBC_SaveTruckPoundData      = $0016;   //保存车辆称重数据
 

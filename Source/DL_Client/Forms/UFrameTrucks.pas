@@ -32,6 +32,7 @@ type
     N3: TMenuItem;
     VIP1: TMenuItem;
     VIP2: TMenuItem;
+    N8: TMenuItem;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -44,6 +45,7 @@ type
     procedure N7Click(Sender: TObject);
     procedure VIP1Click(Sender: TObject);
     procedure VIP2Click(Sender: TObject);
+    procedure N8Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -58,7 +60,8 @@ implementation
 
 {$R *.dfm}
 uses
-  ULibFun, UMgrControl, USysBusiness, USysConst, USysDB, UDataModule, UFormBase;
+  ULibFun, UMgrControl, USysBusiness, USysConst, USysDB, UDataModule, UFormBase,
+  UFormInputbox;
 
 class function TfFrameTrucks.FrameID: integer;
 begin
@@ -129,6 +132,7 @@ end;
 procedure TfFrameTrucks.PMenu1Popup(Sender: TObject);
 begin
   N2.Enabled := BtnEdit.Enabled;
+  N8.Visible := gSysParam.FIsAdmin;
 end;
 
 //Desc: 车辆签到
@@ -256,6 +260,28 @@ begin
     FDM.ExecuteSQL(nStr);
     InitFormData(FWhere);
     ShowMsg('关闭车辆VIP成功', sHint);
+  end;
+end;
+
+procedure TfFrameTrucks.N8Click(Sender: TObject);
+var nStr, nVal: string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := '请输入车辆有效皮重(单位:吨):';
+    nVal := FloatToStr(SQLQuery.FieldByName('T_PValue').AsFloat);
+    if not ShowInputBox(nStr, '更新车辆皮重', nVal) then
+      Exit;
+
+    nStr := 'Update %s Set T_PValue=%s, T_PTime=T_PTime+1 Where T_Truck=''%s''';
+    nStr := Format(nStr, [sTable_Truck, nVal,
+      SQLQuery.FieldByName('T_Truck').AsString]);
+    //xxxxxx
+
+    FDM.ExecuteSQL(nStr);
+    InitFormData(FWhere);
+    ShowMsg('设置车辆有效皮重成功', sHint);
   end;
 end;
 

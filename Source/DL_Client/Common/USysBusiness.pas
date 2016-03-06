@@ -55,6 +55,7 @@ function WorkPCHasPopedom: Boolean;
 //验证主机是否已授权
 function GetSysValidDate: Integer;
 //获取系统有效期
+function GetTruckEmptyValue(nTruck: string): Double;
 function GetSerialNo(const nGroup,nObject: string; nUseDate: Boolean = True): string;
 //获取串行编号
 function GetLadingStockItems(var nItems: TDynamicStockItemArray): Boolean;
@@ -257,6 +258,20 @@ begin
   begin
     ShowDlg('该功能需要更高权限,请向管理员申请.', sHint);
   end;
+end;
+
+//------------------------------------------------------------------------------
+//Desc: 车辆有效皮重
+function GetTruckEmptyValue(nTruck: string): Double;
+var nStr: string;
+begin
+  nStr := 'Select T_PValue From %s Where T_Truck=''%s''';
+  nStr := Format(nStr, [sTable_Truck, nTruck]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+       Result := Fields[0].AsFloat
+  else Result := 0;
 end;
 
 //Date: 2014-09-05

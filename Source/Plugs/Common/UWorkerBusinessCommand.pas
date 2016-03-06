@@ -77,6 +77,7 @@ type
     //验证客户是否有钱
     function GetDaiPercentToZero(var nData: string): Boolean;
     function SaveTruck(var nData: string): Boolean;
+    function UpdateTruck(var nData: string): Boolean;
     //保存车辆到Truck表
     function GetTruckPoundData(var nData: string): Boolean;
     function SaveTruckPoundData(var nData: string): Boolean;
@@ -389,6 +390,7 @@ begin
    cBC_CustomerHasMoney    : Result := CustomerHasMoney(nData);
    cBC_DaiPercentToZero    : Result := GetDaiPercentToZero(nData);
    cBC_SaveTruckInfo       : Result := SaveTruck(nData);
+   cBC_UpdateTruckInfo     : Result := UpdateTruck(nData);
    cBC_GetTruckPoundData   : Result := GetTruckPoundData(nData);
    cBC_SaveTruckPoundData  : Result := SaveTruckPoundData(nData);
    cBC_UserLogin           : Result := Login(nData);
@@ -801,6 +803,39 @@ begin
   begin
     nStr := 'Insert Into %s(T_Truck, T_PY) Values(''%s'', ''%s'')';
     nStr := Format(nStr, [sTable_Truck, FIn.FData, GetPinYinOfStr(FIn.FData)]);
+    gDBConnManager.WorkerExec(FDBConn, nStr);
+  end;
+end;
+
+//Date: 2016-02-16
+//Parm: 车牌号(Truck); 表字段名(Field);数据值(Value)
+//Desc: 更新车辆信息到sTable_Truck表
+function TWorkerBusinessCommander.UpdateTruck(var nData: string): Boolean;
+var nStr: string;
+    nValInt: Integer;
+    nValFloat: Double;
+begin
+  Result := True;
+  FListA.Text := FIn.FData;
+
+  if FListA.Values['Field'] = 'T_PValue' then
+  begin
+    nStr := 'Select T_PValue, T_PTime From %s Where T_Truck=''%s''';
+    nStr := Format(nStr, [sTable_Truck, FListA.Values['Truck']]);
+
+    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+    if RecordCount > 0 then
+    begin
+      nValInt := Fields[1].AsInteger;
+      nValFloat := Fields[0].AsFloat;
+    end else Exit;
+
+    nValFloat := nValFloat * nValInt + StrToFloatDef(FListA.Values['Value'], 0);
+    nValFloat := nValFloat / (nValInt + 1);
+    nValFloat := Float2Float(nValFloat, cPrecision);
+
+    nStr := 'Update %s Set T_PValue=%.2f, T_PTime=T_PTime+1 Where T_Truck=''%s''';
+    nStr := Format(nStr, [sTable_Truck, nValFloat, FListA.Values['Truck']]);
     gDBConnManager.WorkerExec(FDBConn, nStr);
   end;
 end;
@@ -3216,6 +3251,17 @@ begin
                 ], sTable_OrderDtl, SF('D_ID', FID), False);
         FListA.Add(nSQL);
       end;
+
+      //--------------------------------------------------------------------------
+      FListC.Clear;
+      FListC.Values['Field'] := 'T_PValue';
+      FListC.Values['Truck'] := FTruck;
+      FListC.Values['Value'] := FloatToStr(FPData.FValue);
+
+      if not TWorkerBusinessCommander.CallMe(cBC_UpdateTruckInfo,
+            FListC.Text, '', @nOut) then
+        raise Exception.Create(nOut.FData);
+      //保存车辆有效皮重
 
       if FYSValid <> sFlag_NO then  //验收成功，调整已收货量
       begin

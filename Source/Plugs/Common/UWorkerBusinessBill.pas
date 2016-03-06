@@ -1303,8 +1303,22 @@ begin
   nSQL := Format(nSQL, [sTable_ZTTrucks, nTruck]);
 
   //还在队列中车辆
+  nStr := '';
   with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
-  if RecordCount > 0 then nStr := Fields[0].AsString;
+  if RecordCount > 0 then
+  begin
+    First;
+
+    while not Eof do
+    try
+      nStr := nStr + Fields[0].AsString;
+    finally
+      Next;
+    end;
+
+    nStr := Copy(nStr, 1, Length(nStr)-1);
+    nStr := StringReplace(nStr, '.', ',', [rfReplaceAll]);
+  end; 
 
   nStr := AdjustListStrFormat(nStr, '''', True, ',', False);
   //队列中交货单列表
@@ -1322,8 +1336,11 @@ begin
       if (Fields[0].AsString <> '') and
          (Fields[0].AsString <> FIn.FExtParam) then
       begin
-        nData := '车辆[ %s ]正在使用磁卡[%s],新磁卡编号为[%s],请使用同一磁卡.';
-        nData := Format(nData, [nTruck, Fields[0].AsString, FIn.FExtParam]);
+        nData := '车辆[ %s ]的磁卡号不一致,不能并单.' + #13#10#13#10 +
+                 '*.本单磁卡: [%s]' + #13#10 +
+                 '*.其它磁卡: [%s]' + #13#10#13#10 +
+                 '相同磁卡号才能并单,请修改车牌号,或者单独办卡.';
+        nData := Format(nData, [nTruck, FIn.FExtParam, Fields[0].AsString]);
         Exit;
       end;
 
@@ -1638,6 +1655,17 @@ begin
       nData := Format(nData, [PostTypeToStr(FIn.FExtParam)]);
       Exit;
     end;
+
+    //--------------------------------------------------------------------------
+    FListC.Clear;
+    FListC.Values['Field'] := 'T_PValue';
+    FListC.Values['Truck'] := nBills[nInt].FTruck;
+    FListC.Values['Value'] := FloatToStr(nBills[nInt].FPData.FValue);
+
+    if not TWorkerBusinessCommander.CallMe(cBC_UpdateTruckInfo,
+          FListC.Text, '', @nOut) then
+      raise Exception.Create(nOut.FData);
+    //保存车辆有效皮重
 
     FListC.Clear;
     FListC.Values['Group'] := sFlag_BusGroup;
