@@ -117,11 +117,11 @@ const
   cFI_FormZhiKaFixMoney = $1036;                     //限提金额
   cFI_FormSaleAdjust    = $1037;                     //销售调剂
   cFI_FormEditPrice     = $1040;                     //提货单价
-
-  cFI_FormZTLine        = $1045;                     //装车线
-
   cFI_FormGetProvider   = $1041;                     //选择供应商
   cFI_FormGetMeterail   = $1042;                     //选择原材料
+  cFI_FormTruckEmpty    = $1043;                     //空车出厂
+  cFI_FormReadCard      = $1044;                     //读取磁卡
+  cFI_FormZTLine        = $1045;                     //装车线
 
   cFI_FormGetTruck      = $1047;                     //选择车辆
   cFI_FormGetContract   = $1048;                     //选择合同
