@@ -99,6 +99,17 @@ begin
             TruckStatusToStr(gBills[nIdx].FStatus),
             TruckStatusToStr(gBills[nIdx].FNextStatus)]);
     nHint := nHint + nStr;
+  end else
+
+  if gBills[nIdx].FPData.FValue <= 0 then
+  begin
+    nStr := '¡ù.µ¥ºÅ:[ %s ] ×´Ì¬:[ %-6s -> %-6s ]  Î´¹ýÆ¤ÖØ ';
+    if nIdx < High(gBills) then nStr := nStr + #13#10;
+
+    nStr := Format(nStr, [gBills[nIdx].FID,
+            TruckStatusToStr(gBills[nIdx].FStatus),
+            TruckStatusToStr(gBills[nIdx].FNextStatus)]);
+    nHint := nHint + nStr;
   end else gBills[nIdx].FYSValid := sFlag_Yes;
 
   if nHint <> '' then

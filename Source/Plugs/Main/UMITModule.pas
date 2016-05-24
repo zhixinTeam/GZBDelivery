@@ -11,7 +11,7 @@ interface
 
 uses
   Windows, Forms, Classes, SysUtils, ULibFun, UBusinessWorker, UBusinessPacker,
-  UTaskMonitor, USysShareMem, USysLoger, UMITConst, UMITPacker,
+  UTaskMonitor, USysShareMem, USysLoger, UMITConst, UMITPacker, UMemDataPool,
   {$IFDEF HardMon}UEventHardware, UWorkerHardware,{$ENDIF}
   UWorkerBusinessCommand, UWorkerBusinessBill,
   {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}{$IFDEF DEBUG}UFormTest,{$ENDIF}
@@ -154,6 +154,9 @@ begin
 
   TBusinessWorkerSweetHeart.RegWorker(gParamManager.URLLocal.Text);
   //for channel manager
+
+  gMemDataManager := TMemDataManager.Create;
+  //ÄÚ´æ¹ÜÀíÆ÷
 
   {$IFDEF ClientMon}
   gProcessMonitorClient := TProcessMonitorClient.Create(gSysParam.FParam);

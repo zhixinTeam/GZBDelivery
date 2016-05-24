@@ -52,6 +52,11 @@ type
     dxGroupLayout1Group4: TdxLayoutGroup;
     dxGroupLayout1Group7: TdxLayoutGroup;
     dxGroupLayout1Group3: TdxLayoutGroup;
+    EditTrans: TcxTextEdit;
+    dxLayout1Item3: TdxLayoutItem;
+    EditMemo: TcxTextEdit;
+    dxLayout1Item4: TdxLayoutItem;
+    dxLayout1Group2: TdxLayoutGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -201,6 +206,7 @@ begin
     EditSName.Text  := Values['XCB_CementName'];
     EditMax.Text    := Values['XCB_RemainNum'];
     EditFQ.Text     := Values['XCB_CementCode'];
+    EditTrans.Text  := Values['XCB_TransName'];
   end;
 end;
 
@@ -265,6 +271,7 @@ begin
       Values['ZhiKa'] := PackerEncodeStr(FCardData.Text);
       Values['Truck'] := EditTruck.Text;
       Values['Lading'] := sFlag_TiHuo;
+      Values['Memo']  := Trim(EditMemo.Text);
       Values['IsVIP'] := GetCtrlData(EditType);
       Values['Seal'] := FCardData.Values['XCB_CementCodeID'];
       Values['HYDan'] := EditFQ.Text;

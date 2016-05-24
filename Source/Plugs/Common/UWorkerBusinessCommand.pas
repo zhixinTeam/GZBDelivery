@@ -1029,8 +1029,10 @@ begin
           '  pub.pub_name as XCB_CreatorNM,' +    //创建人名
           '  XCB_CDate,' +                        //创建时间
           '  XCB_Firm,' +                         //所属厂区
-          '  pbf.pbf_name XCB_FirmName,' +        //工厂名称
-          '  pcb.pcb_id, pcb.pcb_name ' +         //销售片区
+          '  pbf.pbf_name as XCB_FirmName,' +     //工厂名称
+          '  pcb.pcb_id, pcb.pcb_name, ' +        //销售片区
+          '  xcg.xob_id as XCB_TransID, ' +       //运输单位编号
+          '  xcg.XOB_Name as XCB_TransName ' +    //运输单位
           'from XS_Card_Base xcb' +
           '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
           '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
@@ -1038,6 +1040,8 @@ begin
           '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
           '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
           '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
+          '  Left Join XS_Card_Freight xcf on xcf.Xcf_Card=xcb.xcb_ID ' +
+          '  Left Join XS_Compy_Base xcg on xcg.xob_id=xcf.xcf_tran ' +
           'where rownum <= 10';
   //查询主题,返回记录不超过10条
 
@@ -1103,6 +1107,8 @@ begin
         FListB.Values['XCB_FirmName']   := FieldByName('XCB_FirmName').AsString;
         FListB.Values['pcb_id']         := FieldByName('pcb_id').AsString;
         FListB.Values['pcb_name']       := FieldByName('pcb_name').AsString;
+        FListB.Values['XCB_TransID']    := FieldByName('XCB_TransID').AsString;
+        FListB.Values['XCB_TransName']  := FieldByName('XCB_TransName').AsString;
 
         FListA.Add(PackerEncodeStr(FListB.Text));
         Next;
@@ -1180,9 +1186,11 @@ begin
              nVal := Fields[0].AsFloat
         else nVal := 0;
 
+        {$IFDEF DEBUG}
         nStr := '单据:[%s]=>云天系统剩余量[%f]';
         nStr := Format(nStr, [Values['XCB_ID'], Fields[0].AsFloat]);
         WriteLog(nStr);
+        {$ENDIF}
       end;
 
       if nVal > 0 then
@@ -1198,9 +1206,11 @@ begin
           //扣除已开未提
           nVal := Float2Float(nVal, cPrecision, False);
 
+          {$IFDEF DEBUG}
           nStr := '单据:[%s]=>一卡通系统冻结量[%f]';
           nStr := Format(nStr, [Values['XCB_ID'], FieldByName('C_Freeze').AsFloat]);
           WriteLog(nStr);
+          {$ENDIF}
         end;
       end;
 
@@ -1618,8 +1628,95 @@ end;
 //Parm:
 //Desc: 同步云天系统运输单位信息
 function TWorkerBusinessCommander.SyncRemoteTransit(var nData: string): Boolean;
+var nStr,nSaler: string;
+    nIdx: Integer;
+    nDBWorker: PDBWorker;
 begin
+  FListA.Clear;
   Result := True;
+
+  FListB.Clear;
+  nStr := 'Select T_ID From S_Translator';
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount>0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      if Fields[0].AsString<>'' then FListB.Add(Fields[0].AsString);
+
+      Next;
+    end;  
+  end;
+
+  nDBWorker := nil;
+  try
+    nSaler := '待分配业务员';
+    nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status ' +
+            'From XS_Compy_Base ' +
+            'Where XOB_IsTransit=''1''';
+    //xxxxx
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      try
+        if FieldByName('XOB_ID').AsString = '' then Continue;
+        //invalid
+
+        if FieldByName('XOB_Status').AsString = '1' then
+        begin  //Add
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
+          Continue;
+          //Has Saved
+
+          nStr := MakeSQLByStr([SF('T_ID', FieldByName('XOB_ID').AsString),
+                  SF('T_Name', FieldByName('XOB_Name').AsString),
+                  SF('T_PY', GetPinYinOfStr(FieldByName('XOB_Name').AsString)),
+                  SF('T_Memo', FieldByName('XOB_Code').AsString),
+                  SF('T_Saler', nSaler)
+                  ], sTable_Translator, '', True);
+          //xxxxx
+
+          FListA.Add(nStr);
+
+        end else
+        begin  //valid
+          nStr := 'Delete From %s Where T_ID=''%s''';
+          nStr := Format(nStr, [sTable_Translator, FieldByName('XOB_ID').AsString]);
+          //xxxxx
+
+          if (FListB.Count>0) and
+          (FListB.IndexOf(FieldByName('XOB_ID').AsString)>=0) then
+          FListA.Add(nStr);
+          //Has Saved
+        end;
+      finally
+        Next;
+      end;
+    end;
+
+    if FListA.Count > 0 then
+    try
+      FDBConn.FConn.BeginTrans;
+      //开启事务
+
+      for nIdx:=0 to FListA.Count - 1 do
+        gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]);
+      FDBConn.FConn.CommitTrans;
+    except
+      if FDBConn.FConn.InTransaction then
+        FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
 end;
 
 //Date: 2015-09-16
@@ -1741,7 +1838,7 @@ begin
   nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
 
   nSQL := 'Select L_ID,L_ZhiKa,L_CusID,L_Truck,L_StockNo,L_Value,L_PValue,' +
-          'L_PDate,L_PMan,L_MValue,L_MDate,L_MMan,L_OutFact,L_Date,' +
+          'L_PDate,L_PMan,L_MValue,L_MDate,L_MMan,L_OutFact,L_Date,L_IsEmpty,' +
           'L_Seal,L_HYDan,P_ID From %s ' +
           '  Left Join %s On P_Bill=L_ID ' +
           'Where L_ID In (%s)';
@@ -1780,6 +1877,7 @@ begin
         FTruck      := FieldByName('L_Truck').AsString;
         FStockNo    := FieldByName('L_StockNo').AsString;
         FValue      := FieldByName('L_Value').AsFloat;
+        FYSValid    := FieldByName('L_IsEmpty').AsString;
 
         if FListA.IndexOf(FZhiKa) < 0 then
           FListA.Add(FZhiKa);
@@ -1873,6 +1971,9 @@ begin
         if nBills[nIdx].FValue<=0 then Continue;
         //发货量为0
 
+        if nBills[nIdx].FYSValid = sFlag_Yes then Continue;
+        //空车出厂
+
         while not Eof do
         begin
           nStr := FieldByName('XCB_ID').AsString;
@@ -1907,6 +2008,7 @@ begin
                 SF('XLB_FactTotal', '0.00', sfVal),
                 SF('XLB_ScaleDifNum', '0.00', sfVal),
                 SF('XLB_InvoNum', '0.00', sfVal),
+                SF('XLB_Area', gSysParam.FSaleArea),
 
                 SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
                 SF('XLB_CarCode', nBills[nIdx].FTruck),
@@ -1930,7 +2032,7 @@ begin
                 SF('XLB_Firm', FieldByName('XCB_Firm').AsString),
                 SF('XLB_Status', '1'),
                 SF('XLB_Del', '0'),
-                SF('XLB_Creator', 'zx-delivery'),
+                SF('XLB_Creator', gSysParam.FBillCreator),
                 SF('XLB_CDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_PROID', FieldByName('XCB_SubLader').AsString),
                 SF('XLB_KDATE', DateTime2StrOracle(nSetDate), sfVal),
@@ -2026,7 +2128,7 @@ begin
         nSpell := YT_GetSpell(nWorker);
         nSQL := MakeSQLByStr([SF('XLO_Lade', nRID),
                 SF('XLO_SetDate', DateTime2StrOracle(nSetDate), sfVal),
-                SF('XLO_Creator', 'zx-delivery'),
+                SF('XLO_Creator', gSysParam.FBillCreator),
                 SF('XLO_CDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLO_FIRM', FieldByName('XCB_Firm').AsString),
                 SF('XLO_SPELL', nSpell),
@@ -3187,6 +3289,7 @@ begin
               SF('D_YMan', FIn.FBase.FFrom.FUser),
               SF('D_KZValue', FKZValue, sfVal),
               SF('D_YSResult', FYSValid),
+              SF('D_YLineName', FHKRecord), //卸货地点
               SF('D_Memo', FMemo)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL);

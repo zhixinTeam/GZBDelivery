@@ -11,10 +11,11 @@ uses
   Windows, Classes, Controls, SysUtils, UMgrDBConn, UMgrParam, DB,
   UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue,
   UMgrHardHelper, U02NReader, UMgrERelay, UMultiJS, UMgrRemotePrint,
-  UMgrLEDDisp, UMgrRFID102;
+  UMgrLEDDisp, UMgrRFID102, UBlueReader;
 
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
+procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
 //有新卡号到达读头
 procedure WhenReaderCardIn(nHost: TReaderHost; nCard: TReaderCard);
 //现场读头有新卡号
@@ -242,6 +243,24 @@ begin
   gSysLoger.AddLog(THardwareHelper, '硬件守护辅助', nEvent);
 end;
 
+//Date: 2016/5/5
+//Parm: 读卡器编号
+//Desc: 蓝卡读卡器抬杆
+procedure BlueOpenDoor(const nReader: string);
+var nIdx: Integer;
+begin
+  nIdx := 0;
+  if nReader <> '' then
+  while nIdx < 5 do
+  begin
+    if gHardwareHelper.ConnHelper then
+         gHardwareHelper.OpenDoor(nReader)
+    else gBlueReader.OpenDoor(nReader);
+    
+    Inc(nIdx);
+  end;
+end;
+
 //Date: 2012-4-22
 //Parm: 卡号
 //Desc: 对nCard放行进厂
@@ -308,7 +327,7 @@ begin
     begin
       if gTruckQueueManager.TruckReInfactFobidden(nTrucks[0].FTruck) then
       begin
-        gHardwareHelper.OpenDoor(nReader);
+        BlueOpenDoor(nReader);
         //抬杆
 
         nStr := '车辆[ %s ]再次抬杆操作.';
@@ -337,7 +356,7 @@ begin
       gHardwareHelper.SetReaderCard(nReader, nCard);
     end else
     begin
-      gHardwareHelper.OpenDoor(nReader);
+      BlueOpenDoor(nReader);
       //抬杆
     end;
 
@@ -389,16 +408,6 @@ begin
     Exit;
   end;
 
-  if gTruckQueueManager.IsTruckAutoIn then
-  begin
-    gHardwareHelper.SetCardLastDone(nCard, nReader);
-    gHardwareHelper.SetReaderCard(nReader, nCard);
-  end else
-  begin
-    gHardwareHelper.OpenDoor(nReader);
-    //抬杆
-  end;
-
   with gTruckQueueManager do
   if not IsDelayQueue then //厂外模式,进厂时绑定道号(一车多单)
   try
@@ -423,6 +432,16 @@ begin
     end;
   finally
     SyncLock.Leave;
+  end;
+
+  if gTruckQueueManager.IsTruckAutoIn then
+  begin
+    gHardwareHelper.SetCardLastDone(nCard, nReader);
+    gHardwareHelper.SetReaderCard(nReader, nCard);
+  end else
+  begin
+    BlueOpenDoor(nReader);
+    //抬杆
   end;
 end;
 
@@ -487,8 +506,7 @@ begin
     Exit;
   end;
 
-  if nReader <> '' then
-    gHardwareHelper.OpenDoor(nReader);
+  BlueOpenDoor(nReader);
   //抬杆
 
   //发起一次打印
@@ -547,7 +565,7 @@ begin
     Exit;
   end;
 
-  gHardwareHelper.OpenDoor(nReader);
+  BlueOpenDoor(nReader);
   //抬杆
 
   for nIdx:=Low(nTrucks) to High(nTrucks) do
@@ -615,7 +633,7 @@ begin
       if nReader.FType = rtGate then
       begin
         if nReader.FID <> '' then
-          gHardwareHelper.OpenDoor(nReader.FID);
+          BlueOpenDoor(nReader.FID);
         //抬杆
       end else
 
@@ -641,15 +659,24 @@ end;
 //Desc: 华益读头磁卡动作
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 begin
-  {$IFDEF DEBUG}
+  {.$IFDEF DEBUG}
   WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
-  {$ENDIF}
+  {.$ENDIF}
 
   {$IFDEF JYZL}
   gHardwareHelper.SetReaderCard(nReader.FID, 'H' + nReader.FCard, False);
   {$ELSE}
   g02NReader.ActiveELabel(nReader.FID, nReader.FCard);
   {$ENDIF}
+end;
+
+procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
+begin
+  {$IFDEF DEBUG}
+  WriteHardHelperLog(Format('蓝卡读卡器 %s:%s', [nReader.FTunnel, nReader.FCard]));
+  {$ENDIF}
+
+  gHardwareHelper.SetReaderCard(nHost.FReaderID, nCard.FCard, False);
 end;
 
 //------------------------------------------------------------------------------
@@ -874,9 +901,9 @@ var nStr: string;
       end;
     end;
 begin
-  {$IFDEF DEBUG}
+  {.$IFDEF DEBUG}
   WriteNearReaderLog('MakeTruckLadingDai进入.');
-  {$ENDIF}
+  {.$ENDIF}
 
   if IsJSRun then Exit;
   //tunnel is busy

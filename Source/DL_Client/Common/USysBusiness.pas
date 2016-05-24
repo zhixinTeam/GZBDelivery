@@ -9,7 +9,7 @@ interface
 uses
   Windows, DB, Classes, Controls, SysUtils, UBusinessPacker, UBusinessWorker,
   UBusinessConst, ULibFun, UAdjustForm, UFormCtrl, UDataModule, UDataReport,
-  UFormBase, cxMCListBox, UMgrPoundTunnels, UMgrCamera, USysConst,
+  UFormBase, cxMCListBox, UMgrPoundTunnels, UMgrCamera, USysConst, HKVNetSDK,
   USysDB, USysLoger;
 
 type
@@ -520,6 +520,7 @@ begin
   end;
 end;
 
+
 //Desc: ¹¹½¨Í¼Æ¬Â·¾¶
 function MakePicName: string;
 begin
@@ -563,22 +564,17 @@ begin
   //clear buffer
 
   nLogin := -1;
-  gCameraNetSDKMgr.NET_DVR_SetDevType(nTunnel.FCamera.FType);
-  //xxxxx
-
-  gCameraNetSDKMgr.NET_DVR_Init;
-  //xxxxx
-
+  NET_DVR_Init();
   try
     for nIdx:=1 to cRetry do
     begin
-      nLogin := gCameraNetSDKMgr.NET_DVR_Login(nTunnel.FCamera.FHost,
+      nLogin := NET_DVR_Login(PChar(nTunnel.FCamera.FHost),
                    nTunnel.FCamera.FPort,
-                   nTunnel.FCamera.FUser,
-                   nTunnel.FCamera.FPwd, nInfo);
+                   PChar(nTunnel.FCamera.FUser),
+                   PChar(nTunnel.FCamera.FPwd), @nInfo);
       //to login
 
-      nErr := gCameraNetSDKMgr.NET_DVR_GetLastError;
+      nErr := NET_DVR_GetLastError;
       if nErr = 0 then break;
 
       if nIdx = cRetry then
@@ -603,13 +599,11 @@ begin
         nStr := MakePicName();
         //file path
 
-        gCameraNetSDKMgr.NET_DVR_CaptureJPEGPicture(nLogin,
-                                   nTunnel.FCameraTunnels[nIdx],
-                                   nPic, nStr);
+        NET_DVR_CaptureJPEGPicture(nLogin, nTunnel.FCameraTunnels[nIdx],
+                                   @nPic, PChar(nStr));
         //capture pic
 
-        nErr := gCameraNetSDKMgr.NET_DVR_GetLastError;
-
+        nErr := NET_DVR_GetLastError;
         if nErr = 0 then
         begin
           nList.Add(nStr);
@@ -627,8 +621,8 @@ begin
     end;
   finally
     if nLogin > -1 then
-     gCameraNetSDKMgr.NET_DVR_Logout(nLogin);
-    gCameraNetSDKMgr.NET_DVR_Cleanup();
+      NET_DVR_Logout(nLogin);
+    NET_DVR_Cleanup();
   end;
 end;
 

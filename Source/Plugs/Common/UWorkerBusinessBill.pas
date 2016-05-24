@@ -449,7 +449,9 @@ begin
     Values['CusID'] := FListC.Values['XCB_Client'];
     Values['CusName'] := FListC.Values['XCB_ClientName'];
     Values['CusPY'] := GetPinYinOfStr(FListC.Values['XCB_ClientName']);
-    
+
+    Values['TransID'] := FListC.Values['XCB_TransID'];
+    Values['TransName'] := FListC.Values['XCB_TransName'];
     Values['WorkAddr'] := FListC.Values['XCB_WorkAddr'];
     Values['SaleID'] := FListC.Values['XCB_OperMan'];
     Values['SaleMan'] := '?';
@@ -527,6 +529,8 @@ begin
               SF('L_CusPY', FListA.Values['CusPY']),
               SF('L_SaleID', FListA.Values['SaleID']),
               SF('L_SaleMan', FListA.Values['SaleMan']),
+              SF('L_TransID', FListA.Values['TransID']),
+              SF('L_TransName', FListA.Values['TransName']),
 
               SF('L_Type', FListC.Values['Type']),
               SF('L_StockNo', FListC.Values['StockNO']),
@@ -541,6 +545,7 @@ begin
               SF('L_IsVIP', FListA.Values['IsVIP']),
               SF('L_Seal', FListA.Values['Seal']),
               SF('L_HYDan', FListA.Values['HYDan']),
+              SF('L_Memo', FListA.Values['Memo']),
               SF('L_Man', FIn.FBase.FFrom.FUser),
               SF('L_Date', sField_SQLServer_Now, sfVal)
               ], sTable_Bill, '', True);
@@ -1746,8 +1751,14 @@ begin
            FNextStatus := sFlag_TruckBFM
       else FNextStatus := sFlag_TruckOut;
 
+      if FYSValid = sFlag_Yes then
+           nStr := sFlag_Yes
+      else nStr := sFlag_No;
+
       nSQL := MakeSQLByStr([SF('L_Status', FStatus),
               SF('L_NextStatus', FNextStatus),
+              SF('L_IsEmpty', nStr),
+
               SF('L_LadeTime', sField_SQLServer_Now, sfVal),
               SF('L_LadeMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
@@ -1765,8 +1776,14 @@ begin
     for nIdx:=Low(nBills) to High(nBills) do
     with nBills[nIdx] do
     begin
+      if FYSValid = sFlag_Yes then
+           nStr := sFlag_Yes
+      else nStr := sFlag_No;
+
       nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckFH),
               SF('L_NextStatus', sFlag_TruckBFM),
+              SF('L_IsEmpty', nStr),
+
               SF('L_LadeTime', sField_SQLServer_Now, sfVal),
               SF('L_LadeMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
@@ -1963,6 +1980,8 @@ begin
                 SF('L_IsVIP', sFlag_TypeCommon),
                 SF('L_Seal', FListB.Values['XCB_CementCodeID']),
                 SF('L_HYDan', FListB.Values['XCB_CementCode']),
+                SF('L_TransID', FListB.Values['XCB_TransID']),
+                SF('L_TransName', FListB.Values['XCB_TransName']),
                 SF('L_Man', FIn.FBase.FFrom.FUser),
                 SF('L_Date', sField_SQLServer_Now, sfVal)
                 ], sTable_Bill, '', True);

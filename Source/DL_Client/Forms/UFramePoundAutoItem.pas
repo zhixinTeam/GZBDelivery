@@ -874,7 +874,7 @@ begin
     TimerDelay.Enabled := False;
     WriteSysLog(Format('对车辆[ %s ]称重完毕.', [FUIData.FTruck]));
 
-    FLastCard     := FCardTmp;
+    FLastCard     := FLastTmp;
     FLastCardDone := GetTickCount;
     PlayVoice(#9 + FUIData.FTruck);
     //播放语音

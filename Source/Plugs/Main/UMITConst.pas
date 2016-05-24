@@ -63,6 +63,8 @@ type
 
     FDisplayDPI : Integer;                           //屏幕分辨率
     FAutoMin    : Boolean;                           //自动最小化
+    FSaleArea   : string;                            //销售点
+    FBillCreator: string;                            //订单创建人
   end;
   //系统参数
 
@@ -150,6 +152,9 @@ begin
         FLocalMAC   := MakeActionID_MAC;
         GetLocalIPConfig(FLocalName, FLocalIP);
         FDisplayDPI := GetDeviceCaps(GetDC(0), LOGPIXELSY);
+
+        FSaleArea  := ReadString(FProgID, 'SaleArea', '');
+        FBillCreator:= ReadString(FProgID, 'BillCreator', 'zx-delivery');
       end;
     end;
   finally

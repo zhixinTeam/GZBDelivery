@@ -39,6 +39,7 @@ type
     FPound   : string;
     FCard    : string;
     FCardExt : string;
+    FCardLast: string;
     FPrinter : string;
     FLast    : Int64;
     FKeep    : Word;
@@ -122,6 +123,7 @@ type
     procedure SetCardLastDone(const nCard,nReader: string);
     function GetReaderLastOn(const nCard: string): string;
     //磁卡活动
+    property ConnHelper: Boolean read FConnHelper write FConnHelper;
     property OnProce: THHProce read FProce write FProce;
     property OnEvent: THHEvent read FEvent write FEvent;
     //事件相关
@@ -368,6 +370,7 @@ begin
     begin
       FCard := '';
       FCardExt := '';
+      FCardLast:= '';
 
       FLast := 0;
       FOKTime := 0;
@@ -545,6 +548,7 @@ begin
       nBuf := RawToBytes(nPBase^, cSizeHHBase);
       AppendBytes(nBuf, nTmp);
       FClient.Socket.Write(nBuf);
+      Sleep(500);
     end;
   end;
 end;
@@ -572,14 +576,17 @@ begin
         //磅读头开启卡有效计时
       end else
 
-      if GetTickCount - FLast <= FKeep * 1000 then
+      if (GetTickCount - FLast <= FKeep * 1000) and
+         (CompareText(FCardLast, nCard) = 0) then
       begin
         Break;
         //短时间重复刷卡无效
       end;
 
       FCard := nCard;
+      {$IFDEF DEBUG}
       WriteLog(Format('接收到卡号: %s,%s', [nReader, nCard]));
+      {$ENDIF}
       Break;
     end;
   end;
@@ -601,7 +608,8 @@ begin
       if (FItems[nIdx].FCard <> '') and (FItems[nIdx].FType <> rtPound) then
       begin
         FItems[nIdx].FLast := GetTickCount + 500;
-        //重复刷卡间隔处理,多延后500ms
+        FItems[nIdx].FCardLast := FItems[nIdx].FCard;
+        //重复刷卡间隔处理,多延后500ms,记录最后一次读卡卡号
 
         nItem := FItems[nIdx];
         FItems[nIdx].FCard := '';

@@ -256,6 +256,7 @@ ResourceString
   
   sTable_Customer     = 'S_Customer';                //客户信息
   sTable_Salesman     = 'S_Salesman';                //业务人员
+  sTable_Translator   = 'S_Translator';              //运输单位
   sTable_SaleContract = 'S_Contract';                //销售合同
   sTable_SContractExt = 'S_ContractExt';             //合同扩展
   
@@ -448,6 +449,19 @@ ResourceString
    *.S_Area:所在区域
    *.S_InValid: 已无效
    *.S_Memo: 备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewTranslator = 'Create Table $Table(R_ID $Inc, T_ID varChar(32),' +
+       'T_Name varChar(80),T_PY varChar(80), T_Phone varChar(20),' +
+       'T_Saler varChar(32),T_Memo varChar(50))';
+  {-----------------------------------------------------------------------------
+   运输商: Translator
+   *.T_ID: 编号
+   *.T_Name: 名称
+   *.T_PY: 拼音简写
+   *.T_Phone: 联系方式
+   *.T_Saler: 业务员
+   *.T_Memo: 备注
   -----------------------------------------------------------------------------}
 
   sSQL_NewCustomer = 'Create Table $Table(R_ID $Inc, C_ID varChar(15), ' +
@@ -651,32 +665,35 @@ ResourceString
    *.D_TPrice:允许调价
   -----------------------------------------------------------------------------}
 
-  sSQL_NewBill = 'Create Table $Table(R_ID $Inc, L_ID varChar(20),' +
-       'L_Card varChar(16), L_ZhiKa varChar(25), L_Project varChar(100),' +
-       'L_Area varChar(50), L_WorkAddr varChar(100),' +
-       'L_CusID varChar(25), L_CusName varChar(80), L_CusPY varChar(80),' +
-       'L_SaleID varChar(25), L_SaleMan varChar(32),' +
-       'L_Type Char(1), L_StockNo varChar(20), L_StockName varChar(80),' +
-       'L_Value $Float, L_Price $Float, L_ZKMoney Char(1),' +
-       'L_Truck varChar(15), L_Status Char(1), L_NextStatus Char(1),' +
-       'L_InTime DateTime, L_InMan varChar(32),' +
-       'L_PValue $Float, L_PDate DateTime, L_PMan varChar(32),' +
-       'L_MValue $Float, L_MDate DateTime, L_MMan varChar(32),' +
-       'L_LadeTime DateTime, L_LadeMan varChar(32), ' +
-       'L_LadeLine varChar(15), L_LineName varChar(32), ' +
-       'L_DaiTotal Integer , L_DaiNormal Integer, L_DaiBuCha Integer,' +
-       'L_OutFact DateTime, L_OutMan varChar(32),' +
-       'L_Lading Char(1), L_IsVIP varChar(1), L_Seal varChar(100),' +
-       'L_HYDan varChar(32), L_Man varChar(32), L_Date DateTime,' +
-       'L_DelMan varChar(32), L_DelDate DateTime)';
+  sSQL_NewBill = 'Create Table $Table(R_ID $Inc,L_ID varChar(20),L_HKRecord varChar(20),' +
+       'L_Card varChar(16),L_ZhiKa varChar(25),L_Project varChar(100),' +
+       'L_Area varChar(50),L_WorkAddr varChar(100),' +
+       'L_TransID varChar(32),L_TransName varChar(100),' +
+       'L_CusID varChar(25),L_CusName varChar(120),L_CusPY varChar(120),' +
+       'L_SaleID varChar(25),L_SaleMan varChar(32),' +
+       'L_Type Char(1),L_StockNo varChar(20),L_StockName varChar(80),' +
+       'L_Value $Float,L_Price $Float,L_ZKMoney Char(1),' +
+       'L_Truck varChar(15),L_Status Char(1),L_NextStatus Char(1),' +
+       'L_InTime DateTime,L_InMan varChar(32),' +
+       'L_PValue $Float,L_PDate DateTime,L_PMan varChar(32),' +
+       'L_MValue $Float,L_MDate DateTime,L_MMan varChar(32),' +
+       'L_IsEmpty Char(1),L_LadeTime DateTime,L_LadeMan varChar(32), ' +
+       'L_LadeLine varChar(15),L_LineName varChar(32), ' +
+       'L_DaiTotal Integer,L_DaiNormal Integer,L_DaiBuCha Integer,' +
+       'L_OutFact DateTime,L_OutMan varChar(32),' +
+       'L_Lading Char(1),L_IsVIP varChar(1),L_Seal varChar(100),' +
+       'L_HYDan varChar(32),L_Man varChar(32),L_Date DateTime,' +
+       'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500))';
   {-----------------------------------------------------------------------------
    交货单表: Bill
    *.R_ID: 编号
    *.L_ID: 提单号
    *.L_Card: 磁卡号
    *.L_ZhiKa: 纸卡号
-   *.L_Area: 区域
+   *.L_Project: 大卡好
+   *.L_Area: 销售片区
    *.L_WorkAddr: 工地
+   *.L_TransID, L_TransName: 运输单位
    *.L_CusID,L_CusName,L_CusPY:客户
    *.L_SaleID,L_SaleMan:业务员
    *.L_Type: 类型(袋,散)
@@ -928,7 +945,8 @@ ResourceString
        'T_InLade DateTime, T_VIP Char(1), T_Valid Char(1), T_Bill varChar(15),' +
        'T_Value $Float, T_PeerWeight Integer, T_Total Integer Default 0,' +
        'T_Normal Integer Default 0, T_BuCha Integer Default 0,' +
-       'T_PDate DateTime, T_IsPound Char(1),T_HKBills varChar(200))';
+       'T_PDate DateTime, T_IsPound Char(1),T_HKBills varChar(200),' +
+       'T_HKRecord varChar(20))';
   {-----------------------------------------------------------------------------
    待装车队列: ZTTrucks
    *.R_ID: 记录号
@@ -1363,6 +1381,7 @@ begin
 
   AddSysTableItem(sTable_Customer, sSQL_NewCustomer);
   AddSysTableItem(sTable_Salesman, sSQL_NewSalesMan);
+  AddSysTableItem(sTable_Translator, sSQL_NewTranslator);
   AddSysTableItem(sTable_SaleContract, sSQL_NewSaleContract);
   AddSysTableItem(sTable_SContractExt, sSQL_NewSContractExt);
 

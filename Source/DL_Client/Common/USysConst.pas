@@ -324,6 +324,7 @@ begin
   AddMenuModuleItem('MAIN_E03', cFI_FramePoundQuery);
 
   AddMenuModuleItem('MAIN_F01', cFI_FormLadDai, mtForm);
+  AddMenuModuleItem('MAIN_F02', cFI_FormTruckEmpty, mtForm);
   AddMenuModuleItem('MAIN_F03', cFI_FrameZhanTaiQuery);
   AddMenuModuleItem('MAIN_F04', cFI_FrameZTDispatch);
   AddMenuModuleItem('MAIN_F05', cFI_FormPurchase, mtForm);

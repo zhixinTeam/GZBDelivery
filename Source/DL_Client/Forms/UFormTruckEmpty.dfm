@@ -1,6 +1,6 @@
 inherited fFormTruckEmpty: TfFormTruckEmpty
-  Left = 291
-  Top = 200
+  Left = 287
+  Top = 169
   Width = 486
   Height = 566
   BorderStyle = bsSizeable
