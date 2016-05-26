@@ -1,7 +1,7 @@
 inherited fFormBill: TfFormBill
   Left = 525
   Top = 167
-  ClientHeight = 461
+  ClientHeight = 497
   ClientWidth = 443
   OnClose = FormClose
   OnCreate = FormCreate
@@ -9,22 +9,22 @@ inherited fFormBill: TfFormBill
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
     Width = 443
-    Height = 461
+    Height = 497
     AutoControlTabOrders = False
     inherited BtnOK: TButton
       Left = 297
-      Top = 428
+      Top = 464
       Caption = #24320#21333
       TabOrder = 15
     end
     inherited BtnExit: TButton
       Left = 367
-      Top = 428
+      Top = 464
       TabOrder = 17
     end
     object EditValue: TcxTextEdit [2]
       Left = 279
-      Top = 370
+      Top = 402
       ParentFont = False
       TabOrder = 14
       OnKeyPress = EditLadingKeyPress
@@ -106,7 +106,7 @@ inherited fFormBill: TfFormBill
     end
     object EditStock: TcxTextEdit [11]
       Left = 81
-      Top = 295
+      Top = 327
       ParentFont = False
       Properties.ReadOnly = True
       TabOrder = 8
@@ -115,7 +115,7 @@ inherited fFormBill: TfFormBill
     end
     object EditSName: TcxTextEdit [12]
       Left = 81
-      Top = 320
+      Top = 352
       ParentFont = False
       Properties.ReadOnly = True
       TabOrder = 9
@@ -124,7 +124,7 @@ inherited fFormBill: TfFormBill
     end
     object EditMax: TcxTextEdit [13]
       Left = 279
-      Top = 320
+      Top = 352
       ParentFont = False
       Properties.ReadOnly = True
       TabOrder = 10
@@ -133,7 +133,7 @@ inherited fFormBill: TfFormBill
     end
     object EditTruck: TcxButtonEdit [14]
       Left = 81
-      Top = 370
+      Top = 402
       ParentFont = False
       Properties.Buttons = <
         item
@@ -147,7 +147,7 @@ inherited fFormBill: TfFormBill
     end
     object EditType: TcxComboBox [15]
       Left = 81
-      Top = 345
+      Top = 377
       ParentFont = False
       Properties.DropDownListStyle = lsEditFixedList
       Properties.ItemHeight = 18
@@ -162,7 +162,7 @@ inherited fFormBill: TfFormBill
     end
     object EditFQ: TcxTextEdit [16]
       Left = 279
-      Top = 345
+      Top = 377
       ParentFont = False
       Properties.MaxLength = 100
       TabOrder = 12
@@ -170,7 +170,7 @@ inherited fFormBill: TfFormBill
     end
     object EditTrans: TcxTextEdit [17]
       Left = 81
-      Top = 236
+      Top = 261
       ParentFont = False
       Properties.ReadOnly = True
       TabOrder = 20
@@ -178,9 +178,15 @@ inherited fFormBill: TfFormBill
     end
     object EditMemo: TcxTextEdit [18]
       Left = 81
-      Top = 395
+      Top = 427
       ParentFont = False
       TabOrder = 21
+      Width = 121
+    end
+    object EditWorkAddr: TcxTextEdit [19]
+      Left = 81
+      Top = 236
+      TabOrder = 22
       Width = 121
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
@@ -232,6 +238,11 @@ inherited fFormBill: TfFormBill
         object dxlytmLayout1Item8: TdxLayoutItem
           Caption = #38144#21806#29255#21306':'
           Control = EditArea
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item6: TdxLayoutItem
+          Caption = #24037#31243#24037#22320':'
+          Control = EditWorkAddr
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem

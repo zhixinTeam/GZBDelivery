@@ -57,6 +57,8 @@ type
     EditMemo: TcxTextEdit;
     dxLayout1Item4: TdxLayoutItem;
     dxLayout1Group2: TdxLayoutGroup;
+    EditWorkAddr: TcxTextEdit;
+    dxLayout1Item6: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -207,6 +209,7 @@ begin
     EditMax.Text    := Values['XCB_RemainNum'];
     EditFQ.Text     := Values['XCB_CementCode'];
     EditTrans.Text  := Values['XCB_TransName'];
+    EditWorkAddr.Text:= Values['XCB_WorkAddr'];
   end;
 end;
 

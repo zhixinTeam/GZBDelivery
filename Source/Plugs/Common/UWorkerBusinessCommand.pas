@@ -50,7 +50,7 @@ type
 
   TWorkerBusinessCommander = class(TMITDBWorker)
   private
-    FListA,FListB,FListC: TStrings;
+    FListA,FListB,FListC, FListD: TStrings;
     //list
     FIn: TWorkerBusinessCommand;
     FOut: TWorkerBusinessCommand;
@@ -86,10 +86,12 @@ type
     //读取云天提货卡片
     function VerifyYTCard(var nData: string): Boolean;
     //验证云天提货卡有效性
-    function SyncNC_Sale(var nData: string): Boolean;
+    function SyncYT_Sale(var nData: string): Boolean;
     //发货单到榜单
-    function SyncNC_Provide(var nData: string): Boolean;
+    function SyncYT_Provide(var nData: string): Boolean;
     //供应订单到榜单
+    //function SyncYT_BillEdit(var nData: string): Boolean;
+    //发货单状态同步
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
     function SyncRemoteCustomer(var nData: string): Boolean;
@@ -282,6 +284,7 @@ begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
   FListC := TStringList.Create;
+  FListD := TStringList.Create;
   inherited;
 end;
 
@@ -290,6 +293,7 @@ begin
   FreeAndNil(FListA);
   FreeAndNil(FListB);
   FreeAndNil(FListC);
+  FreeAndNil(FListD);
   inherited;
 end;
 
@@ -398,8 +402,8 @@ begin
 
    cBC_ReadYTCard          : Result := ReadYTCard(nData);
    cBC_VerifyYTCard        : Result := VerifyYTCard(nData);
-   cBC_SyncStockBill       : Result := SyncNC_Sale(nData);
-   cBC_SyncStockOrder      : Result := SyncNC_Provide(nData);
+   cBC_SyncStockBill       : Result := SyncYT_Sale(nData);
+   cBC_SyncStockOrder      : Result := SyncYT_Provide(nData);
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -1128,6 +1132,8 @@ end;
 function TWorkerBusinessCommander.VerifyYTCard(var nData: string): Boolean;
 var nStr: string;
     nVal: Double;
+    nIdx: Integer;
+    nSelect: Boolean;
     nWorker: PDBWorker;
 begin
   with FListA do
@@ -1250,31 +1256,25 @@ begin
         //包散类型
       end;
 
-      //------------------------------------------------------------------------
-      nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count from ' +
-              'CF_Notify_OutWorkDtl cnd' +
-              ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
-              'where (cnd.Cnd_Cement = ''%s'') and' +
-              '      (cno.cno_cementcode <> '' '') and' +
-              '      (cno.cno_status = 1) AND' +
-              '      (cno.CNO_Del = 0) AND' +
-              '      (cno.CNO_SetDate<=Sysdate)' +
-              'order by cno.cno_setdate desc';
-      //xxxxx
+      nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+      nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_HYPackers]);
 
-      nStr := Format(nStr, [Values['XCB_Cement']]);
-      //查询批次号记录
-
-      with gDBConnManager.WorkerQuery(nWorker, nStr) do
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
       if RecordCount > 0 then
+           Values['XCB_OutASH'] := Fields[0].AsString
+      else Values['XCB_OutASH'] := '';
+
+      if Trim(Values['Seal']) <> '' then  //存在批次号
       begin
-        First;
-        nVal := FieldByName('cno_count').AsFloat;
-        Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
-        Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
+        nStr := 'Select cno_count From CF_Notify_OutWork Where cno_id=''%s''';
+        nStr := Format(nStr, [Values['Seal']]);
+        with gDBConnManager.WorkerQuery(nWorker, nStr) do
+        if RecordCount > 0 then
+             nVal := FieldByName('cno_count').AsFloat
+        else nVal := 0;
 
         nStr := 'select C_Freeze from %s where C_ID=''%s''';
-        nStr := Format(nStr, [sTable_YT_CodeInfo, Values['XCB_CementCodeID']]);
+        nStr := Format(nStr, [sTable_YT_CodeInfo, Values['Seal']]);
 
         with gDBConnManager.WorkerQuery(FDBConn, nStr) do
         begin
@@ -1291,7 +1291,7 @@ begin
                 'GROUP BY xlc.XLM_CementCode';
         //xxxxx
 
-        nStr := Format(nStr, [Values['XCB_CementCodeID']]);
+        nStr := Format(nStr, [Values['Seal']]);
         //查询已发量
 
         with gDBConnManager.WorkerQuery(nWorker, nStr) do
@@ -1301,14 +1301,121 @@ begin
           //扣减已发货
         end;
 
+        nVal := nVal - StrToFloatDef(Values['Value'], 0);
+        //减去本次发货量
+
         if nVal <= 0 then
         begin
           nData := '※.水泥编号: %s' + #13#10 +
                    '※.水泥名称: %s' + #13#10 +
                    '※.错误描述: 该编号余量不足,无法开票.';
-          nData := Format(nData, [Values['XCB_CementCode'],
-                   Values['XCB_CementName']]);
+          nData := Format(nData, [Values['HYDan'],
+                   Values['StockName']]);
           Exit;
+        end;
+      end else                            //重选批次号
+
+      begin
+        //----------------------------------------------------------------------
+        nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count,cnd.cnd_OutASH from ' +
+                'CF_Notify_OutWorkDtl cnd' +
+                ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
+                'where (cnd.Cnd_Cement = ''%s'') and' +
+                '      (cno.cno_cementcode <> '' '') and' +
+                '      (cno.cno_status = 1) AND' +
+                '      (cno.CNO_Del = 0) AND' +
+                '      (cno.CNO_SetDate<=Sysdate)' +
+                'order by cno.cno_setdate ';
+        //xxxxx
+
+        nStr := Format(nStr, [Values['XCB_Cement']]);
+        //查询批次号记录
+
+        with gDBConnManager.WorkerQuery(nWorker, nStr) do
+        if RecordCount > 0 then
+        begin
+          First;
+
+          while not Eof do
+          try
+            nVal := FieldByName('cno_count').AsFloat;
+            Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
+            Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
+
+            nStr := FieldByName('cnd_OutASH').AsString;
+            if Values['XCB_OutASH'] <> '' then
+            begin
+              FListB.Clear;
+              SplitStr(nStr, FListB, 0, ',', False);
+
+              FListC.Clear;
+              SplitStr(Values['XCB_OutASH'], FListC, 0, ',', False);
+
+              nSelect := False;
+              for nIdx := 0 to FListB.Count-1 do
+              begin
+                nSelect := FListC.IndexOf(FListB[nIdx]) >= 0;
+                if nSelect then Break;
+              end;
+
+              if not nSelect then Continue;
+              //不满足条件
+            end;
+
+            nStr := 'select C_Freeze from %s where C_ID=''%s''';
+            nStr := Format(nStr, [sTable_YT_CodeInfo, Values['XCB_CementCodeID']]);
+
+            with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+            begin
+              if RecordCount > 0 then
+                nVal := nVal - Fields[0].AsFloat;
+              //扣减已冻结
+            end;
+
+            FListC.Clear;
+            FListC.Values['XCB_CementCodeID'] := Values['XCB_CementCodeID'];
+            FListC.Values['XCB_CementValue']  := FloatToStr(nVal);
+
+            FListD.Add(PackerEncodeStr(FListC.Text));
+          finally
+            Next;
+          end;
+
+          for nIdx := 0 to FListD.Count - 1 do
+          begin
+            FListC.Text := PackerDecodeStr(FListD[nIdx]);
+            nVal := StrToFloatDef(FListC.Values['XCB_CementValue'], 0);
+
+            nStr := 'select nvl(SUM(xlc.XLM_Number), 0) AS XCV_UserCount ' +
+                    'from XS_Lade_CementCode xlc' +
+                    ' LEFT OUTER JOIN XS_Lade_Base xlb on xlb.XLB_ID = xlc.XLM_Lade ' +
+                    'WHERE (xlc.xlm_cementcode = ''%s'') and ' +
+                    ' (xlb.XLB_Del = 0) AND (xlb.XLB_Status = 1) ' +
+                    'GROUP BY xlc.XLM_CementCode';
+            //xxxxx
+
+            nStr := Format(nStr, [FListC.Values['XCB_CementCodeID']]);
+            //查询已发量
+
+            with gDBConnManager.WorkerQuery(nWorker, nStr) do
+            begin
+              if RecordCount > 0 then
+                nVal := nVal - FieldByName('XCV_UserCount').AsFloat;
+              //扣减已发货
+            end;
+
+            if nVal > 0 then Break;
+          end;  
+
+          if (nVal <= 0) or (FListD.Count < 1) then
+          begin
+            nData := '※.水泥编号: %s' + #13#10 +
+                     '※.水泥名称: %s' + #13#10 +
+                     '※.错误描述: 无可用水泥编号,无法开票.';
+            nData := Format(nData, [Values['XCB_Cement'],
+                     Values['XCB_CementName']]);
+            Exit;
+          end;
         end;
       end;
      {
@@ -1823,7 +1930,7 @@ end;
 //Date: 2015-09-16
 //Parm: 交货单(多个)[FIn.FData]
 //Desc: 同步交货单发货数据到云天发货表中
-function TWorkerBusinessCommander.SyncNC_Sale(var nData: string): Boolean;
+function TWorkerBusinessCommander.SyncYT_Sale(var nData: string): Boolean;
 var nStr,nSQL,nRID,nPID,nSpell: string;
     nIdx: Integer;
     nVal,nPrice,nPercent: Double;
@@ -2199,7 +2306,7 @@ end;
 //Date: 2015-09-16
 //Parm: 榜单号(单个)[FIn.FData]
 //Desc: 同步原料过磅数据到云天采购表中
-function TWorkerBusinessCommander.SyncNC_Provide(var nData: string): Boolean;
+function TWorkerBusinessCommander.SyncYT_Provide(var nData: string): Boolean;
 var nStr,nSQL,nRID: string;
     nIdx,nErrNum: Integer;
     nDateMin: TDateTime;

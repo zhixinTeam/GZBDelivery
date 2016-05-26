@@ -1919,7 +1919,7 @@ begin
       finally
         Next;
       end;
-  end;
+  end else FDM.SqlQuery := FDM.SqlTemp;
   FDR.AddParamItem(nParam);  
 
   nParam.FName := 'UserName';

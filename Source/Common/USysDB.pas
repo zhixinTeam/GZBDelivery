@@ -173,8 +173,9 @@ ResourceString
   sFlag_ViaBillCard   = 'ViaBillCard';               //直接制卡
   sFlag_PayCredit     = 'Pay_Credit';                //回款冲信用
   sFlag_HYValue       = 'HYMaxValue';                //化验批次量
-  sFlag_SaleManDept   = 'SaleManDepartment';         //业务员部门编号
-  
+  sFlag_SaleManDept   = 'SaleManDept';               //工厂销售点
+  sFlag_HYPackers     = 'HYPackers';                 //可用批次条件
+
   sFlag_PDaiWuChaZ    = 'PoundDaiWuChaZ';            //袋装正误差
   sFlag_PDaiWuChaF    = 'PoundDaiWuChaF';            //袋装负误差
   sFlag_PDaiPercent   = 'PoundDaiPercent';           //按比例计算误差

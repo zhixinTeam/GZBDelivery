@@ -305,6 +305,7 @@ end;
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
     nStr,nTruck: string;
+    nVal, nRenum: Double;
     nOut: TWorkerBusinessCommand;
 begin
   Result := False;
@@ -456,6 +457,47 @@ begin
     Values['SaleID'] := FListC.Values['XCB_OperMan'];
     Values['SaleMan'] := '?';
     Values['ZKMoney'] := sFlag_No;
+  end;
+
+  if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard,
+     FListA.Values['Project'], '', @nOut) then
+  begin
+    nData := nOut.FData;
+    Exit;
+  end; //读取订单
+
+  FListB.Text := PackerDecodeStr(nOut.FData);
+  FListC.Text := PackerDecodeStr(FListB[0]);
+  FListC.Values['Seal'] := FListA.Values['Seal'];
+  FListC.Values['HYDan'] := FListA.Values['HYDan'];
+  FListC.Values['Value'] := FListA.Values['Value'];
+  FListC.Values['StockName'] := FListA.Values['StockName'];
+  //订单信息
+
+  if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard,
+     PackerEncodeStr(FListC.Text), '', @nOut) then
+  begin
+    nData := nOut.FData;
+    Exit;
+  end; //验证订单有效性和可提量
+
+  FListB.Text := PackerDecodeStr(nOut.FData);
+  nRenum := StrToFloatDef(FListB.Values['XCB_RemainNum'], 0);
+  //订单剩余量
+
+  nVal := StrToFloatDef(FListA.Values['Value'], 0);
+  //订单开单量
+
+  if FloatRelation(nRenum, nVal, rtLess, cPrecision) then
+  begin
+    nData := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+             '※.订单编号: %s' + #13#10 +
+             '※.订单可用: %.2f吨' + #13#10 +
+             '※.本次开单: %.2f吨' + #13#10+#13#10 +
+             '请重新确认订单量.';
+    nData := Format(nData, [FListA.Values['CusID'], FListA.Values['CusName'],
+             FListA.Values['Project'], nRenum, nVal]);
+    Exit;
   end;
 
   Result := True;

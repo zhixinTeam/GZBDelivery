@@ -27,6 +27,8 @@ type
     Label2: TLabel;
     EditKZMemo: TComboEdit;
     CheckBox1: TCheckBox;
+    Label3: TLabel;
+    EditWorkAddr: TComboEdit;
     procedure tmrGetOrderTimer(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
@@ -72,6 +74,7 @@ begin
     FYSValid := nYSVaid;
     FKZValue := StrToFloatDef(EditKZValue.Text, 0);
     FMemo    := EditKZMemo.Text;
+    FHKRecord:= Trim(EditWorkAddr.Text);
 
     if SavePurchaseOrders('X', gOrders) then
     begin

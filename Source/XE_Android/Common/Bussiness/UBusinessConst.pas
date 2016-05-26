@@ -144,6 +144,7 @@ type
     FPModel     : string;          //称重模式
     FPType      : string;          //业务类型
     FPoundID    : string;          //称重记录
+    FHKRecord   : string;          //合单记录
     FSelected   : Boolean;         //选中状态
 
     FYSValid    : string;          //验收通过'Y';拒收'N'
@@ -279,6 +280,7 @@ begin
              FKZValue := StrToFloatDef(nStr, 0)
         else FKZValue := 0;
 
+        FHKRecord:= Values['HKRecord'];
         FYSValid := Values['YSValid'];
         FMemo := Values['Memo'];
       end;
@@ -355,6 +357,7 @@ begin
              Values['Selected'] := 'Y'
         else Values['Selected'] := 'N';
 
+        Values['HKRecord']   := FHKRecord;
         Values['YSValid']    := FYSValid;
         Values['KZValue']    := FloatToStr(FKZValue);
         Values['Memo']       := FMemo;

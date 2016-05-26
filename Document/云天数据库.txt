@@ -1,4 +1,11 @@
+╬ёце
 Host: 172.26.81.6
 й╣юЩ:gzb02jm
 User: gzbjm
 Pwd: gzbjm
+
+кивл
+Host: 172.26.186.6
+й╣юЩ:zx_data
+User: zx_data
+Pwd: zx_data
