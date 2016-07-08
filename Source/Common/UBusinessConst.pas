@@ -86,6 +86,7 @@ const
   cBC_SyncStockOrder          = $0084;   //同步采购单据到远程
   cBC_SyncProvider            = $0085;   //远程同步供应商
   cBC_SyncMaterails           = $0086;   //远程同步原材料
+  cBC_SyncBillEdit            = $0087;   //更新提货单状态
 
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;
@@ -143,6 +144,7 @@ type
     FHYDan      : string;          //水泥编号
     FYSValid    : string;          //验收结果，Y验收成功；N拒收；
     FKZValue    : Double;          //供应扣除
+    FYTID       : string;          //云天系统XLB_ID
     FMemo       : string;          //动作备注
   end;
 
@@ -174,6 +176,7 @@ resourcestring
   sBus_BusinessSaleBill       = 'Bus_BusinessSaleBill'; //交货单相关
   sBus_BusinessCommand        = 'Bus_BusinessCommand';  //业务指令
   sBus_HardwareCommand        = 'Bus_HardwareCommand';  //硬件指令
+  sBus_BusinessDuanDao        = 'Bus_BusinessDuanDao';  //短倒业务相关
   sBus_BusinessPurchaseOrder  = 'Bus_BusinessPurchaseOrder'; //采购单相关
 
   {*client function name*}
@@ -183,6 +186,7 @@ resourcestring
   sCLI_BusinessSaleBill       = 'CLI_BusinessSaleBill'; //交货单业务
   sCLI_BusinessCommand        = 'CLI_BusinessCommand';  //业务指令
   sCLI_HardwareCommand        = 'CLI_HardwareCommand';  //硬件指令
+  sCLI_BusinessDuanDao        = 'CLI_BusinessDuanDao';  //短倒业务相关
   sCLI_BusinessPurchaseOrder  = 'CLI_BusinessPurchaseOrder'; //采购单相关
 
 implementation

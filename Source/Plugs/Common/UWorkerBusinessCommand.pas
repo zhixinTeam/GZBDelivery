@@ -90,7 +90,7 @@ type
     //发货单到榜单
     function SyncYT_Provide(var nData: string): Boolean;
     //供应订单到榜单
-    //function SyncYT_BillEdit(var nData: string): Boolean;
+    function SyncYT_BillEdit(var nData: string): Boolean;
     //发货单状态同步
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
@@ -404,6 +404,7 @@ begin
    cBC_VerifyYTCard        : Result := VerifyYTCard(nData);
    cBC_SyncStockBill       : Result := SyncYT_Sale(nData);
    cBC_SyncStockOrder      : Result := SyncYT_Provide(nData);
+   cBC_SyncBillEdit        : Result := SyncYT_BillEdit(nData);
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -1264,17 +1265,35 @@ begin
            Values['XCB_OutASH'] := Fields[0].AsString
       else Values['XCB_OutASH'] := '';
 
-      if Trim(Values['Seal']) <> '' then  //存在批次号
+      if Trim(Values['HYDan']) <> '' then  //存在批次号
       begin
-        nStr := 'Select cno_count From CF_Notify_OutWork Where cno_id=''%s''';
-        nStr := Format(nStr, [Values['Seal']]);
+        nStr := 'Select cno_count, cno_id, cno_cementcode ' +
+                'From CF_Notify_OutWork ' +
+                'Where (CNO_Cementcode=''%s'') AND ' +
+                '      (CNO_Status = 1) AND ' +
+                '      (CNO_Del = 0) AND ' +
+                '      (CNO_SetDate<=Sysdate) ' +
+                'order by cno_setdate ';
+        nStr := Format(nStr, [Values['HYDan']]);
         with gDBConnManager.WorkerQuery(nWorker, nStr) do
         if RecordCount > 0 then
-             nVal := FieldByName('cno_count').AsFloat
-        else nVal := 0;
+        begin
+          nVal := FieldByName('cno_count').AsFloat;
+          Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
+          Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
+        end
+        else
+        begin
+          nData := '※.水泥编号: %s' + #13#10 +
+                   '※.水泥名称: %s' + #13#10 +
+                   '※.错误描述: 水泥编号不存在,无法开票.';
+          nData := Format(nData, [Values['HYDan'],
+                   Values['XCB_CementName']]);
+          Exit;
+        end;
 
         nStr := 'select C_Freeze from %s where C_ID=''%s''';
-        nStr := Format(nStr, [sTable_YT_CodeInfo, Values['Seal']]);
+        nStr := Format(nStr, [sTable_YT_CodeInfo, Values['XCB_CementCodeID']]);
 
         with gDBConnManager.WorkerQuery(FDBConn, nStr) do
         begin
@@ -1291,7 +1310,7 @@ begin
                 'GROUP BY xlc.XLM_CementCode';
         //xxxxx
 
-        nStr := Format(nStr, [Values['Seal']]);
+        nStr := Format(nStr, [Values['XCB_CementCodeID']]);
         //查询已发量
 
         with gDBConnManager.WorkerQuery(nWorker, nStr) do
@@ -1310,7 +1329,7 @@ begin
                    '※.水泥名称: %s' + #13#10 +
                    '※.错误描述: 该编号余量不足,无法开票.';
           nData := Format(nData, [Values['HYDan'],
-                   Values['StockName']]);
+                   Values['XCB_CementName']]);
           Exit;
         end;
       end else                            //重选批次号
@@ -1335,12 +1354,12 @@ begin
         if RecordCount > 0 then
         begin
           First;
+          FListD.Clear;
 
           while not Eof do
           try
-            nVal := FieldByName('cno_count').AsFloat;
-            Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
-            Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
+            nVal := 0;
+            //init 0
 
             nStr := FieldByName('cnd_OutASH').AsString;
             if Values['XCB_OutASH'] <> '' then
@@ -1354,6 +1373,8 @@ begin
               nSelect := False;
               for nIdx := 0 to FListB.Count-1 do
               begin
+                if Length(FListB[nIdx]) < 1 then Continue;
+
                 nSelect := FListC.IndexOf(FListB[nIdx]) >= 0;
                 if nSelect then Break;
               end;
@@ -1362,8 +1383,15 @@ begin
               //不满足条件
             end;
 
+            FListC.Clear;
+            nVal := FieldByName('cno_count').AsFloat;
+
+            FListC.Values['XCB_CementCodeID'] := FieldByName('cno_id').AsString;
+            FListC.Values['XCB_CementCode'] := FieldByName('cno_cementcode').AsString;
+            //批次与编号
+
             nStr := 'select C_Freeze from %s where C_ID=''%s''';
-            nStr := Format(nStr, [sTable_YT_CodeInfo, Values['XCB_CementCodeID']]);
+            nStr := Format(nStr, [sTable_YT_CodeInfo, FListC.Values['XCB_CementCodeID']]);
 
             with gDBConnManager.WorkerQuery(FDBConn, nStr) do
             begin
@@ -1372,11 +1400,12 @@ begin
               //扣减已冻结
             end;
 
-            FListC.Clear;
-            FListC.Values['XCB_CementCodeID'] := Values['XCB_CementCodeID'];
             FListC.Values['XCB_CementValue']  := FloatToStr(nVal);
+            //订单量
 
-            FListD.Add(PackerEncodeStr(FListC.Text));
+            if nVal > 0 then
+              FListD.Add(PackerEncodeStr(FListC.Text));
+            //可用量大于0  
           finally
             Next;
           end;
@@ -1404,7 +1433,12 @@ begin
               //扣减已发货
             end;
 
-            if nVal > 0 then Break;
+            if nVal > 0 then
+            begin
+              Values['XCB_CementCodeID'] := FListC.Values['XCB_CementCodeID'];
+              Values['XCB_CementCode'] := FListC.Values['XCB_CementCode'];
+              Break;
+            end;
           end;  
 
           if (nVal <= 0) or (FListD.Count < 1) then
@@ -1931,7 +1965,7 @@ end;
 //Parm: 交货单(多个)[FIn.FData]
 //Desc: 同步交货单发货数据到云天发货表中
 function TWorkerBusinessCommander.SyncYT_Sale(var nData: string): Boolean;
-var nStr,nSQL,nRID,nPID,nSpell: string;
+var nStr,nSQL,nPID,nSpell: string;
     nIdx: Integer;
     nVal,nPrice,nPercent: Double;
     nDS: TDataSet;
@@ -1944,12 +1978,18 @@ begin
   FListA.Text := FIn.FData;
   nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
 
-  nSQL := 'Select L_ID,L_ZhiKa,L_CusID,L_Truck,L_StockNo,L_Value,L_PValue,' +
-          'L_PDate,L_PMan,L_MValue,L_MDate,L_MMan,L_OutFact,L_Date,L_IsEmpty,' +
-          'L_Seal,L_HYDan,P_ID From %s ' +
-          '  Left Join %s On P_Bill=L_ID ' +
-          'Where L_ID In (%s)';
-  nSQL := Format(nSQL, [sTable_Bill, sTable_PoundLog, nStr]);
+  nSQL := 'Select bill.*, plog.P_ID, ' +         //提货单信息
+          'bcreater.U_Memo As bCreaterID, ' +    //云天开票员编号
+          'pcreater.U_Memo As pCreaterID, ' +    //云天过皮司磅员
+          'mcreater.U_Memo As mCreaterID  ' +    //云天过毛司磅员
+          ' From $BILL bill ' +
+          ' Left Join $USER bcreater On bcreater.U_Name=bill.L_Man ' +
+          ' Left Join $USER pcreater On pcreater.U_Name=bill.L_PMan ' +
+          ' Left Join $USER mcreater On mcreater.U_Name=bill.L_MMan ' +
+          ' Left Join $PLOG plog On plog.P_Bill=bill.L_ID ' +
+          'Where L_ID In ($IN)';
+  nSQL := MacroValue(nSQL, [MI('$BILL', sTable_Bill), MI('$USER', sTable_User),
+          MI('$PLOG', sTable_PoundLog), MI('$IN', nStr)]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
   begin
@@ -2007,7 +2047,11 @@ begin
         begin
           FValue    := FieldByName('L_PValue').AsFloat;
           FDate     := FieldByName('L_PDate').AsDateTime;
-          FOperator := FieldByName('L_PMan').AsString;
+          FOperator := FieldByName('pCreaterID').AsString;
+
+          if FOperator = '' then
+            FOperator := FieldByName('L_PMan').AsString;
+          //xxxx
 
           if FDate < nDateMin then
             FDate := FieldByName('L_Date').AsDateTime;
@@ -2022,7 +2066,11 @@ begin
         begin
           FValue    := FieldByName('L_MValue').AsFloat;
           FDate     := FieldByName('L_MDate').AsDateTime;
-          FOperator := FieldByName('L_MMan').AsString;
+          FOperator := FieldByName('mCreaterID').AsString;
+
+          if FOperator = '' then
+            FOperator := FieldByName('L_MMan').AsString;
+          //xxxx
 
           if FDate < nDateMin then
             FDate := FieldByName('L_OutFact').AsDateTime;
@@ -2032,6 +2080,9 @@ begin
             FDate := Date();
           //xxxxx
         end;
+
+        FYTID := FieldByName('L_YTID').AsString;
+        FMemo := FieldByName('L_Memo').AsString;
       end;
 
       Inc(nIdx);
@@ -2094,58 +2145,107 @@ begin
         nSetDate := nBills[nIdx].FMData.FDate;
         //nSetDate
 
-        nRID := YT_NewID('XS_LADE_BASE', nWorker);
+        if nBills[nIdx].FYTID = '' then
+        begin
+          nBills[nIdx].FYTID := YT_NewID('XS_LADE_BASE', nWorker);
+          //记录编号
+
+          nSQL := MakeSQLByStr([SF('XLB_ID', nBills[nIdx].FYTID),
+                  SF('XLB_LadeId', nBills[nIdx].FID),
+                  SF('XLB_SetDate', Date2StrOracle(nSetDate), sfVal),
+                  SF('XLB_LadeType', '103'),
+                  SF('XLB_Origin', '101'),
+                  SF('XLB_Client', nBills[nIdx].FCusID),
+                  SF('XLB_Cement', nBills[nIdx].FStockNo),
+                  SF('XLB_CementSwap', nBills[nIdx].FStockNo),
+                  SF('XLB_Number', nBills[nIdx].FValue, sfVal),
+
+                  SF('XLB_Price', '0.00', sfVal),
+                  SF('XLB_CardPrice', '0.00', sfVal),
+                  SF('XLB_Total', '0.00', sfVal),
+                  SF('XLB_FactTotal', '0.00', sfVal),
+                  SF('XLB_ScaleDifNum', '0.00', sfVal),
+                  SF('XLB_InvoNum', '0.00', sfVal),
+                  SF('XLB_Area', gSysParam.FSaleArea),
+
+                  SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
+                  SF('XLB_CarCode', nBills[nIdx].FTruck),
+                  SF('XLB_Quantity', '0', sfVal),
+                  SF('XLB_PrintNum', '0', sfVal),
+                  SF('XLB_IsCarry', '0'),
+                  SF('XLB_IsOut', '0'),
+                  SF('XLB_IsCheck', '1'),
+                  SF('XLB_IsDoor', '0'),
+                  SF('XLB_IsBack', '0'),
+                  SF('XLB_IsInvo', '0'),
+                  SF('XLB_Approve', '0'),
+                  SF('XLB_TCollate', '0'),
+                  SF('XLB_Collate', '0'),
+                  SF('XLB_OutStore', '0'),
+                  SF('XLB_ISTUNE', '0'),
+
+                  SF('XLB_Firm', FieldByName('XCB_Firm').AsString),
+                  SF('XLB_Status', '1'),
+                  SF('XLB_Del', '0'),
+                  SF('XLB_Creator', nBills[nIdx].FMData.FOperator),
+                  SF('XLB_CDate', DateTime2StrOracle(nSetDate), sfVal),
+                  SF('XLB_PROID', FieldByName('XCB_SubLader').AsString),
+                  SF('XLB_KDATE', DateTime2StrOracle(nSetDate), sfVal),
+                  SF('XLB_ISONLY', '1'),
+                  SF('XLB_ISSUPPLY', '0')
+                  ], 'XS_Lade_Base', '', True);
+          FListA.Add(nSQL + ';'); //销售提货单表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+
+          nPrice := FieldByName('XCB_Price').AsFloat;
+          nVal := nPrice * nBills[nIdx].FValue;
+          nVal := Float2Float(nVal, cPrecision, True);
+          //金额
+
+          nSQL := MakeSQLByStr([SF('XLD_ID', YT_NewID('XS_LADE_DETAIL', nWorker)),
+                  SF('XLD_Lade', nBills[nIdx].FYTID),
+                  SF('XLD_Client', nBills[nIdx].FCusID),
+                  SF('XLD_Card',  nBills[nIdx].FZhiKa),
+                  SF('XLD_Number', nBills[nIdx].FValue, sfVal),
+                  SF('XLD_Price', nPrice, sfVal),
+                  SF('XLD_CardPrice', nPrice, sfVal),
+                  SF('XLD_Gap', '0', sfVal),
+                  SF('XLD_Total', nVal, sfVal),
+                  SF('XLD_PROID', FieldByName('XCB_SubLader').AsString),
+                  SF('XLD_Order', '0', sfVal)
+                  ], 'XS_Lade_Detail', '', True);
+          FListA.Add(nSQL + ';'); //销售提货单明细表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+
+          nSQL := SF('L_ID', nBills[nIdx].FID);
+          nSQL := MakeSQLByStr([
+                  SF('L_YTID', nBills[nIdx].FYTID)
+                  ],sTable_Bill, nSQL, False);
+          gDBConnManager.WorkerExec(FDBConn, nSQL);        
+        end;  
+
+        //nRID := YT_NewID('XS_LADE_BASE', nWorker);
         //记录编号
 
-        nSQL := MakeSQLByStr([SF('XLB_ID', nRID),
-                SF('XLB_LadeId', nBills[nIdx].FID),
-                SF('XLB_SetDate', Date2StrOracle(nSetDate), sfVal),
-                SF('XLB_LadeType', '103'),
-                SF('XLB_Origin', '101'),
-                SF('XLB_Client', nBills[nIdx].FCusID),
-                SF('XLB_Cement', nBills[nIdx].FStockNo),
-                SF('XLB_CementSwap', nBills[nIdx].FStockNo),
+        nSQL := MakeSQLByStr([
                 SF('XLB_CementCode', nBills[nIdx].FHYDan),
-                SF('XLB_Number', nBills[nIdx].FValue, sfVal),
                 SF('XLB_FactNum', nBills[nIdx].FValue, sfVal),
+                SF('XLB_Remark', nBills[nIdx].FMemo),
 
-                SF('XLB_Price', '0.00', sfVal),
-                SF('XLB_CardPrice', '0.00', sfVal),
-                SF('XLB_Total', '0.00', sfVal),
-                SF('XLB_FactTotal', '0.00', sfVal),
-                SF('XLB_ScaleDifNum', '0.00', sfVal),
-                SF('XLB_InvoNum', '0.00', sfVal),
-                SF('XLB_Area', gSysParam.FSaleArea),
-
-                SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
-                SF('XLB_CarCode', nBills[nIdx].FTruck),
-                SF('XLB_Quantity', '0', sfVal),
-                SF('XLB_PrintNum', '0', sfVal),
                 SF('XLB_OutTime', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_DoorTime', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLB_IsCarry', '1'),
                 SF('XLB_IsOut', '1'),
                 SF('XLB_IsCheck', '0'),
                 SF('XLB_IsDoor', '1'),
-                SF('XLB_IsBack', '0'),
-                SF('XLB_Gather', '1'),
-                SF('XLB_IsInvo', '0'),
-                SF('XLB_Approve', '0'),
-                SF('XLB_TCollate', '0'),
-                SF('XLB_Collate', '0'),
-                SF('XLB_OutStore', '0'),
-                SF('XLB_ISTUNE', '0'),
-
-                SF('XLB_Firm', FieldByName('XCB_Firm').AsString),
-                SF('XLB_Status', '1'),
-                SF('XLB_Del', '0'),
-                SF('XLB_Creator', gSysParam.FBillCreator),
-                SF('XLB_CDate', DateTime2StrOracle(nSetDate), sfVal),
-                SF('XLB_PROID', FieldByName('XCB_SubLader').AsString),
-                SF('XLB_KDATE', DateTime2StrOracle(nSetDate), sfVal),
-                SF('XLB_ISONLY', '1'),
-                SF('XLB_ISSUPPLY', '0')
-                ], 'XS_Lade_Base', '', True);
+                SF('XLB_Gather', '1')
+                ], 'XS_Lade_Base', SF('XLB_ID', nBills[nIdx].FYTID), False);
         FListA.Add(nSQL + ';'); //销售提货单表
 
         nSQL := YT_NewInsertLog(nSQL+';', nWorker);
@@ -2157,8 +2257,7 @@ begin
         nVal := Float2Float(nVal, cPrecision, True);
         //金额
 
-        nSQL := MakeSQLByStr([SF('XLD_ID', YT_NewID('XS_LADE_DETAIL', nWorker)),
-                SF('XLD_Lade', nRID),
+        nSQL := MakeSQLByStr([
                 SF('XLD_Client', nBills[nIdx].FCusID),
                 SF('XLD_Card',  nBills[nIdx].FZhiKa),
                 SF('XLD_Number', nBills[nIdx].FValue, sfVal),
@@ -2173,7 +2272,7 @@ begin
                 SF('XLD_TWeight', nBills[nIdx].FPData.FValue, sfVal),
                 SF('XLD_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
                    nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
-                ], 'XS_Lade_Detail', '', True);
+                ], 'XS_Lade_Detail', SF('XLD_Lade', nBills[nIdx].FYTID), False);
         FListA.Add(nSQL + ';'); //销售提货单明细表
 
         nSQL := YT_NewInsertLog(nSQL+';', nWorker);
@@ -2190,7 +2289,7 @@ begin
                 SF('DTP_OutDate', Date2StrOracle(nSetDate), sfVal),
                 SF('DTP_Material', nBills[nIdx].FStockNo),
                 SF('DTP_CementCode', nBills[nIdx].FHYDan),
-                SF('DTP_Lade', nRID),
+                SF('DTP_Lade', nBills[nIdx].FYTID),
 
                 SF('DTP_Scale',  nBills[nIdx].FPData.FStation),
                 SF('DTP_Creator', nBills[nIdx].FPData.FOperator),
@@ -2219,7 +2318,7 @@ begin
         nSQL := MakeSQLByStr([SF('DTU_ID', YT_NewID('DB_TURN_PRODUDTL', nWorker)),
                 SF('DTU_Del', '0'),
                 SF('DTU_PID', nPID),
-                SF('DTU_LadeID', nRID),
+                SF('DTU_LadeID', nBills[nIdx].FYTID),
                 SF('DTU_Firm', FieldByName('XCB_Firm').AsString),
                 SF('DTU_GWeight', nBills[nIdx].FMData.FValue, sfVal),
                 SF('DTU_TWeight', nBills[nIdx].FPData.FValue, sfVal),
@@ -2233,9 +2332,9 @@ begin
         //插入同步事物表
 
         nSpell := YT_GetSpell(nWorker);
-        nSQL := MakeSQLByStr([SF('XLO_Lade', nRID),
+        nSQL := MakeSQLByStr([SF('XLO_Lade', nBills[nIdx].FYTID),
                 SF('XLO_SetDate', DateTime2StrOracle(nSetDate), sfVal),
-                SF('XLO_Creator', gSysParam.FBillCreator),
+                SF('XLO_Creator', 'zx-delivery'),
                 SF('XLO_CDate', DateTime2StrOracle(nSetDate), sfVal),
                 SF('XLO_FIRM', FieldByName('XCB_Firm').AsString),
                 SF('XLO_SPELL', nSpell),
@@ -2263,7 +2362,7 @@ begin
           //id
 
           nSQL := MakeSQLByStr([SF('XLM_ID', nStr),
-                  SF('XLM_LADE', nRID),
+                  SF('XLM_LADE', nBills[nIdx].FYTID),
                   SF('XLM_CEMENTCODE', nBills[nIdx].FSeal),
                   SF('XLM_NUMBER', nBills[nIdx].FValue, sfVal)
                   ], 'XS_Lade_CementCode', '', True);
@@ -2453,6 +2552,24 @@ begin
               SF('DTM_Status', '1'),
               SF('DTM_Del', '0'),
 
+              SF('DTM_Impur', '0'),
+              SF('DTM_Corner', '0'),
+              SF('DTM_Freight', '0'),
+              SF('DTM_CGWeight', '0'),
+              SF('DTM_CTWeight', '0'),
+              SF('DTM_CNWeight', '0'),
+              SF('DTM_PrintNum', '0'),
+              {$IFDEF GZBSZ}
+              SF('DTM_COLTYPE', '103'),
+              {$ENDIF}
+
+              SF('DTM_IsPlan', '0'),
+              SF('DTM_KeepNum', '0'),
+              SF('DTM_OtherNum', '0'),
+              SF('DTM_ColPrice', '0'),
+              SF('DTM_ColTotal', '0'),
+              SF('DTM_FundWeight', '0'),
+
               SF('DTM_Vehicle', nBills[nIdx].FTruck),
 
               SF('DTM_InDate', Date2StrOracle(nBills[nIdx].FMData.FDate), sfVal),
@@ -2460,7 +2577,7 @@ begin
               SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
               SF('DTM_Material', nBills[nIdx].FStockNo),
               SF('DTM_Company', nBills[nIdx].FCusID),
-              SF('DTM_FIRM', '10011001002000000000'),
+              SF('DTM_FIRM', gSysParam.FProvFirm),
               SF('DTM_TYPE', '101'),
 
               SF('DTM_RWeight', nBills[nIdx].FKZValue, sfVal),
@@ -2502,6 +2619,311 @@ begin
     gDBConnManager.ReleaseConnection(nWorker);
   end;
 end;
+
+function TWorkerBusinessCommander.SyncYT_BillEdit(var nData: string): Boolean;
+var nIdx: Integer;
+    nWorker: PDBWorker;
+    nStr, nSQL: string;
+    nPrice, nVal: Double;
+    nBills: TLadingBillItems;
+    nDateMin, nSetDate: TDateTime;   
+begin
+  Result := False;
+  nStr := FIn.FData;
+
+  nSQL := 'Select bill.*, plog.P_ID, ' +         //提货单信息
+          'bcreater.U_Memo As bCreaterID, ' +    //云天开票员编号
+          'pcreater.U_Memo As pCreaterID, ' +    //云天过皮司磅员
+          'mcreater.U_Memo As mCreaterID  ' +    //云天过毛司磅员
+          ' From $BILL bill ' +
+          ' Left Join $USER bcreater On bcreater.U_Name=bill.L_Man ' +
+          ' Left Join $USER pcreater On pcreater.U_Name=bill.L_PMan ' +
+          ' Left Join $USER mcreater On mcreater.U_Name=bill.L_MMan ' +
+          ' Left Join $PLOG plog On plog.P_Bill=bill.L_ID ' +
+          'Where L_ID In ($IN)';
+  nSQL := MacroValue(nSQL, [MI('$BILL', sTable_Bill), MI('$USER', sTable_User),
+          MI('$PLOG', sTable_PoundLog), MI('$IN', nStr)]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '发货单[ %s ]信息已丢失.';
+      nData := Format(nData, [CombinStr(FListA, ',', False)]);
+      Exit;
+    end;
+
+    First;
+    nIdx := 0;
+    FListA.Clear;
+    SetLength(nBills, RecordCount);
+
+    while not Eof do
+    begin
+      with nBills[nIdx] do
+      begin
+        FID         := FieldByName('L_ID').AsString;
+        FZhiKa      := FieldByName('L_ZhiKa').AsString;
+        FCusID      := FieldByName('L_CusID').AsString;
+
+        FTruck      := FieldByName('L_Truck').AsString;
+        FStockNo    := FieldByName('L_StockNo').AsString;
+        FValue      := FieldByName('L_Value').AsFloat;
+
+        if FListA.IndexOf(FZhiKa) < 0 then
+          FListA.Add(FZhiKa);
+        //订单项
+
+        nDateMin := Str2Date('2000-01-01');
+        //最小日期参考
+
+        with FMData do
+        begin
+          FDate     := FieldByName('L_Date').AsDateTime;
+          FOperator := FieldByName('bCreaterID').AsString;
+
+          if FOperator = '' then
+            FOperator := FieldByName('L_Man').AsString;
+          //xxxx
+
+          if FDate < nDateMin then
+            FDate := FieldByName('L_OutFact').AsDateTime;
+          //xxxxx
+
+          if FDate < nDateMin then
+            FDate := Date();
+          //xxxxx
+        end;
+        //临时记录开票信息
+
+        FYTID := FieldByName('L_YTID').AsString;
+        FMemo := FieldByName('L_Memo').AsString;
+      end;
+
+      Inc(nIdx);
+      Next;
+    end;
+  end;
+
+  //----------------------------------------------------------------------------
+  nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
+  //订单列表
+
+  nSQL := 'select * From %s Where XCB_ID in (%s)';
+  nSQL := Format(nSQL, ['XS_Card_Base', nStr]);
+  //查询订单表
+
+  nWorker := nil;
+  try
+    with gDBConnManager.SQLQuery(nSQL, nWorker, sFlag_DB_YT) do
+    begin
+      if RecordCount < 1 then
+      begin
+        nData := '云天系统: 发货单[ %s ]信息已丢失.';
+        nData := Format(nData, [CombinStr(FListA, ',', False)]);
+        Exit;
+      end;
+
+      FListA.Clear;
+      FListA.Add('begin');
+      //init sql list
+
+      FListB.Clear;
+      //init Local sql List
+
+      for nIdx:=Low(nBills) to High(nBills) do
+      begin
+        First;
+        //init cursor
+
+        if nBills[nIdx].FValue<=0 then Continue;
+        //发货量为0
+
+        while not Eof do
+        begin
+          nStr := FieldByName('XCB_ID').AsString;
+          if nStr = nBills[nIdx].FZhiKa then Break;
+          Next;
+        end;
+
+        if Eof then Continue;
+        //订单丢失则不予处理
+
+        nSetDate := nBills[nIdx].FMData.FDate;
+        //nSetDate
+
+        if FIn.FExtParam = sFlag_BillNew then
+        begin
+          nBills[nIdx].FYTID := YT_NewID('XS_LADE_BASE', nWorker);
+          //记录编号
+
+          nSQL := MakeSQLByStr([SF('XLB_ID', nBills[nIdx].FYTID),
+                  SF('XLB_LadeId', nBills[nIdx].FID),
+                  SF('XLB_SetDate', Date2StrOracle(nSetDate), sfVal),
+                  SF('XLB_LadeType', '103'),
+                  SF('XLB_Origin', '101'),
+                  SF('XLB_Client', nBills[nIdx].FCusID),
+                  SF('XLB_Cement', nBills[nIdx].FStockNo),
+                  SF('XLB_CementSwap', nBills[nIdx].FStockNo),
+                  //SF('XLB_CementCode', nBills[nIdx].FHYDan),
+                  SF('XLB_Number', nBills[nIdx].FValue, sfVal),
+                  //SF('XLB_FactNum', nBills[nIdx].FValue, sfVal),
+
+                  SF('XLB_Price', '0.00', sfVal),
+                  SF('XLB_CardPrice', '0.00', sfVal),
+                  SF('XLB_Total', '0.00', sfVal),
+                  SF('XLB_FactTotal', '0.00', sfVal),
+                  SF('XLB_ScaleDifNum', '0.00', sfVal),
+                  SF('XLB_InvoNum', '0.00', sfVal),
+                  SF('XLB_Area', gSysParam.FSaleArea),
+
+                  SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
+                  SF('XLB_CarCode', nBills[nIdx].FTruck),
+                  SF('XLB_Quantity', '0', sfVal),
+                  SF('XLB_PrintNum', '0', sfVal),
+                  //SF('XLB_OutTime', DateTime2StrOracle(nSetDate), sfVal),
+                  //SF('XLB_DoorTime', DateTime2StrOracle(nSetDate), sfVal),
+                  SF('XLB_IsCarry', '0'),
+                  SF('XLB_IsOut', '0'),
+                  SF('XLB_IsCheck', '1'),
+                  SF('XLB_IsDoor', '0'),
+                  SF('XLB_IsBack', '0'),
+                  //SF('XLB_Gather', '1'),
+                  SF('XLB_IsInvo', '0'),
+                  SF('XLB_Approve', '0'),
+                  SF('XLB_TCollate', '0'),
+                  SF('XLB_Collate', '0'),
+                  SF('XLB_OutStore', '0'),
+                  SF('XLB_ISTUNE', '0'),
+
+                  SF('XLB_Firm', FieldByName('XCB_Firm').AsString),
+                  SF('XLB_Status', '1'),
+                  SF('XLB_Del', '0'),
+                  SF('XLB_Creator', nBills[nIdx].FMData.FOperator),
+                  SF('XLB_CDate', DateTime2StrOracle(nSetDate), sfVal),
+                  SF('XLB_PROID', FieldByName('XCB_SubLader').AsString),
+                  SF('XLB_KDATE', DateTime2StrOracle(nSetDate), sfVal),
+                  SF('XLB_ISONLY', '1'),
+                  SF('XLB_ISSUPPLY', '0')
+                  ], 'XS_Lade_Base', '', True);
+          FListA.Add(nSQL + ';'); //销售提货单表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+
+          nPrice := FieldByName('XCB_Price').AsFloat;
+          nVal := nPrice * nBills[nIdx].FValue;
+          nVal := Float2Float(nVal, cPrecision, True);
+          //金额
+
+          nSQL := MakeSQLByStr([SF('XLD_ID', YT_NewID('XS_LADE_DETAIL', nWorker)),
+                  SF('XLD_Lade', nBills[nIdx].FYTID),
+                  SF('XLD_Client', nBills[nIdx].FCusID),
+                  SF('XLD_Card',  nBills[nIdx].FZhiKa),
+                  SF('XLD_Number', nBills[nIdx].FValue, sfVal),
+                  SF('XLD_Price', nPrice, sfVal),
+                  SF('XLD_CardPrice', nPrice, sfVal),
+                  SF('XLD_Gap', '0', sfVal),
+                  SF('XLD_Total', nVal, sfVal),
+                  SF('XLD_PROID', FieldByName('XCB_SubLader').AsString),
+                  SF('XLD_Order', '0', sfVal)
+                  //SF('XLD_FactNum', '0', sfVal),
+                  //SF('XLD_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+                  //SF('XLD_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+                  //SF('XLD_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                  //   nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
+                  ], 'XS_Lade_Detail', '', True);
+          FListA.Add(nSQL + ';'); //销售提货单明细表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+
+          nSQL := SF('L_ID', nBills[nIdx].FID);
+          nSQL := MakeSQLByStr([
+                  SF('L_YTID', nBills[nIdx].FYTID)
+                  ],sTable_Bill, nSQL, False);
+          FListB.Add(nSQL);
+        end else
+
+        if FIn.FExtParam = sFlag_BillDel then
+        begin
+          nSQL := SF('XLB_ID', nBills[nIdx].FYTID);
+          nSQL := MakeSQLByStr([
+                  SF('XLB_Del', '1')
+                  ], 'XS_Lade_Base', nSQL, False);
+          FListA.Add(nSQL + ';'); //销售提货单表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+        end else
+
+        if FIn.FExtParam = sFlag_BillPick then
+        begin
+          nPrice := FieldByName('XCB_Price').AsFloat;
+          nVal := nPrice * nBills[nIdx].FValue;
+          nVal := Float2Float(nVal, cPrecision, True);
+          //金额
+
+          nSQL := SF('XLD_Lade', nBills[nIdx].FYTID);
+
+          nSQL := MakeSQLByStr([SF('XLD_Client', nBills[nIdx].FCusID),
+                  SF('XLD_Card',  nBills[nIdx].FZhiKa),
+                  SF('XLD_Number', nBills[nIdx].FValue, sfVal),
+                  SF('XLD_Price', nPrice, sfVal),
+                  SF('XLD_CardPrice', nPrice, sfVal),
+                  SF('XLD_Gap', '0', sfVal),
+                  SF('XLD_Total', nVal, sfVal),
+                  SF('XLD_PROID', FieldByName('XCB_SubLader').AsString),
+                  SF('XLD_Order', '0', sfVal)
+                  //SF('XLD_FactNum', '0', sfVal),
+                  //SF('XLD_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+                  //SF('XLD_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+                  //SF('XLD_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                  //   nBills[nIdx].FPData.FValue, cPrecision, True), sfVal)
+                  ], 'XS_Lade_Detail', nSQL, False);
+          FListA.Add(nSQL + ';'); //销售提货单明细表
+
+          nSQL := YT_NewInsertLog(nSQL+';', nWorker);
+          FListA.Add(nSQL);
+          //插入同步事物表
+        end
+      end;
+
+      FDBConn.FConn.BeginTrans;
+      try
+        nStr := 'commit;' + #13#10 +
+                'exception' + #13#10 +
+                ' when others then rollback; raise;' + #13#10 +
+                'end;';
+        FListA.Add(nStr);
+        //oracle需明确提交
+
+        gDBConnManager.WorkerExec(nWorker, FListA.Text);
+        //执行脚本
+
+        for nIdx := 0 to FListB.Count - 1 do
+          gDBConnManager.WorkerExec(FDBConn, FListB[nIdx]);
+        //xxxxx
+
+        FDBConn.FConn.CommitTrans;
+        Result := True;
+      except
+        on E:Exception do
+        begin
+          FDBConn.FConn.RollbackTrans;
+          nData := '同步云天提货单数据时发生错误,描述: ' + E.Message;
+          Exit;
+        end;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+end;  
+
 
 //------------------------------------------------------------------------------
 class function TWorkerBusinessOrders.FunctionName: string;
@@ -3260,14 +3682,30 @@ end;
 //Desc: 保存指定岗位提交的交货单列表
 function TWorkerBusinessOrders.SavePostOrderItems(var nData: string): Boolean;
 var nVal: Double;
-    nIdx: Integer;
-    nStr,nSQL: string;
+    nIdx, nInt: Integer;
+    nStr,nSQL, nYS: string;
     nPound: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nPound);
+  nInt := Length(nPound);
   //解析数据
+
+  if nInt < 1 then
+  begin
+    nData := '岗位[ %s ]提交的单据为空.';
+    nData := Format(nData, [PostTypeToStr(FIn.FExtParam)]);
+    Exit;
+  end;
+
+  if nInt > 1 then
+  begin
+    nData := '岗位[ %s ]提交了原材料合单,该业务系统暂时不支持.';
+    nData := Format(nData, [PostTypeToStr(FIn.FExtParam)]);
+    Exit;
+  end;
+  //无合单业务
 
   FListA.Clear;
   //用于存储SQL列表
@@ -3317,6 +3755,13 @@ begin
       end;
     end;
 
+    nStr := 'Select D_Value From %s Where D_Name=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_StockIfYS]);
+    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+    if RecordCount > 0 then
+         nYS := Fields[0].AsString
+    else nYS := sFlag_No;
+
     FListC.Clear;
     FListC.Values['Group'] := sFlag_BusGroup;
     FListC.Values['Object'] := sFlag_PoundID;
@@ -3333,7 +3778,7 @@ begin
       FStatus := sFlag_TruckBFP;
       FNextStatus := sFlag_TruckXH;
 
-      if FListB.IndexOf(FStockNo) >= 0 then
+      if (FListB.IndexOf(FStockNo) >= 0) or (nYS <> sFlag_Yes) then
         FNextStatus := sFlag_TruckBFM;
       //现场不发货直接过重
 

@@ -64,7 +64,7 @@ type
     FDisplayDPI : Integer;                           //屏幕分辨率
     FAutoMin    : Boolean;                           //自动最小化
     FSaleArea   : string;                            //销售点
-    FBillCreator: string;                            //订单创建人
+    FProvFirm   : string;                            //供应厂区
   end;
   //系统参数
 
@@ -154,7 +154,7 @@ begin
         FDisplayDPI := GetDeviceCaps(GetDC(0), LOGPIXELSY);
 
         FSaleArea  := ReadString(FProgID, 'SaleArea', '');
-        FBillCreator:= ReadString(FProgID, 'BillCreator', 'zx-delivery');
+        FProvFirm  := ReadString(FProgID, 'ProvFirm', '');
       end;
     end;
   finally

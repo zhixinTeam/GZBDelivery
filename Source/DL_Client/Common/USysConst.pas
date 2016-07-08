@@ -68,6 +68,9 @@ const
 
   cFI_FrameTrucks       = $0070;                     //车辆档案
 
+  cFI_FrameTransBase    = $0093;                     //短倒办理
+  cFI_FrameTransferDetailQuery = $0094;              //短倒明细查询
+
   cFI_FrameProvider     = $0102;                     //供应
   cFI_FrameProvideLog   = $0105;                     //供应日志
   cFI_FrameMaterails    = $0106;                     //原材料
@@ -156,6 +159,8 @@ const
   cFI_FormAuthorize     = $1090;                     //安全验证
   cFI_FormWXAccount     = $1091;                     //微信账户
   cFI_FormWXSendlog     = $1092;                     //微信日志
+
+  cFI_FormTransBase     = $1093;                     //短倒办理
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
@@ -346,7 +351,8 @@ begin
   AddMenuModuleItem('MAIN_L06', cFI_FrameSaleDetailQuery);
   AddMenuModuleItem('MAIN_L07', cFI_FrameSaleTotalQuery);
   AddMenuModuleItem('MAIN_L08', cFI_FrameZhiKaDetail);
-  AddMenuModuleItem('MAIN_L09', cFI_FrameOrderDetailQuery); 
+  AddMenuModuleItem('MAIN_L09', cFI_FrameOrderDetailQuery);
+  AddMenuModuleItem('MAIN_L11', cFI_FrameTransferDetailQuery); 
 
   AddMenuModuleItem('MAIN_H01', cFI_FormTruckIn, mtForm);
   AddMenuModuleItem('MAIN_H02', cFI_FormTruckOut, mtForm);
@@ -356,6 +362,8 @@ begin
   AddMenuModuleItem('MAIN_M02', cFI_FrameMaterails);
   AddMenuModuleItem('MAIN_M03', cFI_FrameMakeOCard); 
   AddMenuModuleItem('MAIN_M04', cFI_FrameOrder);
+  AddMenuModuleItem('MAIN_M05', cFI_FormTransBase, mtForm);
+  AddMenuModuleItem('MAIN_M06', cFI_FrameTransBase);
   AddMenuModuleItem('MAIN_M08', cFI_FrameOrderDetail);
   AddMenuModuleItem('MAIN_M09', cFI_FrameOrderBase);
 

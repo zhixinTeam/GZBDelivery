@@ -29,7 +29,7 @@ const
   cBlueReader_OpenDoor      = 'WRITEGPIO 01';               //读卡器抬杆指令
   cBlueReader_BroastServer  = 'SERVERIP $ServIP $ServPort'; //广播服务器地址
 
-  cBlueReader_Query_Interval= 300;                          //指令间隔
+  cBlueReader_Query_Interval= 30*100;                          //指令间隔
 
   sBlueReaderConfig = 'BlueCardReader.XML';
 type
@@ -77,6 +77,8 @@ type
     //配置读头列表
     FActiveReaders: TList;
     //活动读头列表
+    FDataBuffer: TStrings;
+    //抬杆指令集
     FCards: TList;
     //收到卡列表
     FCardInfo: TStrings;
@@ -129,6 +131,8 @@ type
     //广播服务器IP地址
     procedure TCPCheckOnline;
     //发送在线心跳报文
+    procedure DoOpenDoor;
+    //抬杆指令
   public
     constructor Create;
     destructor Destroy; override;
@@ -212,6 +216,7 @@ begin
   FCards := TList.Create;
   FActiveReaders := TList.Create;
   FCardInfo := TStringList.Create;
+  FDataBuffer := TStringList.Create;
 
   FKeepTime := 2 * 1000;
   FWaiter := TWaitObject.Create;
@@ -245,6 +250,7 @@ begin
 
   FCardInfo.Free;
   FSrvIPList.Free;
+  FDataBuffer.Free;
   //xxxxx
 
   SetLength(FItems, 0);
@@ -409,6 +415,9 @@ begin
 
     TCPCheckOnline;
     //Send smart drag
+
+    DoOpenDoor;
+    //Open the door
 
     while True do
     begin
@@ -622,25 +631,21 @@ begin
 end;
 
 procedure TBlueReader.TCPServerExecute(AContext: TIdContext);
-var nRecv, nReaderID: string;
+var nSend, nRecv, nReaderID: string;
     nPos: Integer;
 begin
-  //nSend := cBlueReader_BUMAC + cBlueReader_Flag_End;
+  nSend := cBlueReader_BUMAC + cBlueReader_Flag_End;
+  //获取读卡器信息
+  
   with AContext.Connection do
   try
+    FWaiter.EnterWait;
     if Terminated then Exit;
 
-    //Socket.Write(nSend);
-    nRecv := Socket.ReadLn;
-
-    if Length(nRecv) < 1 then
-    begin
-      Socket_Connection(AContext, '', False);
-
-      Disconnect;
-      if Assigned(IOHandler) then
-        IOHandler.InputBuffer.Clear;
-    end;
+    if Socket.InputBufferIsEmpty then Exit;
+    nRecv := Socket.InputBufferAsString;
+    //nRecv := Socket.ReadLn;
+    //ReadLn方法会阻塞线程，导致线程无响应
 
     if Length(nRecv) >= 10 then
     begin
@@ -651,7 +656,7 @@ begin
 
         Socket_Connection(AContext, nReaderID, True);
         {$IFDEF DEBUG}
-        //WriteLog(nReaderID);
+        WriteLog(nReaderID);
         {$ENDIF}
         Exit;
       end;
@@ -664,7 +669,7 @@ begin
         
         Socket_Connection(AContext, nReaderID, True);
         {$IFDEF DEBUG}
-        //WriteLog(nReaderID);
+        WriteLog(nReaderID);
         {$ENDIF}
         Exit;
       end;
@@ -707,7 +712,11 @@ begin
         Exit;
       end;
       //固件版本
-    end;
+    end else Socket.Write(nSend);
+
+    if Assigned(IOHandler) then
+      IOHandler.InputBuffer.Clear;
+    //预防接收一半
   except
     if Connected then
     begin
@@ -823,6 +832,7 @@ var nIdx: Integer;
     nPeerContext: TIdContext;
 begin
   nSend := cBlueReader_WatchDog + cBlueReader_Flag_End;
+  //心跳报文
 
   FSyncLock.Enter;
   if FServer.Active then
@@ -846,55 +856,84 @@ begin
   end;
 end;
 
+procedure TBlueReader.DoOpenDoor;
+var nIdx: Integer;
+    nThreads: TThreadList;
+    nContext: TIdContext;
+    nSend, nRecv, nReader: string;
+begin
+  nSend := cBlueReader_OpenDoor + cBlueReader_Flag_End;
+  //Send Open door command
+
+  FSyncLock.Enter;
+  if FServer.Active then
+  try
+    nThreads := FServer.Contexts;
+    if Assigned(nThreads) then
+    begin
+      nThreads.LockList;
+      try
+        for nIdx := FDataBuffer.Count - 1 downto 0 do
+        begin
+          nReader := FDataBuffer[nIdx];
+          nContext := GetReaderContext(nReader);
+          if not Assigned(nContext) then Continue;
+
+          with nContext.Connection do
+          try
+            if not Assigned(nContext.Connection) then Continue;
+            if not nContext.Connection.Connected then Continue;
+            //服务器网络断开后，Connection=nil
+
+            WriteLog('读卡器 [' + nReader + '] 执行抬杆');
+
+            Socket.Write(nSend);
+            Sleep(100);
+
+            nRecv := Socket.InputBufferAsString;
+            Socket.InputBuffer.Clear;
+            if Length(nRecv) > 0 then
+              WriteLog('读卡器 [' + nReader + '] 抬杆成功。');
+            //xxxxx
+
+            FDataBuffer.Delete(nIdx);
+          except
+            on E: Exception do
+            begin
+              WriteLog(E.Message);
+
+              Disconnect;
+              if Assigned(IOHandler) then
+                IOHandler.InputBuffer.Clear;
+            end; 
+          end;
+        end;
+      finally
+        nThreads.UnlockList;
+      end;
+    end;
+  finally
+    FSyncLock.Leave;
+  end;
+end;  
+
 //Date: 2016/4/21
 //Parm:
 //Desc: 打开道闸
 function TBlueReader.OpenDoor(const nReaderID: string): Boolean;
-var nSend, nRecv: string;
-    nContext: TIdContext;
 begin
   Result := False;
   //init
 
-  WriteLog('读卡器 [' + nReaderID + '] 执行抬杆');
-  //xxxxx
-
-  nSend := cBlueReader_OpenDoor + cBlueReader_Flag_End;
-
   FSyncLock.Enter;
   try
-    nContext := GetReaderContext(nReaderID);
-    if not Assigned(nContext) then Exit;
-
-    with nContext.Connection do
-    try
-      if not Assigned(nContext.Connection) then Exit;
-      if not nContext.Connection.Connected then Exit;
-      //服务器网络断开后，Connection=nil
-
-      Socket.InputBuffer.Clear;
-      Socket.Write(nSend);
-      Sleep(100);
-
-      nRecv := Socket.ReadLn;
-      Result := Length(nRecv) > 0;
-
-      WriteLog('读卡器 [' + nReaderID + '] 抬杆成功。');
-      //xxxxx
-    except
-      on E: Exception do
-      begin
-        WriteLog(E.Message);
-
-        Disconnect;
-        if Assigned(IOHandler) then
-          IOHandler.InputBuffer.Clear;
-      end; 
-    end;
+    if FDataBuffer.IndexOf(nReaderID) < 0 then
+      FDataBuffer.Add(nReaderID);
   finally
     FSyncLock.Leave;
   end;   
-end;  
+end;
+
 
 initialization
   gBlueReader := TBlueReader.Create;

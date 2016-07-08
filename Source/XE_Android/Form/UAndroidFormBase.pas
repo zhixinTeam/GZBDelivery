@@ -136,8 +136,8 @@ begin
       MainLayout.Align := TAlignLayout.alHorizontal;
 
       MainVertScrollBox.RealignContent;
-      MainVertScrollBox.ViewportPosition :=PointF(MainVertScrollBox.ViewportPosition.X,
-                                        LFocusRect.Bottom - FKBBounds.Top);
+      MainVertScrollBox.ViewportPosition :=PointF(MainVertScrollBox.ViewportPosition.X *4,
+                                        (LFocusRect.Bottom - FKBBounds.Top)*4);
       //xxxx
     end;
   end;

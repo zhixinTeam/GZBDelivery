@@ -92,6 +92,7 @@ ResourceString
   sFlag_Provide       = 'P';                         //供应
   sFlag_Sale          = 'S';                         //销售
   sFlag_Returns       = 'R';                         //退货
+  sFlag_DuanDao       = 'D';                         //短倒(First=>Second)
   sFlag_Other         = 'O';                         //其它
   
   sFlag_TiHuo         = 'T';                         //自提
@@ -184,6 +185,7 @@ ResourceString
   sFlag_PoundWuCha    = 'PoundWuCha';                //过磅误差分组
   sFlag_PoundIfDai    = 'PoundIFDai';                //袋装是否过磅
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
+  sFlag_StockIfYS     = 'StockIfYS';                 //现场是否验收
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
   sFlag_DaiPercentToZero = 'DaiPercentToZero';       //不统计为发货量的比例
 
@@ -237,6 +239,8 @@ ResourceString
   sFlag_OrderBase     = 'Bus_OrderBase';             //采购申请单号
   sFlag_OrderDtl      = 'Bus_OrderDtl';              //采购单号
   sFlag_HKRecord      = 'Bus_HKRecord';              //合单编号
+  sFlag_TransBase     = 'Bus_TransBase';             //短倒申请单号
+  sFlag_Transfer      = 'Bus_Transfer';              //短倒单号
 
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组
@@ -291,6 +295,11 @@ ResourceString
   sTable_OrderDtl     = 'P_OrderDtl';                //采购订单明细
   sTable_OrderDtlBak  = 'P_OrderDtlBak';             //采购订单明细
 
+  sTable_TransBase    = 'P_TransBase';                //短倒明细单
+  sTable_TransBaseBak = 'P_TransBaseBak';             //短倒明细单
+  sTable_Transfer     = 'P_Transfer';                //短倒明细单
+  sTable_TransferBak  = 'P_TransferBak';             //短倒明细单
+
   sTable_Truck        = 'S_Truck';                   //车辆表
   sTable_ZTLines      = 'S_ZTLines';                 //装车道
   sTable_ZTTrucks     = 'S_ZTTrucks';                //车辆队列
@@ -309,6 +318,7 @@ ResourceString
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
 
+const
   {*新建表*}
   sSQL_NewSysDict = 'Create Table $Table(D_ID $Inc, D_Name varChar(15),' +
        'D_Desc varChar(30), D_Value varChar(50), D_Memo varChar(20),' +
@@ -666,7 +676,8 @@ ResourceString
    *.D_TPrice:允许调价
   -----------------------------------------------------------------------------}
 
-  sSQL_NewBill = 'Create Table $Table(R_ID $Inc,L_ID varChar(20),L_HKRecord varChar(20),' +
+  sSQL_NewBill = 'Create Table $Table(R_ID $Inc,L_ID varChar(20),' +
+       'L_HKRecord varChar(20),L_YTID varChar(50),' +
        'L_Card varChar(16),L_ZhiKa varChar(25),L_Project varChar(100),' +
        'L_Area varChar(50),L_WorkAddr varChar(100),' +
        'L_TransID varChar(32),L_TransName varChar(100),' +
@@ -678,11 +689,11 @@ ResourceString
        'L_InTime DateTime,L_InMan varChar(32),' +
        'L_PValue $Float,L_PDate DateTime,L_PMan varChar(32),' +
        'L_MValue $Float,L_MDate DateTime,L_MMan varChar(32),' +
-       'L_IsEmpty Char(1),L_LadeTime DateTime,L_LadeMan varChar(32), ' +
-       'L_LadeLine varChar(15),L_LineName varChar(32), ' +
+       'L_IsEmpty Char(1),L_LadeTime DateTime,L_LadeMan varChar(32),' +
+       'L_LadeLine varChar(15),L_LineName varChar(32),' +
        'L_DaiTotal Integer,L_DaiNormal Integer,L_DaiBuCha Integer,' +
        'L_OutFact DateTime,L_OutMan varChar(32),' +
-       'L_Lading Char(1),L_IsVIP varChar(1),L_Seal varChar(100),' +
+       'L_Lading Char(1),L_IsVIP Char(1),L_Seal varChar(100),' +
        'L_HYDan varChar(32),L_Man varChar(32),L_Date DateTime,' +
        'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500))';
   {-----------------------------------------------------------------------------
@@ -813,7 +824,7 @@ ResourceString
    *.D_OutFact,D_OutMan: 出厂放行
   -----------------------------------------------------------------------------}
 
-  sSQL_NewCard = 'Create Table $Table(R_ID $Inc, C_Card varChar(16),' +
+  sSQL_NewCard = 'Create Table $Table(R_ID $Inc, C_Card varChar(32),' +
        'C_Card2 varChar(32), C_Card3 varChar(32),' +
        'C_Owner varChar(15), C_TruckNo varChar(15), C_Status Char(1),' +
        'C_Freeze Char(1), C_Used Char(1), C_UseTime Integer Default 0,' +
@@ -841,7 +852,7 @@ ResourceString
        'T_PValue $Float Default 0, T_PTime Integer Default 0,' +
        'T_PlateColor varChar(12),T_Type varChar(12), T_LastTime DateTime, ' +
        'T_Card varChar(32), T_CardUse Char(1), T_NoVerify Char(1),' +
-       'T_Valid Char(1), T_VIPTruck Char(1), T_HasGPS Char(1))';
+       'T_IDCard varChar(32), T_Valid Char(1), T_VIPTruck Char(1), T_HasGPS Char(1))';
   {-----------------------------------------------------------------------------
    车辆信息:Truck
    *.R_ID: 记录号
@@ -865,6 +876,7 @@ ResourceString
    *.T_CardUse: 使用电子签(Y/N)
    *.T_NoVerify: 不校验时间
    *.T_Valid: 是否有效
+   *.T_IDCard: ID卡
    *.T_VIPTruck:是否VIP
    *.T_HasGPS:安装GPS(Y/N)
 
@@ -873,7 +885,7 @@ ResourceString
   -----------------------------------------------------------------------------}
 
   sSQL_NewPoundLog = 'Create Table $Table(R_ID $Inc, P_ID varChar(15),' +
-       'P_Type varChar(1), P_Order varChar(20), P_Card varChar(16),' +
+       'P_Type varChar(1), P_Order varChar(20), P_Card varChar(32),' +
        'P_Bill varChar(20), P_Truck varChar(15), P_CusID varChar(32),' +
        'P_CusName varChar(80), P_MID varChar(32),P_MName varChar(80),' +
        'P_MType varChar(10), P_LimValue $Float,' +
@@ -907,6 +919,68 @@ ResourceString
    *.P_PrintNum: 打印次数
    *.P_DelMan,P_DelDate: 删除记录
    *.P_KZValue: 供应扣杂
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewTransBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +
+       'B_Card varChar(32), B_Truck varChar(15), B_TID varChar(15),' +
+       'B_SrcAddr varChar(160), B_DestAddr varChar(160),' +
+       'B_Type Char(1), B_StockNo varChar(32), B_StockName varChar(160),' +
+       'B_PValue $Float, B_PDate DateTime, B_PMan varChar(32),' +
+       'B_MValue $Float, B_MDate DateTime, B_MMan varChar(32),' +
+       'B_Status Char(1), B_NextStatus Char(1), B_IsUsed Char(1),' +
+       'B_Value $Float, B_Man varChar(32), B_Date DateTime,' +
+       'B_DelMan varChar(32), B_DelDate DateTime, B_Memo varChar(500))';
+  {-----------------------------------------------------------------------------
+   短倒基础表: TransBase
+   *.R_ID: 编号
+   *.B_ID: 短倒基础编号
+   *.B_Card: 磁卡号
+   *.B_Truck: 车牌号
+   *.B_SrcAddr:倒出地点
+   *.B_DestAddr:倒入地点
+   *.B_Type: 类型(袋,散)
+   *.B_StockNo: 物料编号
+   *.B_StockName: 物料描述
+   *.B_PValue,B_PDate,B_PMan: 称皮重
+   *.B_MValue,B_MDate,B_MMan: 称毛重
+   *.B_Status: 当前车辆状态
+   *.B_NextStus: 下一状态
+   *.B_IsUsed: 订单是否占用(Y、正在使用;N、未占用)
+   *.B_Value: 收货量
+   *.B_Man,B_Date: 单据信息
+   *.B_DelMan,B_DelDate: 删除信息
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewTransfer = 'Create Table $Table(R_ID $Inc, T_ID varChar(20),' +
+       'T_Card varChar(32), T_Truck varChar(15), T_PID varChar(15),' +
+       'T_SrcAddr varChar(160), T_DestAddr varChar(160),' +
+       'T_Type Char(1), T_StockNo varChar(32), T_StockName varChar(160),' +
+       'T_PValue $Float, T_PDate DateTime, T_PMan varChar(32),' +
+       'T_MValue $Float, T_MDate DateTime, T_MMan varChar(32),' +
+       'T_Status Char(1), T_NextStatus Char(1), ' +
+       'T_Value $Float, T_Man varChar(32), T_Date DateTime,' +
+       'T_InTime DateTime, T_InMan varChar(32),' +
+       'T_OutFact DateTime, T_OutMan varChar(32),' +
+       'T_DelMan varChar(32), T_DelDate DateTime, T_Memo varChar(500))';
+  {-----------------------------------------------------------------------------
+   入厂表: Transfer
+   *.R_ID: 编号
+   *.T_ID: 短倒业务号
+   *.T_PID: 磅单编号
+   *.T_Card: 磁卡号
+   *.T_Truck: 车牌号
+   *.T_SrcAddr:倒出地点
+   *.T_DestAddr:倒入地点
+   *.T_Type: 类型(袋,散)
+   *.T_StockNo: 物料编号
+   *.T_StockName: 物料描述
+   *.T_PValue,T_PDate,T_PMan: 称皮重
+   *.T_MValue,T_MDate,T_MMan: 称毛重
+   *.T_Value: 收货量
+   *.T_Man,T_Date: 单据信息
+   *.T_InMan,T_InTime:进场信息
+   *.T_OutMan,T_OutFact:出厂信息
+   *.T_DelMan,T_DelDate: 删除信息
   -----------------------------------------------------------------------------}
 
   sSQL_NewPicture = 'Create Table $Table(R_ID $Inc, P_ID varChar(15),' +
@@ -1309,6 +1383,8 @@ function BillTypeToStr(const nType: string): string;
 //订单类型
 function PostTypeToStr(const nPost: string): string;
 //岗位类型
+function BusinessToStr(const nBus: string): string;
+//业务类型
 
 implementation
 
@@ -1351,6 +1427,17 @@ begin
   if nPost = sFlag_TruckBFM  then Result := '磅房称重' else
   if nPost = sFlag_TruckFH   then Result := '散装放灰' else
   if nPost = sFlag_TruckZT   then Result := '袋装栈台' else Result := '厂外';
+end;
+
+//Desc: 业务类型转为可识别内容
+function BusinessToStr(const nBus: string): string;
+begin
+  if nBus = sFlag_Sale       then Result := '销售' else
+  if nBus = sFlag_Provide    then Result := '供应' else
+  if nBus = sFlag_Returns    then Result := '退货' else
+  if nBus = sFlag_DuanDao    then Result := '短倒' else
+  //if nBus = sFlag_WaiXie     then Result := '外协' else
+  if nBus = sFlag_Other      then Result := '其它';
 end;
 
 //------------------------------------------------------------------------------
@@ -1413,6 +1500,11 @@ begin
   AddSysTableItem(sTable_OrderBaseBak, sSQL_NewOrderBase);
   AddSysTableItem(sTable_OrderDtl, sSQL_NewOrderDtl);
   AddSysTableItem(sTable_OrderDtlBak, sSQL_NewOrderDtl);
+
+  AddSysTableItem(sTable_TransBase, sSQL_NewTransBase);
+  AddSysTableItem(sTable_TransBaseBak, sSQL_NewTransBase);
+  AddSysTableItem(sTable_Transfer, sSQL_NewTransfer);
+  AddSysTableItem(sTable_TransferBak, sSQL_NewTransfer);
 
   AddSysTableItem(sTable_Truck, sSQL_NewTruck);
   AddSysTableItem(sTable_ZTLines, sSQL_NewZTLines);

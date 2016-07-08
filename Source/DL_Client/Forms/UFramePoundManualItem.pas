@@ -891,6 +891,9 @@ begin
     end;
   end;
 
+  if (Length(FBillItems)>0) and (FCardUsed = sFlag_Provide) then
+    nNextStatus := FBillItems[0].FNextStatus;
+
   SetLength(FBillItems, 1);
   FBillItems[0] := FUIData;
   //复制用户界面数据
@@ -908,10 +911,6 @@ begin
   if FCardUsed = sFlag_Provide then
   begin
     //xxxxx
-    if FBillItems[0].FStatus = sFlag_TruckXH then
-         nNextStatus := sFlag_TruckBFM
-    else nNextStatus := sFlag_TruckBFP;
-
     FListB.Clear;
     FListB.Text := GetGYOrderBaseValue(FBillItems[0].FZhiKa);
     with FListB do

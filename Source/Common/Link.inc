@@ -50,8 +50,13 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBSZ}
 //特定系统
+
+//葛洲坝松滋
+{$IFDEF GZBSZ}
+  {$DEFINE GZBJM}
+{$ENDIF}
 
 //葛洲坝荆门
 {$IFDEF GZBJM}

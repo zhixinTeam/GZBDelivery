@@ -131,6 +131,38 @@ begin
   end;
 end;
 
+//Date: 2016-06-02
+//Parm: 命令;数据;参数;输出
+//Desc: 调用中间件上的短倒单据对象
+function CallBusinessDuanDao(const nCmd: Integer;
+  const nData, nExt: string; const nOut: PWorkerBusinessCommand): Boolean;
+var nStr: string;
+    nIn: TWorkerBusinessCommand;
+    nPacker: TBusinessPackerBase;
+    nWorker: TBusinessWorkerBase;
+begin
+  nPacker := nil;
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
+    nStr := nPacker.PackIn(@nIn);
+    nWorker := gBusinessWorkerManager.LockWorker(sBus_BusinessDuanDao);
+    //get worker
+
+    Result := nWorker.WorkActive(nStr);
+    if Result then
+         nPacker.UnPackOut(nStr, nOut)
+    else nOut.FData := nStr;
+  finally
+    gBusinessPackerManager.RelasePacker(nPacker);
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
 //Date: 2014-10-16
 //Parm: 命令;数据;参数;输出
 //Desc: 调用硬件守护上的业务对象
@@ -232,7 +264,35 @@ begin
     gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
   //xxxxx
 end;
-                                                             
+
+//Date: 2015-08-06
+//Parm: 磁卡号;岗位;短倒单列表
+//Desc: 获取nPost岗位上磁卡为nCard的短倒单列表
+function GetDuanDaoItems(const nCard,nPost: string;
+ var nData: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_GetPostBills, nCard, nPost, @nOut);
+  if Result then
+       AnalyseBillItems(nOut.FData, nData)
+  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+end;
+
+//Date: 2015-08-06
+//Parm: 岗位;短倒单列表
+//Desc: 保存nPost岗位上的短倒单数据
+function SaveDuanDaoItems(const nPost: string; nData: TLadingBillItems): Boolean;
+var nStr: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessDuanDao(cBC_SavePostBills, nStr, nPost, @nOut);
+
+  if not Result then
+    gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
 //------------------------------------------------------------------------------
 //Date: 2013-07-21
 //Parm: 事件描述;岗位标识
@@ -283,8 +343,11 @@ begin
   if not GetCardUsed(nCard, nCardType) then Exit;
 
   if nCardType = sFlag_Provide then
-        nRet := GetLadingOrders(nCard, sFlag_TruckIn, nTrucks)
-  else  nRet := GetLadingBills(nCard, sFlag_TruckIn, nTrucks);
+    nRet := GetLadingOrders(nCard, sFlag_TruckIn, nTrucks) else
+  if nCardType = sFlag_Sale then
+    nRet := GetLadingBills(nCard, sFlag_TruckIn, nTrucks) else
+  if nCardType = sFlag_DuanDao then
+    nRet := GetDuanDaoItems(nCard, sFlag_TruckIn, nTrucks) else nRet := False;
 
   if not nRet then
   begin
@@ -312,7 +375,7 @@ begin
 
     nStr := '车辆[ %s ]下一状态为:[ %s ],进厂刷卡无效.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-    
+
     WriteHardHelperLog(nStr, sPost_In);
     Exit;
   end;
@@ -325,7 +388,8 @@ begin
       gHardwareHelper.SetReaderCard(nReader, nCard);
     end else
     begin
-      if gTruckQueueManager.TruckReInfactFobidden(nTrucks[0].FTruck) then
+      if gTruckQueueManager.TruckReInfactFobidden(nTrucks[0].FTruck) or
+         (nCardType <> sFlag_Sale) then
       begin
         BlueOpenDoor(nReader);
         //抬杆
@@ -336,12 +400,25 @@ begin
       end;
     end;
 
+    if nCardType = sFlag_DuanDao then
+    begin
+      nStr := '车辆 %s 再次保存成功，请卸料';
+      nStr := Format(nStr, [nTrucks[0].FTruck]);
+      gDisplayManager.Display(nReader, nStr);
+    end;
+
     Exit;
   end;
 
-  if nCardType = sFlag_Provide then
+  if nCardType <> sFlag_Sale then
   begin
-    if not SaveLadingOrders(sFlag_TruckIn, nTrucks) then
+    if nCardType = sFlag_Provide then
+      nRet := SaveLadingOrders(sFlag_TruckIn, nTrucks) else
+    if nCardType = sFlag_DuanDao then
+      nRet := SaveDuanDaoItems(sFlag_TruckIn, nTrucks) else nRet := False;
+    //xxxxx
+
+    if not nRet then
     begin
       nStr := '车辆[ %s ]进厂放行失败.';
       nStr := Format(nStr, [nTrucks[0].FTruck]);
@@ -360,12 +437,20 @@ begin
       //抬杆
     end;
 
-    nStr := '原材料卡[%s]进厂抬杆成功';
-    nStr := Format(nStr, [nCard]);
+    nStr := '%s磁卡[%s]进厂抬杆成功';
+    nStr := Format(nStr, [BusinessToStr(nCardType), nCard]);
     WriteHardHelperLog(nStr, sPost_In);
+
+    if nCardType = sFlag_DuanDao then
+    begin
+      nStr := '车辆 %s 保存成功，请卸料';
+      nStr := Format(nStr, [nTrucks[0].FTruck]);
+      gDisplayManager.Display(nReader, nStr);
+    end;  
+
     Exit;
   end;
-  //采购磁卡直接抬杆
+  //非销售磁卡直接抬杆
 
   nPLine := nil;
   //nPTruck := nil;
@@ -461,8 +546,11 @@ begin
   if not GetCardUsed(nCard, nCardType) then Exit;
 
   if nCardType = sFlag_Provide then
-        nRet := GetLadingOrders(nCard, sFlag_TruckOut, nTrucks)
-  else  nRet := GetLadingBills(nCard, sFlag_TruckOut, nTrucks);
+    nRet := GetLadingOrders(nCard, sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_Sale then
+    nRet := GetLadingBills(nCard, sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_DuanDao then
+    nRet := GetDuanDaoItems(nCard, sFlag_TruckOut, nTrucks) else nRet := False;
 
   if not nRet then
   begin
@@ -494,8 +582,11 @@ begin
   end;
 
   if nCardType = sFlag_Provide then
-        nRet := SaveLadingOrders(sFlag_TruckOut, nTrucks)
-  else  nRet := SaveLadingBills(sFlag_TruckOut, nTrucks);
+    nRet := SaveLadingOrders(sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_Sale then
+    nRet := SaveLadingBills(sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_DuanDao then
+    nRet := SaveDuanDaoItems(sFlag_TruckOut, nTrucks);
 
   if not nRet then
   begin
@@ -528,6 +619,13 @@ begin
     else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
   end;  
   //打印报表
+
+  if nCardType = sFlag_DuanDao then
+  begin
+    nStr := '车辆 %s 保存成功，欢迎下次到来';
+    nStr := Format(nStr, [nTrucks[0].FTruck]);
+    gDisplayManager.Display(nReader, nStr);
+  end;  
 end;
 
 //Date: 2012-10-19
@@ -659,15 +757,19 @@ end;
 //Desc: 华益读头磁卡动作
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 begin
-  {.$IFDEF DEBUG}
+  {$IFDEF DEBUG}
   WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
-  {.$ENDIF}
-
-  {$IFDEF JYZL}
-  gHardwareHelper.SetReaderCard(nReader.FID, 'H' + nReader.FCard, False);
-  {$ELSE}
-  g02NReader.ActiveELabel(nReader.FID, nReader.FCard);
   {$ENDIF}
+
+  if nReader.FVirtual then
+  begin
+     case nReader.FVType of
+     rt900 :
+      gHardwareHelper.SetReaderCard(nReader.FVReader, 'H' + nReader.FCard, False);
+     rt02n :
+      g02NReader.SetReaderCard(nReader.FHost, nReader.FCard);
+     end;
+  end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
 end;
 
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);

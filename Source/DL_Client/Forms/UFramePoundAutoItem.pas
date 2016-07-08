@@ -67,8 +67,8 @@ type
     { Private declarations }
     FCardUsed: string;
     //卡片类型
-    FIsWeighting, FIsSaving: Boolean;
-    //称重标识,保存标识
+    FIsWeighting, FIsSaving, FHasReaded: Boolean;
+    //称重标识,保存标识,已读卡
     FPoundTunnel: PPTTunnelItem;
     //磅站通道
     FLastGS,FLastBT,FLastBQ: Int64;
@@ -142,6 +142,7 @@ procedure TfFrameAutoPoundItem.OnCreateFrame;
 begin
   inherited;
   FPoundTunnel := nil;
+  FHasReaded   := False;
   FIsWeighting := False;
   
   FEmptyPoundInit := 0;
@@ -261,9 +262,10 @@ begin
     EditBill.Properties.Items.Clear;
 
     FIsSaving    := False;
+    FHasReaded   := False;
     FIsWeighting := False;
     FEmptyPoundInit := 0;
-    
+
     gPoundTunnelManager.ClosePort(FPoundTunnel.FID);
     //关闭表头端口
   end;
@@ -410,6 +412,7 @@ begin
   begin
     nHint := '该车辆当前不能过磅,详情如下: ' + #13#10#13#10 + nHint;
     WriteSysLog(nStr);
+    SetUIData(True);
     Exit;
   end;
 
@@ -470,12 +473,14 @@ begin
   try
     WriteLog('正在读取磁卡号.');
     nCard := Trim(ReadPoundCard(FPoundTunnel.FID));
-    if nCard = '' then Exit;
+    if (nCard = '') or FHasReaded then Exit;
 
+    FHasReaded := True;
     if nCard <> FLastCard then
       FLastCardDone := 0;
     //新卡时重置
 
+    WriteSysLog('读取到新卡号:::' + nCard + '=>旧卡号:::' + FLastCard);
     nLast := Trunc((GetTickCount - FLastCardDone) / 1000);
     if nLast < FPoundTunnel.FCardInterval then
     begin
@@ -488,6 +493,7 @@ begin
       nStr := Format('磅站[ %s.%s ]: ',[FPoundTunnel.FID,
               FPoundTunnel.FName]) + nStr;
       WriteSysLog(nStr);
+      SetUIData(True);
       Exit;
     end;
 
@@ -747,6 +753,9 @@ begin
     end;
   end;
 
+  if (Length(FBillItems)>0) and (FCardUsed = sFlag_Provide) then
+    nNextStatus := FBillItems[0].FNextStatus;
+
   SetLength(FBillItems, 1);
   FBillItems[0] := FUIData;
   //复制用户界面数据
@@ -762,14 +771,8 @@ begin
   end;
 
   if FCardUsed = sFlag_Provide then
-  begin
-    //xxxxx
-    if FBillItems[0].FStatus = sFlag_TruckXH then
-         nNextStatus := sFlag_TruckBFM
-    else nNextStatus := sFlag_TruckBFP;
-
-    Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel); 
-  end else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
+       Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel)
+  else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
   //保存称重
 end;
 

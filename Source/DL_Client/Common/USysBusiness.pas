@@ -181,6 +181,24 @@ function GetPurchaseOrders(const nCard,nPost: string;
 function SavePurchaseOrders(const nPost: string; const nData: TLadingBillItems;
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的采购单
+
+function SaveDDBases(const nDDData: string): string;
+//保存短倒基本信息
+function DeleteDDBase(const nBase: string): Boolean;
+//删除短倒基本信息
+function DeleteDDDetial(const nDID: string): Boolean;
+//删除短倒明细
+function SaveDDCard(const nBID, nCard: string): Boolean;
+//绑定短倒磁卡
+function LogoutDDCard(const nCard: string): Boolean;
+//注销短倒磁卡
+function GetDuanDaoItems(const nCard,nPost: string;
+  var nBills: TLadingBillItems): Boolean;
+//获取指定岗位的短倒明细列表
+function SaveDuanDaoItems(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem=nil): Boolean;
+//保存指定岗位的短倒明细
+
 procedure LoadOrderItemToMC(const nItem: TLadingBillItem; const nMC: TStrings;
  const nDelimiter: string);
 
@@ -365,6 +383,40 @@ begin
     //自动称重时不提示
 
     nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessPurchaseOrder);
+    //get worker
+    Result := nWorker.WorkActive(@nIn, nOut);
+
+    if not Result then
+      WriteLog(nOut.FBase.FErrDesc);
+    //xxxxx
+  finally
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
+//Date: 2016-06-02
+//Parm: 命令;数据;参数;输出
+//Desc: 调用中间件上的短倒单据对象
+function CallBusinessDuanDao(const nCmd: Integer; const nData,nExt: string;
+  const nOut: PWorkerBusinessCommand; const nWarn: Boolean = True): Boolean;
+var nIn: TWorkerBusinessCommand;
+    nWorker: TBusinessWorkerBase;
+begin
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    if nWarn then
+         nIn.FBase.FParam := ''
+    else nIn.FBase.FParam := sParam_NoHintOnError;
+
+    if gSysParam.FAutoPound and (not gSysParam.FIsManual) then
+      nIn.FBase.FParam := sParam_NoHintOnError;
+    //自动称重时不提示
+
+    nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessDuanDao);
     //get worker
     Result := nWorker.WorkActive(@nIn, nOut);
 
@@ -1527,6 +1579,94 @@ var nStr: string;
 begin
   nStr := CombineBillItmes(nData);
   Result := CallBusinessPurchaseOrder(cBC_SavePostOrders, nStr, nPost, @nOut);
+  if (not Result) or (nOut.FData = '') then Exit;
+
+  if Assigned(nTunnel) then //过磅称重
+  begin
+    nList := TStringList.Create;
+    try
+      CapturePicture(nTunnel, nList);
+      //capture file
+
+      for nIdx:=0 to nList.Count - 1 do
+        SavePicture(nOut.FData, nData[0].FTruck,
+                                nData[0].FStockName, nList[nIdx]);
+      //save file
+    finally
+      nList.Free;
+    end;
+  end;
+end;
+
+//Date: 2016-06-02
+//Parm: 开短倒数据
+//Desc: 保存短倒单,返回短倒单号列表
+function SaveDDBases(const nDDData: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessDuanDao(cBC_SaveBills, nDDData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+//Date: 2016-06-02
+//Parm: 短倒单号
+//Desc: 删除nBillID单据
+function DeleteDDBase(const nBase: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_DeleteBill, nBase, '', @nOut);
+end;
+
+function DeleteDDDetial(const nDID: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_DeleteOrder, nDID, '', @nOut);
+end;
+
+//Date: 2016-06-02
+//Parm: 短倒编号,磁卡号
+//Desc: 绑定磁卡nCard
+function SaveDDCard(const nBID, nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_SaveBillCard, nBID, nCard, @nOut);
+end;
+
+//Date: 2016-06-02
+//Parm: 磁卡号
+//Desc: 注销nCard
+function LogoutDDCard(const nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_LogoffCard, nCard, '', @nOut);
+end;
+
+//Date: 2016-06-02
+//Parm: 磁卡号;岗位;短倒单列表
+//Desc: 获取nPost岗位上磁卡为nCard的短倒单列表
+function GetDuanDaoItems(const nCard,nPost: string;
+  var nBills: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessDuanDao(cBC_GetPostBills, nCard, nPost, @nOut);
+  if Result then
+    AnalyseBillItems(nOut.FData, nBills);
+  //xxxxx
+end;
+
+//Date: 2016-06-02
+//Parm: 岗位;短倒单列表;磅站通道
+//Desc: 保存nPost岗位上的短倒单数据
+function SaveDuanDaoItems(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessDuanDao(cBC_SavePostBills, nStr, nPost, @nOut);
   if (not Result) or (nOut.FData = '') then Exit;
 
   if Assigned(nTunnel) then //过磅称重

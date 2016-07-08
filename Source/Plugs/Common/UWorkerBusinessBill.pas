@@ -34,7 +34,7 @@ type
 
   TWorkerBusinessBills = class(TMITDBWorker)
   private
-    FListA,FListB,FListC: TStrings;
+    FListA,FListB,FListC,FListD: TStrings;
     //list
     FIn: TWorkerBusinessCommand;
     FOut: TWorkerBusinessCommand;
@@ -82,6 +82,9 @@ type
     function GetFlagStr(const nFlag: Integer): string; override;
     class function FunctionName: string; override;
     //base function
+    class function CallMe(const nCmd: Integer; const nData,nExt: string;
+      const nOut: PWorkerBusinessCommand): Boolean;
+    //local call
     class function VerifyTruckNO(nTruck: string; var nData: string): Boolean;
     //验证车牌是否有效
   end;
@@ -98,6 +101,7 @@ begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
   FListC := TStringList.Create;
+  FListD := TStringList.Create;
   inherited;
 end;
 
@@ -106,6 +110,7 @@ begin
   FreeAndNil(FListA);
   FreeAndNil(FListB);
   FreeAndNil(FListC);
+  FreeAndNil(FListD);
   inherited;
 end;
 
@@ -123,6 +128,41 @@ begin
   nIn := @FIn;
   nOut := @FOut;
   FDataOutNeedUnPack := False;
+end;
+
+//Date: 2014-09-15
+//Parm: 命令;数据;参数;输出
+//Desc: 本地调用业务对象
+class function TWorkerBusinessBills.CallMe(const nCmd: Integer;
+  const nData, nExt: string; const nOut: PWorkerBusinessCommand): Boolean;
+var nStr: string;
+    nIn: TWorkerBusinessCommand;
+    nPacker: TBusinessPackerBase;
+    nWorker: TBusinessWorkerBase;
+begin
+  nPacker := nil;
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
+    nPacker.InitData(@nIn, True, False);
+    //init
+    
+    nStr := nPacker.PackIn(@nIn);
+    nWorker := gBusinessWorkerManager.LockWorker(FunctionName);
+    //get worker
+
+    Result := nWorker.WorkActive(nStr);
+    if Result then
+         nPacker.UnPackOut(nStr, nOut)
+    else nOut.FData := nStr;
+  finally
+    gBusinessPackerManager.RelasePacker(nPacker);
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
 end;
 
 //Date: 2014-09-15
@@ -459,6 +499,16 @@ begin
     Values['ZKMoney'] := sFlag_No;
   end;
 
+  nVal := 0;
+  FListB.Text := PackerDecodeStr(FListA.Values['Bills']);
+
+  for nIdx := 0 to FListB.Count - 1 do
+  begin
+    FListC.Text := PackerDecodeStr(FListB[nIdx]);
+    nVal := nVal + StrToFloatDef(FListC.Values['Value'], 0);
+  end;
+  //开单总量，用于校验批次号和订单可用量 
+
   if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard,
      FListA.Values['Project'], '', @nOut) then
   begin
@@ -470,23 +520,21 @@ begin
   FListC.Text := PackerDecodeStr(FListB[0]);
   FListC.Values['Seal'] := FListA.Values['Seal'];
   FListC.Values['HYDan'] := FListA.Values['HYDan'];
-  FListC.Values['Value'] := FListA.Values['Value'];
-  FListC.Values['StockName'] := FListA.Values['StockName'];
+  FListC.Values['Value'] := FloatToStr(nVal);
   //订单信息
 
   if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard,
-     PackerEncodeStr(FListC.Text), '', @nOut) then
+     PackerEncodeStr(FListC.Text), sFlag_LoadExtInfo, @nOut) then
   begin
     nData := nOut.FData;
     Exit;
   end; //验证订单有效性和可提量
 
   FListB.Text := PackerDecodeStr(nOut.FData);
+  FListA.Values['Seal'] := FListB.Values['XCB_CementCodeID'];
+  FListA.Values['HYDan'] := FListB.Values['XCB_CementCode'];
   nRenum := StrToFloatDef(FListB.Values['XCB_RemainNum'], 0);
   //订单剩余量
-
-  nVal := StrToFloatDef(FListA.Values['Value'], 0);
-  //订单开单量
 
   if FloatRelation(nRenum, nVal, rtLess, cPrecision) then
   begin
@@ -507,9 +555,10 @@ end;
 //Date: 2014-09-15
 //Desc: 保存交货单
 function TWorkerBusinessBills.SaveBills(var nData: string): Boolean;
-var nStr,nSQL,nHKID: string;
-    nIdx,nInt: Integer;
+var nStr,nSQL,nHKID, nRID, nBill, nCode: string;
     nOut: TWorkerBusinessCommand;
+    nIdx,nInt: Integer;
+    nVal: Double;
 begin
   Result := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
@@ -676,6 +725,7 @@ begin
 
       if FListA.Values['BuDan'] = sFlag_Yes then //补单
       begin
+        { //订单冻结量在云天完成
         nStr := 'Update %s Set C_HasDone=C_HasDone+%.2f Where C_ID=''%s''';
         nStr := Format(nStr, [sTable_YT_CardInfo,
                 StrToFloat(FListC.Values['Value']),
@@ -692,7 +742,8 @@ begin
             SF('C_HasDone', FListC.Values['Value'], sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
-        end;
+        end;    
+        }
 
         if FListA.Values['Seal'] <> '' then
         begin
@@ -716,6 +767,7 @@ begin
         end; //更新水泥编号发货量
       end else
       begin
+        { //订单冻结量在云天完成
         nStr := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
         nStr := Format(nStr, [sTable_YT_CardInfo,
                 StrToFloat(FListC.Values['Value']),
@@ -732,7 +784,8 @@ begin
             SF('C_HasDone', '0', sfVal)
             ], sTable_YT_CardInfo, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
-        end;
+        end; 
+        }
 
         if FListA.Values['Seal'] <> '' then
         begin
@@ -768,6 +821,108 @@ begin
     FDBConn.FConn.RollbackTrans;
     raise;
   end;
+
+  try
+    nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
+    //bill list
+
+    if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nSQL,
+      sFlag_BillNew, @nOut) then
+      raise Exception.Create(nOut.FData);
+    //xxxxx
+  except
+    FListB.Clear;
+    FListC.Clear;
+    FListD.Clear;
+    //init SQL List
+
+    nVal := 0;
+    SplitStr(FOut.FData, FListB, 0, ',', False);
+    
+    for nIdx := 0 to FListB.Count-1 do
+    begin
+      nStr := 'Select L_Value,L_Seal From %s ' +
+              'Where L_ID=''%s''';
+      nStr := Format(nStr, [sTable_Bill, FListB[nIdx]]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if RecordCount < 1 then Continue;
+
+        nVal := FieldByName('L_Value').AsFloat;
+        nCode := FieldByName('L_Seal').AsString;
+      end;
+
+      nStr := 'Select R_ID,T_HKBills,T_Bill From %s ' +
+              'Where T_HKBills Like ''%%%s%%''';
+      nStr := Format(nStr, [sTable_ZTTrucks, FListB[nIdx]]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      if RecordCount > 0 then
+      begin
+        nRID := Fields[0].AsString;
+        nBill := Fields[2].AsString;
+        SplitStr(Fields[1].AsString, FListD, 0, '.')
+      end else
+      begin
+        nRID := '';
+        FListD.Clear;
+      end;
+
+      if FListD.Count = 1 then
+      begin
+        nStr := 'Delete From %s Where R_ID=%s';
+        nStr := Format(nStr, [sTable_ZTTrucks, nRID]);
+
+        FListC.Add(nStr);
+      end else
+
+      if FListD.Count > 1 then
+      begin
+        nInt := FListD.IndexOf(FListB[nIdx]);
+        if nInt >= 0 then
+          FListD.Delete(nInt);
+        //移出合单列表
+
+        if nBill = FListB[nIdx] then
+          nBill := FListD[0];
+        //更换交货单
+
+        nStr := 'Update %s Set T_Bill=''%s'',T_Value=T_Value-(%.2f),' +
+                'T_HKBills=''%s'' Where R_ID=%s';
+        nStr := Format(nStr, [sTable_ZTTrucks, nBill, nVal,
+                CombinStr(FListD, '.'), nRID]);
+        //xxxxx
+
+        FListC.Add(nStr);
+        //更新合单信息
+      end;
+
+      if nCode <> '' then
+      begin
+        nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
+        nStr := Format(nStr, [sTable_YT_CodeInfo, nVal, nCode]);
+        FListC.Add(nStr);
+      end;
+
+      nStr := 'Delete From %s Where L_ID=''%s''';
+      nStr := Format(nStr, [sTable_Bill, FListB[nIdx]]);
+      FListC.Add(nStr);
+    end;
+
+    FDBConn.FConn.BeginTrans;
+    try
+      for nIdx := 0 to FListC.Count - 1 do
+        gDBConnManager.WorkerExec(FDBConn, FListC[nIdx]);
+
+      FDBConn.FConn.CommitTrans;
+    except
+      FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+    raise;
+  end;
+  //同步提货单
 
   if FListA.Values['BuDan'] = sFlag_Yes then //补单
   try
@@ -1091,6 +1246,7 @@ function TWorkerBusinessBills.DeleteBill(var nData: string): Boolean;
 var nIdx: Integer;
     nVal: Double;
     nHasOut: Boolean;
+    nOut: TWorkerBusinessCommand;
     nStr,nP,nRID,nBill,nZK,nCode: string;
 begin
   Result := False;
@@ -1138,6 +1294,15 @@ begin
     FListA.Clear;
   end;
 
+  nStr := AdjustListStrFormat(FIn.FData, '''', True, ',', False);
+  //bill list
+
+  if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
+    sFlag_BillDel, @nOut) then
+    raise Exception.Create(nOut.FData);
+  //xxxxx
+  //同步提货单
+
   FDBConn.FConn.BeginTrans;
   try
     if FListA.Count = 1 then
@@ -1170,9 +1335,11 @@ begin
 
     if nHasOut then //释放完成
     begin
+      { //订单冻结量在云天完成
       nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
+      }
 
       if nCode <> '' then
       begin
@@ -1182,9 +1349,11 @@ begin
       end;
     end else //释放冻结
     begin
+      { //订单冻结量在云天完成
       nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
+      }
 
       if nCode <> '' then
       begin
@@ -1603,7 +1772,8 @@ end;
 //Parm: 交货单[FIn.FData];岗位[FIn.FExtParam]
 //Desc: 保存指定岗位提交的交货单列表
 function TWorkerBusinessBills.SavePostBillItems(var nData: string): Boolean;
-var nStr,nSQL,nTmp: string;
+var nStr,nSQL,nTmp,nCode,nRID,nBill: string;
+    nUpdateID, nAddID: string;
     f,m,nVal,nMVal: Double;
     i,nIdx,nInt: Integer;
     nBills: TLadingBillItems;
@@ -1843,6 +2013,9 @@ begin
   begin
     nInt := -1;
     nMVal := 0;
+
+    nAddID := '';
+    nUpdateID := '';
     
     for nIdx:=Low(nBills) to High(nBills) do
     if nBills[nIdx].FPoundID = sFlag_Yes then
@@ -1876,10 +2049,15 @@ begin
               ], sTable_Bill, SF('L_ID', FID), False);
         FListA.Add(nSQL); //更新提货量
 
+        nUpdateID := FID + ',' + nUpdateID;
+        //云天系统更新冻结量
+
+        { //订单冻结量在云天完成
         nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
                 'Where C_ID=''%s''';
         nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
         FListA.Add(nSQL); //冻结量
+        }
 
         if FSeal <> '' then
         begin
@@ -1909,10 +2087,15 @@ begin
               ], sTable_Bill, SF('L_ID', FID), False);
         FListA.Add(nSQL); //更新提货量
 
+        nUpdateID := FID + ',' + nUpdateID;
+        //云天系统更新冻结量
+
+        {//订单冻结量在云天完成
         nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
                 'Where C_ID=''%s''';
         nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
         FListA.Add(nSQL); //冻结量
+        }
 
         if FSeal <> '' then
         begin
@@ -1977,7 +2160,7 @@ begin
           nData := Format(nData, [FCusID, FCusName, FMemo, nVal, m]);
           Exit;
         end;
-
+        
         //----------------------------------------------------------------------
         FListC.Values['Group'] :=sFlag_BusGroup;
         FListC.Values['Object'] := sFlag_BillNo;
@@ -1990,6 +2173,9 @@ begin
 
         nTmp := nOut.FData;
         //Save L_ID
+
+        nAddID := nTmp + ',' + nAddID;
+        //云天系统新增编号
 
         nSQL := MakeSQLByStr([SF('L_ID', nTmp),
                 SF('L_Card', FCard),
@@ -2072,6 +2258,7 @@ begin
         //减去补单毛重
 
         //----------------------------------------------------------------------
+        { //订单冻结量在云天完成
         nStr := 'Select Count(*) From %s Where C_ID=''%s''';
         nStr := Format(nStr, [sTable_YT_CardInfo, FListB.Values['XCB_ID']]);
 
@@ -2095,6 +2282,7 @@ begin
             FListA.Add(nSQL);
           end;
         end; //冻结开单量
+        }
 
         if FListB.Values['XCB_CementCodeID'] <> '' then
         begin
@@ -2260,10 +2448,10 @@ begin
               ], sTable_Bill, SF('L_ID', FID), False);
       FListA.Add(nSQL); //更新交货单
 
-      nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
+      {nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
               'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
       nSQL := Format(nSQL, [sTable_YT_CardInfo, nVal, FValue, FZhiKa]);
-      FListA.Add(nSQL); //更新订单
+      FListA.Add(nSQL); //更新订单}
 
       if FSeal <> '' then
       begin
@@ -2413,6 +2601,132 @@ begin
     if Assigned(gHardShareData) then
       gHardShareData('TruckOut:' + nBills[0].FCard);
     //磅房处理自动出厂
+
+    if (nBills[nInt].FType = sFlag_San) and
+       (nBills[nInt].FPModel <> sFlag_PoundCC) then
+    begin
+      nIdx := Length(nAddID);
+      if Copy(nAddID, nIdx, 1) = ',' then
+        System.Delete(nAddID, nIdx, 1);
+      //xxxxx
+
+      if Length(nAddID) > 0 then
+      try
+        nStr := AdjustListStrFormat(nTmp, '''', True, ',', False);
+        //bill list
+
+        if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
+          sFlag_BillNew, @nOut) then
+          raise Exception.Create(nOut.FData);
+        //xxxxx
+      except
+        FListB.Clear;
+        FListC.Clear;
+        FListD.Clear;
+        //init SQL List
+
+        nVal := 0;
+        SplitStr(nTmp, FListB, 0, ',', False);
+    
+        for nIdx := 0 to FListB.Count-1 do
+        begin
+          nStr := 'Select L_Value,L_Seal From %s ' +
+                  'Where L_ID=''%s''';
+          nStr := Format(nStr, [sTable_Bill, FListB[nIdx]]);
+
+          with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+          begin
+            if RecordCount < 1 then Continue;
+
+            nVal := FieldByName('L_Value').AsFloat;
+            nCode := FieldByName('L_Seal').AsString;
+          end;
+
+          nStr := 'Select R_ID,T_HKBills,T_Bill From %s ' +
+                  'Where T_HKBills Like ''%%%s%%''';
+          nStr := Format(nStr, [sTable_ZTTrucks, FListB[nIdx]]);
+
+          with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+          if RecordCount > 0 then
+          begin
+            nRID := Fields[0].AsString;
+            nBill := Fields[2].AsString;
+            SplitStr(Fields[1].AsString, FListD, 0, '.')
+          end else
+          begin
+            nRID := '';
+            FListD.Clear;
+          end;
+
+          if FListD.Count = 1 then
+          begin
+            nStr := 'Delete From %s Where R_ID=%s';
+            nStr := Format(nStr, [sTable_ZTTrucks, nRID]);
+
+            FListC.Add(nStr);
+          end else
+
+          if FListD.Count > 1 then
+          begin
+            nInt := FListD.IndexOf(FListB[nIdx]);
+            if nInt >= 0 then
+              FListD.Delete(nInt);
+            //移出合单列表
+
+            if nBill = FListB[nIdx] then
+              nBill := FListD[0];
+            //更换交货单
+
+            nStr := 'Update %s Set T_Bill=''%s'',T_Value=T_Value-(%.2f),' +
+                    'T_HKBills=''%s'' Where R_ID=%s';
+            nStr := Format(nStr, [sTable_ZTTrucks, nBill, nVal,
+                    CombinStr(FListD, '.'), nRID]);
+            //xxxxx
+
+            FListC.Add(nStr);
+            //更新合单信息
+          end;
+
+          if nCode <> '' then
+          begin
+            nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
+            nStr := Format(nStr, [sTable_YT_CodeInfo, nVal, nCode]);
+            FListC.Add(nStr);
+          end;
+
+          nStr := 'Delete From %s Where L_ID=''%s''';
+          nStr := Format(nStr, [sTable_Bill, FListB[nIdx]]);
+          FListC.Add(nStr);
+        end;
+
+        FDBConn.FConn.BeginTrans;
+        try
+          for nIdx := 0 to FListC.Count - 1 do
+            gDBConnManager.WorkerExec(FDBConn, FListC[nIdx]);
+
+          FDBConn.FConn.CommitTrans;
+        except
+          FDBConn.FConn.RollbackTrans;
+          raise;
+        end;
+        raise;
+      end;
+      //同步提货单
+
+      nIdx := Length(nUpdateID);
+      if Copy(nUpdateID, nIdx, 1) = ',' then
+        System.Delete(nUpdateID, nIdx, 1);
+      //xxxxx
+
+      if Length(nUpdateID) > 0 then
+      begin
+        nStr := AdjustListStrFormat(nUpdateID, '''', True, ',', False);
+        //bill list
+
+        TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
+          sFlag_BillPick, @nOut)
+      end;  
+    end;  
   end;
 
   {$IFDEF MicroMsg}

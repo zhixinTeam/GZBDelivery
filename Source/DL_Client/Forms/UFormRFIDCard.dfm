@@ -34,6 +34,7 @@ inherited fFormRFIDCard: TfFormRFIDCard
       Properties.ReadOnly = True
       Style.HotTrack = False
       TabOrder = 1
+      OnKeyPress = edtRFIDCardKeyPress
       Width = 121
     end
     object chkValue: TcxCheckBox [4]
