@@ -299,7 +299,6 @@ end;
 //Desc:
 procedure WriteHardHelperLog(const nEvent: string; nPost: string = '');
 begin
-  gDisplayManager.Display(nPost, nEvent);
   gSysLoger.AddLog(THardwareHelper, '硬件守护辅助', nEvent);
 end;
 
@@ -315,7 +314,8 @@ begin
   begin
     if gHardwareHelper.ConnHelper then
          gHardwareHelper.OpenDoor(nReader)
-    else gBlueReader.OpenDoor(nReader);
+    else gHYReaderManager.OpenDoor(nReader);
+    //else gBlueReader.OpenDoor(nReader);
     
     Inc(nIdx);
   end;
@@ -332,6 +332,9 @@ var nStr,nTruck,nCardType: string;
     nTrucks: TLadingBillItems;
     nRet: Boolean;
 begin
+  {$IFDEF DEBUG}
+  WriteHardHelperLog('MakeTruckIn进入.' + ':::Reader [ ' + nReader + ' ] ');
+  {$ENDIF}
   if gTruckQueueManager.IsTruckAutoIn and (GetTickCount -
      gHardwareHelper.GetCardLastDone(nCard, nReader) < 2 * 60 * 1000) then
   begin
@@ -355,6 +358,8 @@ begin
     nStr := Format(nStr, [nCard]);
 
     WriteHardHelperLog(nStr, sPost_In);
+    if nCardType = sFlag_DuanDao then
+      gDisplayManager.Display(nReader, '磁卡无效');
     Exit;
   end;
 
@@ -402,8 +407,9 @@ begin
 
     if nCardType = sFlag_DuanDao then
     begin
-      nStr := '车辆 %s 再次保存成功，请卸料';
+      nStr := '%s进厂';
       nStr := Format(nStr, [nTrucks[0].FTruck]);
+      WriteHardHelperLog(nStr, sPost_In);
       gDisplayManager.Display(nReader, nStr);
     end;
 
@@ -443,10 +449,11 @@ begin
 
     if nCardType = sFlag_DuanDao then
     begin
-      nStr := '车辆 %s 保存成功，请卸料';
+      nStr := '%s进厂';
       nStr := Format(nStr, [nTrucks[0].FTruck]);
+      WriteHardHelperLog(nStr, sPost_In);
       gDisplayManager.Display(nReader, nStr);
-    end;  
+    end;
 
     Exit;
   end;
@@ -542,6 +549,10 @@ var nStr,nCardType: string;
     nOut: TWorkerBusinessCommand;
     {$ENDIF}
 begin
+  {$IFDEF DEBUG}
+  WriteHardHelperLog('MakeTruckOut进入.' + ':::Reader [ ' + nReader + ' ] ');
+  {$ENDIF}
+
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
 
@@ -558,6 +569,8 @@ begin
     nStr := Format(nStr, [nCard]);
 
     WriteHardHelperLog(nStr, sPost_Out);
+    if nCardType = sFlag_DuanDao then
+      gDisplayManager.Display(nReader, '磁卡无效');
     Exit;
   end;
 
@@ -622,10 +635,10 @@ begin
 
   if nCardType = sFlag_DuanDao then
   begin
-    nStr := '车辆 %s 保存成功，欢迎下次到来';
+    nStr := '%s出厂';
     nStr := Format(nStr, [nTrucks[0].FTruck]);
     gDisplayManager.Display(nReader, nStr);
-  end;  
+  end;
 end;
 
 //Date: 2012-10-19

@@ -13,7 +13,7 @@ inherited fFrameTransferDetailQuery: TfFrameTransferDetailQuery
     end
     inherited BtnDel: TToolButton
       Left = 158
-      Visible = False
+      OnClick = BtnDelClick
     end
     inherited S1: TToolButton
       Left = 237

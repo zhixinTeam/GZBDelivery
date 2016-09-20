@@ -37,6 +37,7 @@ type
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
+    procedure BtnDelClick(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -158,10 +159,29 @@ procedure TfFrameTransferDetailQuery.N2Click(Sender: TObject);
 begin
   inherited;
   try
-    FJBWhere := '(D_OutFact Is Null)';
+    FJBWhere := '(T_OutFact Is Null)';
     InitFormData('');
   finally
     FJBWhere := '';
+  end;
+end;
+
+procedure TfFrameTransferDetailQuery.BtnDelClick(Sender: TObject);
+var nStr: string;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要删除的记录', sHint); Exit;
+  end;
+
+  nStr := '确定要删除编号为[ %s ]的单据吗?';
+  nStr := Format(nStr, [SQLQuery.FieldByName('T_ID').AsString]);
+  if not QueryDlg(nStr, sAsk) then Exit;
+
+  if DeleteDDDetial(SQLQuery.FieldByName('T_ID').AsString) then
+  begin
+    InitFormData(FWhere);
+    ShowMsg('短倒明细已删除', sHint);
   end;
 end;
 

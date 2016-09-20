@@ -3371,7 +3371,7 @@ begin
   end;
 
   //----------------------------------------------------------------------------
-  nSQL := 'Select O_ID,O_Truck From %s Where O_Card In (%s)';
+  nSQL := 'Select O_ID,O_Truck From %s Where O_Card=''%s''';
   nSQL := Format(nSQL, [sTable_Order, FIn.FExtParam]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
@@ -3937,6 +3937,16 @@ begin
               MI('$KDVal', FloatToStr(FValue))]);
       FListA.Add(nSQL);
       //调整冻结量
+    end;
+
+    nSQL := 'Select P_ID From %s Where P_Order=''%s'' And P_MValue Is Null';
+    nSQL := Format(nSQL, [sTable_PoundLog, nPound[0].FID]);
+    //未称毛重记录
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      FOut.FData := Fields[0].AsString;
     end;
   end else
 
