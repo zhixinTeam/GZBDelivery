@@ -46,10 +46,7 @@ type
     dxGroupLayout1Group5: TdxLayoutGroup;
     dxlytmLayout1Item13: TdxLayoutItem;
     EditType: TcxComboBox;
-    dxlytmLayout1Item14: TdxLayoutItem;
-    EditFQ: TcxTextEdit;
     dxGroupLayout1Group6: TdxLayoutGroup;
-    dxGroupLayout1Group4: TdxLayoutGroup;
     dxGroupLayout1Group7: TdxLayoutGroup;
     dxGroupLayout1Group3: TdxLayoutGroup;
     EditTrans: TcxTextEdit;
@@ -59,15 +56,20 @@ type
     dxLayout1Group2: TdxLayoutGroup;
     EditWorkAddr: TcxTextEdit;
     dxLayout1Item6: TdxLayoutItem;
+    EditFQ: TcxButtonEdit;
+    dxLayout1Item7: TdxLayoutItem;
+    dxLayout1Group3: TdxLayoutGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
     procedure EditLadingKeyPress(Sender: TObject; var Key: Char);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
+    procedure EditFQPropertiesButtonClick(Sender: TObject;
+      AButtonIndex: Integer);
   protected
     { Protected declarations }
-    FCardData: TStrings;
+    FCardData, FComentData: TStrings;
     //卡片数据
     FNewBillID: string;
     //新提单号
@@ -118,6 +120,7 @@ begin
     ActiveControl := EditTruck;
 
     FCardData.Text := PackerDecodeStr(nStr);
+    FComentData.Text := YT_GetBatchCode(FCardData);
     InitFormData;
 
     if nPopedom = 'MAIN_D04' then //补单
@@ -147,6 +150,8 @@ end;
 procedure TfFormBill.FormCreate(Sender: TObject);
 begin
   FCardData := TStringList.Create;
+  FComentData := TStringList.Create;
+
   AdjustCtrlData(Self);
   LoadFormConfig(Self);
 end;
@@ -156,6 +161,7 @@ begin
   SaveFormConfig(Self);
   ReleaseCtrlData(Self);
   FCardData.Free;
+  FComentData.Free;
 end;
 
 //Desc: 回车键
@@ -196,6 +202,13 @@ procedure TfFormBill.InitFormData;
 begin
   with FCardData do
   begin
+    if FComentData.Text <> '' then
+    begin
+      Values['XCB_CementCode'] := FComentData.Values['XCB_CementCode'];
+      Values['XCB_CementCodeID'] := FComentData.Values['XCB_CementCodeID'];
+    end;
+    //批次号
+
     EditID.Text     := Values['XCB_ID'];
     EditCard.Text   := Values['XCB_CardId'];
     EditCus.Text    := Values['XCB_Client'];
@@ -298,6 +311,20 @@ begin
 
   ModalResult := mrOk;
   ShowMsg('提货单保存成功', sHint);
+end;
+
+procedure TfFormBill.EditFQPropertiesButtonClick(Sender: TObject;
+  AButtonIndex: Integer);
+var nP: TFormCommandParam;
+begin
+  inherited;
+  nP.FParamA := FCardData.Text;
+  CreateBaseFormItem(cFI_FormGetYTBatch, '', @nP);
+
+  if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOk) then Exit;
+
+  FComentData.Text := PackerDecodeStr(nP.FParamB);
+  InitFormData;
 end;
 
 initialization

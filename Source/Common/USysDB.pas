@@ -187,6 +187,7 @@ ResourceString
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
   sFlag_StockIfYS     = 'StockIfYS';                 //现场是否验收
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
+  sFlag_NOBatchCode   = 'NoBatchcode';               //无需批次号
   sFlag_DaiPercentToZero = 'DaiPercentToZero';       //不统计为发货量的比例
 
   sFlag_CommonItem    = 'CommonItem';                //公共信息
@@ -210,6 +211,7 @@ ResourceString
 
   sFlag_ProviderItem  = 'ProviderItem';              //供应商信息项
   sFlag_MaterailsItem = 'MaterailsItem';             //原材料信息项
+  sFlag_MaterailTunnel= 'MaterailTunnel';            //原材料卸货通道
 
   sFlag_HardSrvURL    = 'HardMonURL';
   sFlag_MITSrvURL     = 'MITServiceURL';             //服务地址

@@ -992,11 +992,58 @@ begin
   end;
 end;
 
+
+function IsTruckInTunnel(const nTunnel, nStockNO: string): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nDBConn: PDBWorker;
+begin
+  Result := False;
+  //init
+
+  nDBConn := nil;
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+    if not Assigned(nDBConn) then
+    begin
+      WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+
+    nStr := 'Select D_Value From %s Where D_Name=''%s'' And ' +
+            'D_Memo Like ''%%%s%%'' And D_ParamB Like ''%%%s%%''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_MaterailTunnel,
+            nTunnel, nStockNO]);
+
+    with gDBConnManager.WorkerQuery(nDBConn, nStr) do
+    if RecordCount > 0 then
+         Result := True
+    else Result := False;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+end;
+
+//Date: 2016/10/13
+//Parm: 车牌号;其他信息
+//Desc: 小屏显示内容
+function MakeShowTxt(const nTruck, nExt:string): string;
+var nStr: string;
+begin
+  nStr := Copy(nTruck, Length(nTruck) - 5, 6);
+  Result := Dbc2Sbc(nStr + StringOfChar(' ', 12 - Length(nStr)) + nExt);
+end;  
+
 //Date: 2012-4-24
 //Parm: 磁卡号;通道号
 //Desc: 对nCard执行袋装装车操作
 procedure MakeTruckLadingDai(const nCard: string; nTunnel: string);
-var nStr: string;
+var nStr,nCardType: string;
     nIdx,nInt: Integer;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
@@ -1019,6 +1066,102 @@ begin
   {.$IFDEF DEBUG}
   WriteNearReaderLog('MakeTruckLadingDai进入.');
   {.$ENDIF}
+
+  nCardType := '';
+  if not GetCardUsed(nCard, nCardType) then Exit;
+
+  if nCardType = sFlag_Provide then
+  begin
+    if not GetLadingOrders(nCard, sFlag_TruckXH, nTrucks) then
+    begin
+      nStr := '读取磁卡[ %s ]验收处采购单信息失败.';
+      nStr := Format(nStr, [nCard]);
+
+      WriteNearReaderLog(nStr);
+      gDisplayManager.Display(nTunnel, '磁卡无效');
+      Exit;
+    end;
+
+    if Length(nTrucks) < 1 then
+    begin
+      nStr := '磁卡[ %s ]没有需要验收车辆.';
+      nStr := Format(nStr, [nCard]);
+
+      WriteNearReaderLog(nStr);
+      gDisplayManager.Display(nTunnel, '磁卡无效');
+      Exit;
+    end;
+
+    nStr := '';
+    nInt := 0;
+
+    for nIdx:=Low(nTrucks) to High(nTrucks) do
+    with nTrucks[nIdx] do
+    begin
+      if (FStatus = sFlag_TruckXH) or (FNextStatus = sFlag_TruckXH) then
+      begin
+        FYSValid  := sFlag_Yes;
+        FPoundID  := nTunnel;
+        FSelected := True;
+        
+        Inc(nInt);
+        Continue;
+      end;
+
+      FSelected := False;
+      nStr := '车辆[ %s ]下一状态为:[ %s ],无法卸货.';
+      nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
+    end;
+
+    if nInt < 1 then
+    begin
+      WriteHardHelperLog(nStr);
+
+      nStr := MakeShowTxt(nTrucks[0].FTruck,
+              '该 ' + TruckStatusToStr(nTrucks[0].FNextStatus));
+      gDisplayManager.Display(nTunnel, nStr);
+      Exit;
+    end;
+
+    if (nTunnel <> '') and (not
+       IsTruckInTunnel(nTunnel, nTrucks[0].FStockNo)) then
+    begin
+      nStr := MakeShowTxt(nTrucks[0].FTruck, '请换库卸货');
+      gDisplayManager.Display(nTunnel, nStr);
+      Exit;
+    end;     
+
+    for nIdx:=Low(nTrucks) to High(nTrucks) do
+    with nTrucks[nIdx] do
+    begin
+      if not FSelected then Continue;
+      if FStatus <> sFlag_TruckXH then Continue;
+
+      nStr := '车辆[ %s ]再次刷卡卸货.';
+      nStr := Format(nStr, [FTruck]);
+      WriteNearReaderLog(nStr);
+
+      nStr := MakeShowTxt(FTruck, FStockName); 
+      WriteNearReaderLog(nStr);
+      gDisplayManager.Display(nTunnel, nStr);
+
+      Exit;
+    end;
+
+    if not SaveLadingOrders(sFlag_TruckXH, nTrucks) then
+    begin
+      nStr := '车辆[ %s ]刷卡卸货失败.';
+      nStr := Format(nStr, [nTrucks[0].FTruck]);
+
+      WriteNearReaderLog(nStr);
+      Exit;
+    end;
+
+    nStr := MakeShowTxt(nTrucks[0].FTruck, nTrucks[0].FStockName);
+    gDisplayManager.Display(nTunnel, nStr);
+
+    Exit;
+  end;  
 
   if IsJSRun then Exit;
   //tunnel is busy

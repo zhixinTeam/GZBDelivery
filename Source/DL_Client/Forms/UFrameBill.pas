@@ -232,11 +232,21 @@ end;
 
 //Desc: 删除
 procedure TfFrameBill.BtnDelClick(Sender: TObject);
-var nStr: string;
+var nStr, nHasOut: string;
 begin
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
     ShowMsg('请选择要删除的记录', sHint); Exit;
+  end;
+
+  nHasOut := Trim(SQLQuery.FieldByName('L_OutFact').AsString);
+  if nHasOut <> '' then
+  begin
+    if not gSysParam.FIsAdmin then Exit;
+
+    nStr := '编号[ %s ]车辆已出厂, 请确认是否删除?';
+    nStr := Format(nStr, [SQLQuery.FieldByName('L_ID').AsString]);
+    if not QueryDlg(nStr, sAsk) then Exit;
   end;
 
   nStr := '确定要删除编号为[ %s ]的单据吗?';

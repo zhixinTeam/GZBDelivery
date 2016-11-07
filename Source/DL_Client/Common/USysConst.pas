@@ -81,6 +81,8 @@ const
   cFI_FrameWXAccount    = $0110;                     //微信账户
   cFI_FrameWXSendLog    = $0111;                     //发送日志
 
+  cFI_FrameMaterailTunnels = $0120;                     //原材料验收
+
   cFI_FormMemo          = $1000;                     //备注窗口
   cFI_FormBackup        = $1001;                     //数据备份
   cFI_FormRestore       = $1002;                     //数据恢复
@@ -136,6 +138,7 @@ const
   cFI_FormOrderBase     = $1054;                     //采购订单
   cFI_FormPurchase      = $1055;                     //采购验收
   cFI_FormGetPOrderBase  = $1056;                     //采购订单
+  cFI_FormGetYTBatch    = $1057;                     //获取云天批次
 
   cFI_FormStockParam    = $1065;                     //品种管理
   cFI_FormStockHuaYan   = $1066;                     //开化验单
@@ -161,6 +164,7 @@ const
   cFI_FormWXSendlog     = $1092;                     //微信日志
 
   cFI_FormTransBase     = $1093;                     //短倒办理
+  cFI_FormMaterailTunnel= $1120;                     //原材料验收通道
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
@@ -366,6 +370,7 @@ begin
   AddMenuModuleItem('MAIN_M06', cFI_FrameTransBase);
   AddMenuModuleItem('MAIN_M08', cFI_FrameOrderDetail);
   AddMenuModuleItem('MAIN_M09', cFI_FrameOrderBase);
+  AddMenuModuleItem('MAIN_M10', cFI_FrameMaterailTunnels);
 
   AddMenuModuleItem('MAIN_W01', cFI_FrameWXAccount);
   AddMenuModuleItem('MAIN_W02', cFI_FrameWXSendLog);

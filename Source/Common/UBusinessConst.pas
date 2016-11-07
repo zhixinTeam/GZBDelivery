@@ -88,6 +88,10 @@ const
   cBC_SyncMaterails           = $0086;   //远程同步原材料
   cBC_SyncBillEdit            = $0087;   //更新提货单状态
 
+  cBC_GetYTBatchCode          = $0088;   //获取云天系统批次
+  cBC_SaveLadingSealInfo      = $0089;   //更新批次信息
+  cBC_SyncYTBatchCodeInfo     = $0090;   //获取化验单信息
+
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;
   TWorkerQueryFieldData = record
@@ -155,6 +159,11 @@ procedure AnalyseBillItems(const nData: string; var nItems: TLadingBillItems);
 //解析由业务对象返回的交货单数据
 function CombineBillItmes(const nItems: TLadingBillItems): string;
 //合并交货单数据为业务对象能处理的字符串
+
+function Sbc2Dbc(const nStr: string):string;
+//半角符号转全角符号
+function Dbc2Sbc(const nStr: string):string;
+//全角符号转半角符号
 
 resourcestring
   {*PBWDataBase.FParam*}
@@ -374,6 +383,114 @@ begin
     nListB.Free;
     nListA.Free;
   end;
+end;
+
+{
+在windows中，中文和全角字符都占两个字节，
+并且使用了 ascii　chart  2  (codes  128 - 255 )。
+全角字符的第一个字节总是被置为163，
+而第二个字节则是 相同半角字符码加上128（不包括空格）。
+如半角a为65，则全角a则是163（第一个字节）、 193 （第二个字节， 128 + 65 ）。
+而对于中文来讲，它的第一个字节被置为大于163，（
+如 ' 阿 ' 为: 176   162 ）,我们可以在检测到中文时不进行转换。
+}
+
+//------------------------------------------------------------------------------
+//Date: 2015/11/25
+//Parm: 
+//Desc: 全角符号转半角符号
+function Dbc2Sbc(const nStr: string):string;
+var
+  nLen,nIdx:integer;
+  nStrTmp,nCStrTmp,nC1,nC2:string;
+begin
+  nLen:= length(nStr);
+  if nLen = 0 then exit;
+
+  nStrTmp  := '';
+  nCStrTmp := nStr;
+  SetLength(nCStrTmp, nLen + 1);
+
+  nIdx := 1;
+  while nIdx<=nLen do
+  begin
+    nC1 := nCStrTmp[nIdx];
+    nC2 := nCStrTmp[nIdx + 1];
+
+    if nC1 = #163 then //全角符号
+    begin
+      nStrTmp := nStrTmp + Chr(Ord(nC2[1]) - 128);
+      Inc(nIdx, 2);
+    end else
+
+    if nC1 > #163 then //中文
+    begin
+      nStrTmp := nStrTmp + nC1 + nC2;
+      Inc(nIdx, 2);
+    end else
+
+    if  (nC1 = #161 ) and (nC2 = #161 ) then   // 全角空格
+    begin
+      nStrTmp := nStrTmp + ' ';
+      Inc(nIdx, 2 );
+    end else
+
+    begin
+      nStrTmp := nStrTmp + nC1;
+      Inc(nIdx, 1);
+    end;
+  end;
+
+  Result:= nStrTmp;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2015/11/25
+//Parm: 
+//Desc: 半角符号转全角符号
+function Sbc2Dbc(const nStr: string):string;
+var
+  nLen,nIdx:integer;
+  nStrTmp,nCStrTmp,nC1, nC2:string;
+begin
+  nLen:= length(nStr);
+  if nLen = 0 then exit;
+
+  nStrTmp  := '';
+  nCStrTmp := nStr;
+  SetLength(nCStrTmp, nLen + 1);
+
+  nIdx := 1;
+  while nIdx<=nLen do
+  begin
+    nC1 := nCStrTmp[nIdx];
+    nC2 := nCStrTmp[nIdx + 1];
+
+    if nC1 >= #163 then //中文 或 全角符号
+    begin
+      nStrTmp := nStrTmp + nC1 + nC2;
+      Inc(nIdx, 2);
+    end else
+
+    if  (nC1 = #161) and (nC2 = #161) then   // 全角空格
+    begin
+      nStrTmp := nStrTmp +  nC1 + nC2;
+      Inc(nIdx, 2);
+    end else
+
+    if  nC1 = ' ' then   // 空格
+    begin
+      nStrTmp := nStrTmp + #161 + #161;
+      Inc(nIdx, 1);
+    end else
+
+    begin
+      nStrTmp := nStrTmp + #163 + Chr(Ord(nC1[1]) + 128);
+      Inc(nIdx, 1);
+    end;
+  end;
+
+  Result:= nStrTmp;
 end;
 
 end.

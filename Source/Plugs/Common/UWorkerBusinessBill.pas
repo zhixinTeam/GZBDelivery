@@ -518,6 +518,22 @@ begin
 
   FListB.Text := PackerDecodeStr(nOut.FData);
   FListC.Text := PackerDecodeStr(FListB[0]);
+
+  if FListC.Values['XCB_IsOnly'] = '1' then
+  begin
+    nStr := 'Select L_ID From %s Where L_Project=''%s''';
+    nStr := Format(nStr, [sTable_Bill, FListC.Values['XCB_CardId']]);
+    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+    if RecordCount > 0 then
+    begin
+      nStr := '单据[ %s ]已开具交货单[ %s ],禁止重复开单.';
+      nData := Format(nStr, [FListC.Values['XCB_CardId'],
+               FieldByName('L_ID').AsString]);
+      Exit;
+    end;
+  end;   
+  //判断一车一票不允许重复开单
+
   FListC.Values['Seal'] := FListA.Values['Seal'];
   FListC.Values['HYDan'] := FListA.Values['HYDan'];
   FListC.Values['Value'] := FloatToStr(nVal);
@@ -531,8 +547,6 @@ begin
   end; //验证订单有效性和可提量
 
   FListB.Text := PackerDecodeStr(nOut.FData);
-  FListA.Values['Seal'] := FListB.Values['XCB_CementCodeID'];
-  FListA.Values['HYDan'] := FListB.Values['XCB_CementCode'];
   nRenum := StrToFloatDef(FListB.Values['XCB_RemainNum'], 0);
   //订单剩余量
 
@@ -547,6 +561,17 @@ begin
              FListA.Values['Project'], nRenum, nVal]);
     Exit;
   end;
+
+  if not TWorkerBusinessCommander.CallMe(cBC_GetYTBatchCode,
+     PackerEncodeStr(FListC.Text), '', @nOut) then
+  begin
+    nData := nOut.FData;
+    Exit;
+  end; //验证批次号有效性和可提量
+
+  FListB.Text := PackerDecodeStr(nOut.FData);
+  FListA.Values['Seal'] := FListB.Values['XCB_CementCodeID'];
+  FListA.Values['HYDan'] := FListB.Values['XCB_CementCode'];
 
   Result := True;
   //verify done
@@ -767,26 +792,6 @@ begin
         end; //更新水泥编号发货量
       end else
       begin
-        { //订单冻结量在云天完成
-        nStr := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
-        nStr := Format(nStr, [sTable_YT_CardInfo,
-                StrToFloat(FListC.Values['Value']),
-                FListA.Values['Record']]);
-        nInt := gDBConnManager.WorkerExec(FDBConn, nStr);
-
-        if nInt < 1 then
-        begin
-          nSQL := MakeSQLByStr([
-            SF('C_ID', FListA.Values['Record']),
-            SF('C_Card', FListA.Values['Project']),
-            SF('C_Stock', FListC.Values['StockNO']),
-            SF('C_Freeze', FListC.Values['Value'], sfVal),
-            SF('C_HasDone', '0', sfVal)
-            ], sTable_YT_CardInfo, '', True);
-          gDBConnManager.WorkerExec(FDBConn, nSQL);
-        end; 
-        }
-
         if FListA.Values['Seal'] <> '' then
         begin
           nStr := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
@@ -1335,12 +1340,6 @@ begin
 
     if nHasOut then //释放完成
     begin
-      { //订单冻结量在云天完成
-      nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
-      nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-      }
-
       if nCode <> '' then
       begin
         nStr := 'Update %s Set C_HasDone=C_HasDone-(%.2f) Where C_ID=''%s''';
@@ -1349,12 +1348,6 @@ begin
       end;
     end else //释放冻结
     begin
-      { //订单冻结量在云天完成
-      nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
-      nStr := Format(nStr, [sTable_YT_CardInfo, nVal, nZK]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-      }
-
       if nCode <> '' then
       begin
         nStr := 'Update %s Set C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
@@ -2052,13 +2045,6 @@ begin
         nUpdateID := FID + ',' + nUpdateID;
         //云天系统更新冻结量
 
-        { //订单冻结量在云天完成
-        nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
-                'Where C_ID=''%s''';
-        nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
-        FListA.Add(nSQL); //冻结量
-        }
-
         if FSeal <> '' then
         begin
           nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
@@ -2089,13 +2075,6 @@ begin
 
         nUpdateID := FID + ',' + nUpdateID;
         //云天系统更新冻结量
-
-        {//订单冻结量在云天完成
-        nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
-                'Where C_ID=''%s''';
-        nSQL := Format(nSQL, [sTable_YT_CardInfo, f, FZhiKa]);
-        FListA.Add(nSQL); //冻结量
-        }
 
         if FSeal <> '' then
         begin
@@ -2160,6 +2139,14 @@ begin
           nData := Format(nData, [FCusID, FCusName, FMemo, nVal, m]);
           Exit;
         end;
+
+        if not TWorkerBusinessCommander.CallMe(cBC_GetYTBatchCode,
+           PackerEncodeStr(FListB.Text), '', @nOut) then
+        begin
+          nData := nOut.FData;
+          Exit;
+        end; //验证批次号有效性和可提量 
+        FListB.Text := PackerDecodeStr(nOut.FData);
         
         //----------------------------------------------------------------------
         FListC.Values['Group'] :=sFlag_BusGroup;
@@ -2256,33 +2243,6 @@ begin
 
         nMVal:= nMVal - FKZValue;
         //减去补单毛重
-
-        //----------------------------------------------------------------------
-        { //订单冻结量在云天完成
-        nStr := 'Select Count(*) From %s Where C_ID=''%s''';
-        nStr := Format(nStr, [sTable_YT_CardInfo, FListB.Values['XCB_ID']]);
-
-        with gDBConnManager.WorkerQuery(FDBConn, nStr) do
-        begin
-          if Fields[0].AsInteger > 0 then
-          begin
-            nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
-            nSQL := Format(nSQL, [sTable_YT_CardInfo, FKZValue,
-                    FListB.Values['XCB_ID']]);
-            FListA.Add(nSQL);
-          end else
-          begin
-            nSQL := MakeSQLByStr([
-              SF('C_ID', FListB.Values['XCB_ID']),
-              SF('C_Card', FListB.Values['XCB_CardId']),
-              SF('C_Stock', FListB.Values['XCB_Cement']),
-              SF('C_Freeze', FKZValue, sfVal),
-              SF('C_HasDone', '0', sfVal)
-              ], sTable_YT_CardInfo, '', True);
-            FListA.Add(nSQL);
-          end;
-        end; //冻结开单量
-        }
 
         if FListB.Values['XCB_CementCodeID'] <> '' then
         begin
@@ -2447,11 +2407,6 @@ begin
               SF('L_OutMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
       FListA.Add(nSQL); //更新交货单
-
-      {nSQL := 'Update %s Set C_HasDone=C_HasDone+(%.2f),' +
-              'C_Freeze=C_Freeze-(%.2f) Where C_ID=''%s''';
-      nSQL := Format(nSQL, [sTable_YT_CardInfo, nVal, FValue, FZhiKa]);
-      FListA.Add(nSQL); //更新订单}
 
       if FSeal <> '' then
       begin

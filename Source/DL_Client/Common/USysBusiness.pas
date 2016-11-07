@@ -114,6 +114,8 @@ function YT_ReadCardInfo(var nCard: string): Boolean;
 //读取云天XS_Card_Base卡片信息
 function YT_VerifyCardInfo(var nCard: string; nParam: string = ''): Boolean;
 //验证能否开单
+function YT_GetBatchCode(const nList: TStrings): string;
+//获取云天批次号
 function IsStockValid(const nStocks: string): Boolean;
 //品种是否可以发货
 function SaveBill(const nBillData: string): string;
@@ -1324,6 +1326,24 @@ begin
   if Result then
        nCard := nOut.FData
   else nCard := nOut.FBase.FErrDesc;
+end;
+
+//Date: 2016/10/13
+//Parm: 云天卡信息
+//Desc: 获取批次号
+function YT_GetBatchCode(const nList: TStrings): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessCommand(cBC_GetYTBatchCode, PackerEncodeStr(nList.Text),
+     '', @nOut, False) then
+  begin
+    Result := PackerDecodeStr(nOut.FData);
+  end else
+
+  begin
+    Result := '';
+    ShowMsg(nOut.FBase.FErrDesc, sHint);
+  end;
 end;
 
 //Date: 2014-09-15

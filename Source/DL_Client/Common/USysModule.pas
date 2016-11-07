@@ -32,12 +32,12 @@ uses
   UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,UFrameCustomer, UFormCustomer, UFormGetCustom,
   UFormTruckEmpty, UFormReadCard, UFormTransfer, UFrameTransfer,
-  UFrameQueryTransferDetail,
+  UFrameQueryTransferDetail, UFormGetYTBatch,
 
   UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing,
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
-  UFormGetPOrderBase,
+  UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
   {$IFDEF MicroMsg}
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,

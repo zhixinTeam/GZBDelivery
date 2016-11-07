@@ -15,18 +15,18 @@ inherited fFormBill: TfFormBill
       Left = 297
       Top = 464
       Caption = #24320#21333
-      TabOrder = 15
+      TabOrder = 14
     end
     inherited BtnExit: TButton
       Left = 367
       Top = 464
-      TabOrder = 17
+      TabOrder = 16
     end
     object EditValue: TcxTextEdit [2]
       Left = 279
       Top = 402
       ParentFont = False
-      TabOrder = 14
+      TabOrder = 13
       OnKeyPress = EditLadingKeyPress
       Width = 120
     end
@@ -141,7 +141,7 @@ inherited fFormBill: TfFormBill
           Kind = bkEllipsis
         end>
       Properties.OnButtonClick = EditTruckPropertiesButtonClick
-      TabOrder = 13
+      TabOrder = 12
       OnKeyPress = EditLadingKeyPress
       Width = 135
     end
@@ -160,34 +160,40 @@ inherited fFormBill: TfFormBill
       OnKeyPress = EditLadingKeyPress
       Width = 135
     end
-    object EditFQ: TcxTextEdit [16]
-      Left = 279
-      Top = 377
-      ParentFont = False
-      Properties.MaxLength = 100
-      TabOrder = 12
-      Width = 132
-    end
-    object EditTrans: TcxTextEdit [17]
+    object EditTrans: TcxTextEdit [16]
       Left = 81
       Top = 261
       ParentFont = False
       Properties.ReadOnly = True
+      TabOrder = 19
+      Width = 121
+    end
+    object EditMemo: TcxTextEdit [17]
+      Left = 81
+      Top = 427
+      ParentFont = False
       TabOrder = 20
       Width = 121
     end
-    object EditMemo: TcxTextEdit [18]
+    object EditWorkAddr: TcxTextEdit [18]
       Left = 81
-      Top = 427
+      Top = 236
       ParentFont = False
       TabOrder = 21
       Width = 121
     end
-    object EditWorkAddr: TcxTextEdit [19]
-      Left = 81
-      Top = 236
+    object EditFQ: TcxButtonEdit [19]
+      Left = 279
+      Top = 377
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      Properties.OnButtonClick = EditFQPropertiesButtonClick
       TabOrder = 22
-      Width = 121
+      OnKeyPress = OnCtrlKeyPress
+      Width = 138
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
@@ -287,7 +293,7 @@ inherited fFormBill: TfFormBill
             ShowCaption = False
             Hidden = True
             ShowBorder = False
-            object dxGroupLayout1Group4: TdxLayoutGroup
+            object dxLayout1Group3: TdxLayoutGroup
               ShowCaption = False
               Hidden = True
               LayoutDirection = ldHorizontal
@@ -297,10 +303,8 @@ inherited fFormBill: TfFormBill
                 Control = EditType
                 ControlOptions.ShowBorder = False
               end
-              object dxlytmLayout1Item14: TdxLayoutItem
-                AutoAligns = [aaVertical]
-                AlignHorz = ahClient
-                Caption = #27700#27877#32534#21495':'
+              object dxLayout1Item7: TdxLayoutItem
+                Caption = #20986#21378#32534#21495':'
                 Control = EditFQ
                 ControlOptions.ShowBorder = False
               end

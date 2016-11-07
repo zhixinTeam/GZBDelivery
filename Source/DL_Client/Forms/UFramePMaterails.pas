@@ -27,6 +27,11 @@ type
     dxLayout1Item4: TdxLayoutItem;
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
+    N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -34,6 +39,9 @@ type
     procedure BtnDelClick(Sender: TObject);
     procedure N1Click(Sender: TObject);
     procedure PopupMenu1Popup(Sender: TObject);
+    procedure N2Click(Sender: TObject);
+    procedure N3Click(Sender: TObject);
+    procedure N5Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -48,7 +56,8 @@ implementation
 
 {$R *.dfm}
 uses
-  ULibFun, UMgrControl, USysConst, USysDB, UDataModule, UFormBase, USysBusiness;
+  ULibFun, UMgrControl, USysConst, USysDB, UDataModule, UFormBase,
+  UFormCtrl, USysBusiness;
 
 class function TfFrameMaterails.FrameID: integer;
 begin
@@ -120,7 +129,10 @@ begin
     EditName.Text := Trim(EditName.Text);
     if EditName.Text = '' then Exit;
 
-    FWhere := Format('M_Name Like ''%%%s%%''', [EditName.Text]);
+
+    FWhere := Format('M_Name Like ''%%%s%%'' or M_PY Like ''%%%s%%''' +
+              ' or M_Memo Like ''%%%s%%''', [EditName.Text,
+              EditName.Text, EditName.Text]);
     InitFormData(FWhere);
   end;
 end;
@@ -138,6 +150,114 @@ begin
   {$IFDEF SyncRemote}
   N1.Visible := True;
   {$ENDIF}
+end;
+
+procedure TfFrameMaterails.N2Click(Sender: TObject);
+var nStr: string;
+    nStockName, nStockID, nStockType: string;
+begin
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := SQLQuery.FieldByName('M_Name').AsString;
+    nStr := Format('确定要将材料[ %s ]设为发货品种吗?', [nStr]);
+    if not QueryDlg(nStr, sAsk) then Exit;
+
+    nStockID := SQLQuery.FieldByName('M_ID').AsString;
+    nStockName := SQLQuery.FieldByName('M_Name').AsString;
+
+    if Pos('袋', nStockName) > 0 then
+         nStockType := sFlag_Dai
+    else nStockType := sFlag_San;
+
+    nStr := 'Select count(*) From %s Where D_Name=''%s'' And D_ParamB=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_StockItem, nStockID]);
+    with FDM.QueryTemp(nStr) do
+    if Fields[0].AsInteger < 1 then
+    begin
+      nStr := MakeSQLByStr([SF('D_Name', sFlag_StockItem),
+              SF('D_Desc', '水泥类型'),
+              SF('D_ParamA', 0, sfVal),
+              SF('D_ParamB', nStockID),
+              SF('D_Value', nStockName),
+              SF('D_Memo', nStockType)], sTable_SysDict, '', True);
+      FDM.ExecuteSQL(nStr);
+
+      nStr := 'Update %s Set M_IsSale=''%s'' Where M_ID=''%s''';
+      nStr := Format(nStr, [sTable_Materails, sFlag_Yes, nStockID]);
+      FDM.ExecuteSQL(nStr);
+    end;
+
+    InitFormData(FWhere);
+  end;
+end;
+
+procedure TfFrameMaterails.N3Click(Sender: TObject);
+var nStr, nStockID: string;
+begin
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := SQLQuery.FieldByName('M_Name').AsString;
+    nStr := Format('确定要取消材料[ %s ]的发货品种吗?', [nStr]);
+    if not QueryDlg(nStr, sAsk) then Exit;
+
+    nStockID := SQLQuery.FieldByName('M_ID').AsString;
+    nStr := 'Delete From %s Where D_Name=''%s'' And D_ParamB=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_StockItem, nStockID]);
+    FDM.ExecuteSQL(nStr);
+
+    nStr := 'Update %s Set M_IsSale=''%s'' Where M_ID=''%s''';
+    nStr := Format(nStr, [sTable_Materails, sFlag_No, nStockID]);
+    FDM.ExecuteSQL(nStr);
+
+    InitFormData(FWhere);
+  end;
+end;
+
+procedure TfFrameMaterails.N5Click(Sender: TObject);
+var nStr, nSQL: string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then  Exit;
+
+  nStr := SQLQuery.FieldByName('M_Name').AsString;
+  nStr := Format('确定要将原材料[ %s ] %s 吗?', [nStr, TMenuItem(Sender).Caption]);
+  if not QueryDlg(nStr, sAsk) then Exit;
+
+  nStr := SQLQuery.FieldByName('M_ID').AsString;
+  //StockNO
+
+  case TMenuItem(Sender).Tag of
+  1:
+  begin
+    nSQL := 'Delete From %s Where D_Name=''%s'' And D_Value=''%s''';
+    nSQL := Format(nSQL, [sTable_SysDict, sFlag_NFStock, nStr]);
+
+    FDM.ExecuteSQL(nSQL);
+  end;
+  0:
+  begin
+    nSQL := 'Insert Into %s (D_Name, D_Value, D_Desc, D_Memo) ' +
+            'Values(''%s'', ''%s'', ''%s'', ''%s'')';
+    nSQL := Format(nSQL, [sTable_SysDict, sFlag_NFStock, nStr,
+            '原材料现场不验收', SQLQuery.FieldByName('M_Name').AsString]);
+
+    nStr := Format('Select * From %s Where D_Name=''%s'' And D_Value=''%s''',
+            [sTable_SysDict, sFlag_NFStock, nStr]);
+    with FDM.QueryTemp(nStr) do
+    if RecordCount>0 then
+    begin
+      nStr := '原材料 [%s] 已经设置为不验收';
+      nStr := Format(nStr, [SQLQuery.FieldByName('M_Name').AsString]);
+
+      ShowMsg(nStr, sHint);
+      Exit;
+    end;
+
+    FDM.ExecuteSQL(nSQL);
+  end;  
+  end;
+
+  InitFormData(FWhere);
 end;
 
 initialization

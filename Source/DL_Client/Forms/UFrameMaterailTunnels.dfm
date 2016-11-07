@@ -1,4 +1,4 @@
-inherited fFrameMaterails: TfFrameMaterails
+inherited fFrameMaterailTunnels: TfFrameMaterailTunnels
   Width = 686
   inherited ToolBar1: TToolBar
     Width = 686
@@ -16,9 +16,6 @@ inherited fFrameMaterails: TfFrameMaterails
     Top = 202
     Width = 686
     Height = 165
-    inherited cxView1: TcxGridDBTableView
-      PopupMenu = PopupMenu1
-    end
   end
   inherited dxLayout1: TdxLayoutControl
     Width = 686
@@ -82,7 +79,7 @@ inherited fFrameMaterails: TfFrameMaterails
   inherited TitlePanel1: TZnBitmapPanel
     Width = 686
     inherited TitleBar: TcxLabel
-      Caption = #21407#26448#26009#31649#29702
+      Caption = #21407#26448#26009#21368#36135#36890#36947#31649#29702
       Style.IsFontAssigned = True
       Width = 686
       AnchorX = 343
@@ -94,36 +91,5 @@ inherited fFrameMaterails: TfFrameMaterails
   end
   inherited DataSource1: TDataSource
     Top = 234
-  end
-  object PopupMenu1: TPopupMenu
-    OnPopup = PopupMenu1Popup
-    Left = 56
-    Top = 232
-    object N1: TMenuItem
-      Caption = #21516#27493#21407#26448#26009
-      Visible = False
-      OnClick = N1Click
-    end
-    object N2: TMenuItem
-      Caption = #35774#20026#21457#36135#21697#31181
-      OnClick = N2Click
-    end
-    object N3: TMenuItem
-      Caption = #21462#28040#21457#36135#21697#31181
-      OnClick = N3Click
-    end
-    object N4: TMenuItem
-      Caption = '-'
-      Enabled = False
-    end
-    object N5: TMenuItem
-      Tag = 1
-      Caption = #29616#22330#39564#25910
-      OnClick = N5Click
-    end
-    object N6: TMenuItem
-      Caption = #29616#22330#19981#39564#25910
-      OnClick = N5Click
-    end
   end
 end
