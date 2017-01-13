@@ -36,7 +36,7 @@ uses
   SysUtils, USysLoger, UHardBusiness, UMgrTruckProbe, UMgrParam,
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
   UMgrERelay, UMultiJS, UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp,
-  UMgrRFID102, UMgrVoiceNet;//, UBlueReader;
+  UMgrRFID102, UMgrVoiceNet, UMemDataPool;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
 begin
@@ -106,12 +106,12 @@ begin
     end;
     {$ENDIF}
 
-    nStr := '³µÁ¾¼ì²âÆ÷';    
+    nStr := '³µÁ¾¼ì²âÆ÷';
     if FileExists(nCfg + 'TruckProber.xml') then
     begin
       gProberManager := TProberManager.Create;
       gProberManager.LoadConfig(nCfg + 'TruckProber.xml');
-    end;  
+    end;
   except
     on E:Exception do
     begin
@@ -138,6 +138,12 @@ end;
 
 procedure THardwareWorker.InitSystemObject;
 begin
+  gMemDataManager := TMemDataManager.Create;
+  //ÄÚ´æ¹ÜÀí
+  
+  g02NReader := T02NReader.Create;
+  //½ü¾à¶ÁÍ·
+
   gHardwareHelper := THardwareHelper.Create;
   //Ô¶¾à¶ÁÍ·
 
@@ -200,7 +206,7 @@ begin
   //printer
   if Assigned(gNetVoiceHelper) then
     gNetVoiceHelper.StopVoice;
-  //NetVoice  
+  //NetVoice
 
   gERelayManager.ControlStop;
   //erelay

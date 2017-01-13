@@ -483,7 +483,10 @@ begin
       nIDLen := Length(nStr);
 
       nCode:= Copy(nStr, nPrefixLen + 1, 6);
-      nCode:= nCode + 'P' + FieldByName('L_HYDan').AsString;
+      //nCode:= nCode + 'P' + FieldByName('L_HYDan').AsString;
+      nCode := nCode + Copy(FieldByName('L_HYDan').AsString, 5, 4) +
+               Copy(FieldByName('L_HYDan').AsString,
+               Length(FieldByName('L_HYDan').AsString), 1);
       nCode := nCode + Copy(nStr, nPrefixLen + 7, nIDLen-nPreFixLen-6);
 
       nCode := Dbc2Sbc(nCode);
