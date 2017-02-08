@@ -10,7 +10,8 @@ select XCB_ID,                                --内部编号
        XCB_SourceType,                        --来源类型
        XCB_Option,                            --控制方式:0,控单价;1,控数量
        XCB_Client,                            --客户编号
-       XOB_Name as XCB_ClientName,            --客户名称
+       xob.XOB_Name as XCB_ClientName,        --客户名称
+       xgd.XOB_Name as XCB_WorkAddr,          --工程工地
        XCB_Alias,                             --客户别名
        XCB_OperMan,                           --业务员
        XCB_Area,                              --销售区域                     
@@ -24,6 +25,7 @@ select XCB_ID,                                --内部编号
        XCB_OutNum,                            --转出数量
        XCB_RemainNum,                         --剩余数量
        XCB_ValidS,XCB_ValidE,                 --提货有效期
+       XCB_AuditState,                        --审核状态
        XCB_Status,                            --卡片状态:0,停用;1,启用;2,冲红;3,作废
        XCB_IsImputed,                         --卡片是否估算
        XCB_IsOnly,                            --是否一车一票
@@ -32,22 +34,23 @@ select XCB_ID,                                --内部编号
        pub.pub_name as XCB_CreatorNM,         --创建人名
        XCB_CDate,                             --创建时间
        XCB_Firm,                              --所属厂区
-       pbf.pbf_name XCB_FirmName,             --工厂名称
+       pbf.pbf_name as XCB_FirmName,           --工厂名称
        pcb.pcb_id, pcb.pcb_name               --销售片区
        
 from XS_Card_Base xcb
   left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client
+  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader
   left join PB_Code_Material pcm on pcm.PCM_ID = xcb.XCB_CementType
   Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block
   Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm
   Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator
 
 where rownum < 200 
-  and xcb.xcb_remainnum>0
+  and xcb.xcb_remainnum>0 and XCB_AuditState='201' and XCB_Status='1'
 --  and PCM_Name='熟料' 
---  and XCB_CardID='07703'
+--  and XCB_CardID='214524'
 --  and XCB_FactNum < XCB_OutNum
---  and XCB_SetDate > to_date('2015/09/01', 'yyyy-mm-dd')
+  and XCB_SetDate > to_date('2015/09/01', 'yyyy-mm-dd')
 Order By XCB_SetDate DESC
 
 ----------------------------------------------------------------------------------------------------------------------

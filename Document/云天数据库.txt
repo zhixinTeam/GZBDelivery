@@ -1,11 +1,19 @@
-¾£ÃÅ
 Host: 172.26.81.6
 ÊµÀı:gzb02jm
 User: gzbjm
 Pwd: gzbjm
 
-ËÉ×Ì
-Host: 172.26.186.6
-ÊµÀı:zx_data
-User: zx_data
-Pwd: zx_data
+server: 172.26.81.7
+user: administrator
+pwd: gzbjm-2015
+
+
+VPN:
+µØÖ·:61.184.195.70
+
+ÕÊºÅ:test123
+ÃÜÂë:test123
+
+ÕÊºÅ:hellowoo
+ÃÜÂë:password
+

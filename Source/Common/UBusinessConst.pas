@@ -109,7 +109,7 @@ type
   end;
 
   TPoundStationData = record
-    FStation  : string;            //磅站标识
+    FStation  : string;           //磅站标识
     FValue    : Double;           //皮重
     FDate     : TDateTime;        //称重日期
     FOperator : string;           //操作员
