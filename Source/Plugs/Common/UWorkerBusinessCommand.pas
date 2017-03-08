@@ -157,6 +157,10 @@ type
     //local call
   end;
 
+  function DateTime2StrOracle(const nDT: TDateTime): string;
+  function Date2StrOracle(const nDT: TDateTime): string;
+  //Oracle Time Field
+
 implementation
 
 class function TBusWorkerQueryField.FunctionName: string;
@@ -1742,9 +1746,32 @@ begin
   Result := Result + nStr + ';';
   //同步事务执行语句表
 end;
+
+//Date: 2017/2/21
+//Parm: 单据类型[nKind];表主键[nTableID];操作类型[nHandleType]
+//Desc: 插入异步同步信息
+function YT_NewInsertSyncLog(const nKind, nTableID, nHandleType: string;
+  const nWorker: PDBWorker): string;
+var nSQL, nPdlID: string;
+begin
+  Result := '';
+  //init
+
+  nPdlID := YT_NewID('PB_DATA_SYNCLOG', nWorker);
+  nSQL := MakeSQLByStr([SF('PDL_ID', nPdlID),
+          SF('PDL_Type', '101'),               //工厂数据
+          SF('PDL_Kind', nKind),
+          SF('PDL_Bill', nTableID),
+          SF('PDL_IsSync', '0', sfVal),
+          SF('PDL_HandleType', nHandleType),
+          SF('PDL_HandleTime', DateTime2StrOracle(Now), sfVal)
+          ], 'PB_Data_SyncLog', '', True);
+  Result := Result + nSQL + ';';
+end;
+
 //------------------------------------------------------------------------------
 //Date: 2015/9/26
-//Parm: 
+//Parm:
 //Desc: 转OracleDateTime
 function DateTime2StrOracle(const nDT: TDateTime): string;
 var nStr :string;
@@ -1993,6 +2020,10 @@ begin
           FListA.Add(nSQL);
           //插入同步事物表
 
+          nSQL := YT_NewInsertSyncLog('A004', nBills[nIdx].FYTID, '101', nWorker);
+          FListA.Add(nSQL);
+          //插入集团同步业务表
+
           nSQL := MakeSQLByStr([SF('XLD_ID', YT_NewID('XS_LADE_DETAIL', nWorker)),
                   SF('XLD_Lade', nBills[nIdx].FYTID),
                   SF('XLD_Client', nBills[nIdx].FCusID),
@@ -2012,8 +2043,8 @@ begin
           nSQL := MakeSQLByStr([
                   SF('L_YTID', nBills[nIdx].FYTID)
                   ],sTable_Bill, nSQL, False);
-          gDBConnManager.WorkerExec(FDBConn, nSQL);        
-        end;  
+          gDBConnManager.WorkerExec(FDBConn, nSQL);
+        end;
 
         //nRID := YT_NewID('XS_LADE_BASE', nWorker);
         //记录编号
@@ -2041,6 +2072,10 @@ begin
         nSQL := YT_NewInsertLog(nSQL+';', nWorker);
         FListA.Add(nSQL);
         //插入同步事物表
+
+        nSQL := YT_NewInsertSyncLog('A004', nBills[nIdx].FYTID, '102', nWorker);
+        FListA.Add(nSQL);
+        //插入集团同步业务表
 
         nBills[nIdx].FPrice := FieldByName('XCB_Price').AsFloat;
         nVal := nBills[nIdx].FPrice * nBills[nIdx].FValue;
@@ -2105,6 +2140,10 @@ begin
         FListA.Add(nSQL);
         //插入同步事物表
 
+        nSQL := YT_NewInsertSyncLog('A010', nPID, '101', nWorker);
+        FListA.Add(nSQL);
+        //插入集团同步业务表
+
         nSQL := MakeSQLByStr([SF('DTU_ID', YT_NewID('DB_TURN_PRODUDTL', nWorker)),
                 SF('DTU_Del', '0'),
                 SF('DTU_PID', nPID),
@@ -2146,6 +2185,10 @@ begin
         FListA.Add(nSQL);
         //插入同步事物表
 
+        nSQL := YT_NewInsertSyncLog('A001', nBills[nIdx].FZhiKa, '102', nWorker);
+        FListA.Add(nSQL);
+        //插入集团同步业务表
+
         nBills[nIdx].FCard := FieldByName('XCB_IsOnly').AsString;
         //是否一车一票
 
@@ -2186,6 +2229,10 @@ begin
       nSQL := YT_NewInsertLog(nSQL+';', nWorker);
       FListA.Add(nSQL);
       //插入同步事物表
+
+      nSQL := YT_NewInsertSyncLog('A001', nBills[nIdx].FZhiKa, '102', nWorker);
+      FListA.Add(nSQL);
+      //插入集团同步业务表
 
       nSQL := 'Update %s Set XRC_Total=%.2f Where XRC_BillID=''%s'' ' +
               'And XRC_Origin=''101'' And XRC_FreType=''999''';
@@ -2232,6 +2279,10 @@ begin
           nSQL := YT_NewInsertLog(nSQL+';', nWorker);
           FListA.Add(nSQL);
           //插入同步事物表
+
+          nSQL := YT_NewInsertSyncLog('A001', nBills[nIdx].FZhiKa, '102', nWorker);
+          FListA.Add(nSQL);
+          //插入集团同步业务表
 
           nSQL := 'Update %s Set XCF_Total=%.2f Where XCF_ID=''%s''';
           nSQL := Format(nSQL, ['XS_Card_Freight', nFreVal,
@@ -2684,6 +2735,10 @@ begin
           FListA.Add(nSQL);
           //插入同步事物表
 
+          nSQL := YT_NewInsertSyncLog('A004', nBills[nIdx].FYTID, '101', nWorker);
+          FListA.Add(nSQL);
+          //插入集团同步业务表
+
           nPrice := FieldByName('XCB_Price').AsFloat;
           nVal := nPrice * nBills[nIdx].FValue;
           nVal := Float2Float(nVal, cPrecision, True);
@@ -2730,6 +2785,10 @@ begin
           nSQL := YT_NewInsertLog(nSQL+';', nWorker);
           FListA.Add(nSQL);
           //插入同步事物表
+
+          nSQL := YT_NewInsertSyncLog('A004', nBills[nIdx].FYTID, '102', nWorker);
+          FListA.Add(nSQL);
+          //插入集团同步业务表
         end else
 
         if FIn.FExtParam = sFlag_BillPick then
@@ -2876,6 +2935,10 @@ begin
         nSQL := YT_NewInsertLog(nSQL+';', nWorker);
         FListA.Add(nSQL);
         //插入同步事物表
+
+        nSQL := YT_NewInsertSyncLog('A004', nYTID, '102', nWorker);
+        FListA.Add(nSQL);
+        //插入集团同步业务表
 
         nSQL := SF('DTP_Lade', nYTID);
         nSQL := MakeSQLByStr([

@@ -151,10 +151,15 @@ function GetTruckPoundItem(const nTruck: string;
 function SaveTruckPoundItem(const nTunnel: PPTTunnelItem;
  const nData: TLadingBillItems): Boolean;
 //保存车辆过磅记录
-function ReadPoundCard(const nTunnel: string; nReadOnly: String = ''): string;
+function ReadPoundCard(var nReader: string;
+  const nTunnel: string; nReadOnly: String = ''): string;
 //读取指定磅站读头上的卡号
 procedure CapturePicture(const nTunnel: PPTTunnelItem; const nList: TStrings);
 //抓拍指定通道
+function GetTruckLastTime(const nTruck: string): Integer;
+//车辆上次过磅记录
+function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
+//打开读卡器道闸
 
 function SaveOrderBase(const nOrderData: string): string;
 //保存采购申请单
@@ -1037,12 +1042,19 @@ end;
 //Date: 2014-10-02
 //Parm: 通道号
 //Desc: 读取nTunnel读头上的卡号
-function ReadPoundCard(const nTunnel: string; nReadOnly: String = ''): string;
+function ReadPoundCard(var nReader: string;
+    const nTunnel: string; nReadOnly: String = ''): string;
 var nOut: TWorkerBusinessCommand;
 begin
-  if CallBusinessHardware(cBC_GetPoundCard, nTunnel, nReadOnly, @nOut, False) then
-       Result := nOut.FData
-  else Result := '';
+  Result := '';
+  nReader:= '';
+  //卡号
+
+  if CallBusinessHardware(cBC_GetPoundCard, nTunnel, nReadOnly, @nOut)  then
+  begin
+    Result := Trim(nOut.FData);
+    nReader:= Trim(nOut.FExtParam);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -2327,5 +2339,42 @@ begin
   Result    := (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK);
 end;
 
+//Date: 2016/8/7
+//Parm: 车牌号
+//Desc: 查看车辆上次过磅时间间隔
+function GetTruckLastTime(const nTruck: string): Integer;
+var nStr: string;
+    nNow, nPDate, nMDate: TDateTime;
+begin
+  Result := -1;
+  //默认允许
+
+  nStr := 'Select Top 1 %s as T_Now,P_PDate,P_MDate ' +
+          'From %s Where P_Truck=''%s'' Order By P_ID Desc';
+  nStr := Format(nStr, [sField_SQLServer_Now, sTable_PoundLog, nTruck]);
+  //选择最后一次过磅
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    nNow   := FieldByName('T_Now').AsDateTime;
+    nPDate := FieldByName('P_PDate').AsDateTime;
+    nMDate := FieldByName('P_MDate').AsDateTime;
+
+    if nPDate > nMDate then
+         Result := Trunc((nNow - nPDate) * 24 * 60 * 60)
+    else Result := Trunc((nNow - nMDate) * 24 * 60 * 60);
+  end;
+end;
+
+//Date: 2017/3/6
+//Parm: 读卡器编号[nReader];读卡器类型[nType]
+//Desc: 打开道闸
+function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessHardware(cBC_OpenDoorByReader, nReader, nType,
+            @nOut, False);
+end;
 
 end.

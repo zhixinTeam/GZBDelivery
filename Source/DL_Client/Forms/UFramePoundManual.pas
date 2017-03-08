@@ -93,23 +93,24 @@ begin
     gPoundTunnelManager.LoadConfig(gPath + 'Tunnels.xml');
   end;
 
-  {$IFDEF HR1847}   //30330123
-  if not Assigned(gKRMgrProber) then
-  begin
-    gKRMgrProber := TKRMgrProber.Create;
-    gKRMgrProber.LoadConfig(gPath + 'TruckProber.xml');
+  {$IFNDEF MITTruckProber}
+    {$IFDEF HR1847}   //30330123
+    if not Assigned(gKRMgrProber) then
+    begin
+      gKRMgrProber := TKRMgrProber.Create;
+      gKRMgrProber.LoadConfig(gPath + 'TruckProber.xml');
 
+      Inc(gSysParam.FProberUser);
+    end;
+    {$ELSE}
+    if not Assigned(gProberManager) then
+    begin
+      gProberManager := TProberManager.Create;
+      gProberManager.LoadConfig(gPath + 'TruckProber.xml');
+    end;
     Inc(gSysParam.FProberUser);
-  end;
-  {$ELSE}
-  if not Assigned(gProberManager) then
-  begin
-    gProberManager := TProberManager.Create;
-    gProberManager.LoadConfig(gPath + 'TruckProber.xml');
-  end;          
-
-  Inc(gSysParam.FProberUser);
-  gProberManager.StartProber;
+    gProberManager.StartProber;
+    {$ENDIF}
   {$ENDIF}
 
   if gSysParam.FVoiceUser < 1 then
@@ -148,11 +149,13 @@ begin
     //xxxxx
   end;          
 
-  Dec(gSysParam.FProberUser);
-  {$IFNDEF HR1847}
-  if gSysParam.FProberUser < 1 then
-    gProberManager.StopProber;
-  //xxxxx
+  {$IFNDEF MITTruckProber}
+    Dec(gSysParam.FProberUser);
+    {$IFNDEF HR1847}
+    if gSysParam.FProberUser < 1 then
+      gProberManager.StopProber;
+    //xxxxx
+    {$ENDIF}
   {$ENDIF}
 
   nIni := TIniFile.Create(gPath + sFormConfig);
@@ -260,7 +263,7 @@ begin
         PoundTunnel := nT;
 
         Additional.Clear;
-        SplitStr(nT.FAdditional, Additional, 0, ';', False);
+        if Assigned(nT.FOptions) then Additional.AddStrings(nT.FOptions);
         CardReader := gPoundCardReader.AddCardReader(ReadCardSync, nT.FID);
 
         LoadCollapseConfig(nIdx <> 0);

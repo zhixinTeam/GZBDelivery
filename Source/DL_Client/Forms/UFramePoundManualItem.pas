@@ -519,11 +519,14 @@ begin
 
   Timer2.Tag := 0;
   Timer2.Enabled := False;
-  {$IFDEF HR1847}
-  gKRMgrProber.TunnelOC(FPoundTunnel.FID,False);
-  {$ELSE}
-  gProberManager.TunnelOC(FPoundTunnel.FID,False);
-  {$ENDIF}
+
+  {$IFNDEF MITTruckProber}
+    {$IFDEF HR1847}
+    gKRMgrProber.TunnelOC(FPoundTunnel.FID,False);
+    {$ELSE}
+    gProberManager.TunnelOC(FPoundTunnel.FID,False);
+    {$ENDIF}
+  {$ENDIF} //中间件华益驱动自带关闭功能
 end;
 
 //Desc: 折叠面板
@@ -590,10 +593,14 @@ procedure TfFrameManualPoundItem.N1Click(Sender: TObject);
 begin
   N1.Checked := not N1.Checked;
   //status change
-  {$IFDEF HR1847}
-  gKRMgrProber.TunnelOC(FPoundTunnel.FID, N1.Checked);
+  {$IFDEF MITTruckProber}
+    TunnelOC(FPoundTunnel.FID, N1.Checked);
   {$ELSE}
-  gProberManager.TunnelOC(FPoundTunnel.FID, N1.Checked);
+    {$IFDEF HR1847}
+    gKRMgrProber.TunnelOC(FPoundTunnel.FID, N1.Checked);
+    {$ELSE}
+    gProberManager.TunnelOC(FPoundTunnel.FID, N1.Checked);
+    {$ENDIF}
   {$ENDIF}
 end;
 
@@ -696,10 +703,14 @@ begin
   if FloatRelation(nVal, FPoundTunnel.FPort.FMinValue, rtLE, 1000) then Exit;
   //读数小于过磅最低值时,退出
 
-  {$IFDEF HR1847}
-  if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
+  {$IFDEF MITTruckProber}
+    if not IsTunnelOK(FPoundTunnel.FID) then
   {$ELSE}
-  if not gProberManager.IsTunnelOK(FPoundTunnel.FID) then
+    {$IFDEF HR1847}
+    if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
+    {$ELSE}
+    if not gProberManager.IsTunnelOK(FPoundTunnel.FID) then
+    {$ENDIF}
   {$ENDIF}
   begin
     ShowMsg('车辆未站稳,请稍后', sHint);
@@ -740,10 +751,9 @@ end;
 
 //Desc: 由读头指定交货单
 procedure TfFrameManualPoundItem.BtnReadCardClick(Sender: TObject);
-var nStr: string;
-    nInit: Int64;
+var nInit: Int64;
     nChar: Char;
-    nCard: string;
+    nStr, nCard, nReader: string;
 begin
   nCard := '';
   try
@@ -772,7 +782,7 @@ begin
       end
       else
       begin
-        nStr := ReadPoundCard(FPoundTunnel.FID);
+        nStr := ReadPoundCard(nReader, FPoundTunnel.FID);
 
         if nStr <> '' then
         begin
@@ -1146,10 +1156,14 @@ end;
 procedure TfFrameManualPoundItem.BtnSaveClick(Sender: TObject);
 var nBool: Boolean;
 begin  
-  {$IFDEF HR1847}
-  if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
+  {$IFDEF MITTruckProber}
+    if not IsTunnelOK(FPoundTunnel.FID) then
   {$ELSE}
-  if not gProberManager.IsTunnelOK(FPoundTunnel.FID) then
+    {$IFDEF HR1847}
+    if not gKRMgrProber.IsTunnelOK(FPoundTunnel.FID) then
+    {$ELSE}
+    if not gProberManager.IsTunnelOK(FPoundTunnel.FID) then
+    {$ENDIF}
   {$ENDIF}
   begin
     ShowMsg('车辆未站稳,请稍后', sHint);
@@ -1172,10 +1186,14 @@ begin
       
       Timer2.Enabled := True;
 
-      {$IFDEF HR1847}
-      gKRMgrProber.TunnelOC(FPoundTunnel.FID, True);
+      {$IFDEF MITTruckProber}
+        TunnelOC(FPoundTunnel.FID, True);
       {$ELSE}
-      gProberManager.TunnelOC(FPoundTunnel.FID, True);
+        {$IFDEF HR1847}
+        gKRMgrProber.TunnelOC(FPoundTunnel.FID, True);
+        {$ELSE}
+        gProberManager.TunnelOC(FPoundTunnel.FID, True);
+        {$ENDIF}
       {$ENDIF}
 
       //开红绿灯

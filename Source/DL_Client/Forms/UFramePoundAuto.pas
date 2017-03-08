@@ -85,25 +85,30 @@ begin
     gPoundTunnelManager := TPoundTunnelManager.Create;
     gPoundTunnelManager.LoadConfig(gPath + 'Tunnels.xml');
   end;
-  {$IFDEF HR1847}
-  if not Assigned(gKRMgrProber) then
-  begin
-    gKRMgrProber := TKRMgrProber.Create;
-    gKRMgrProber.LoadConfig(gPath + 'TruckProber.xml');
 
-    Inc(gSysParam.FProberUser);
-  end;
-  {$ELSE}
-  if not Assigned(gProberManager) then
-  begin
-    gProberManager := TProberManager.Create;
-    gProberManager.LoadConfig(gPath + 'TruckProber.xml');
-  end;
-  Inc(gSysParam.FProberUser);
-  {$IFNDEF DEBUG}
-  gProberManager.StartProber;
+  {$IFNDEF MITTruckProber}
+    {$IFDEF HR1847}
+      if not Assigned(gKRMgrProber) then
+      begin
+        gKRMgrProber := TKRMgrProber.Create;
+        gKRMgrProber.LoadConfig(gPath + 'TruckProber.xml');
+
+        Inc(gSysParam.FProberUser);
+      end;
+    {$ELSE}
+      if not Assigned(gProberManager) then
+      begin
+        gProberManager := TProberManager.Create;
+        gProberManager.LoadConfig(gPath + 'TruckProber.xml');
+      end;
+
+      Inc(gSysParam.FProberUser);
+      {$IFNDEF DEBUG}
+      gProberManager.StartProber;
+      {$ENDIF}
+    {$ENDIF}
   {$ENDIF}
-  {$ENDIF}
+
   if gSysParam.FVoiceUser < 1 then
   begin
     Inc(gSysParam.FVoiceUser);
@@ -139,11 +144,13 @@ begin
     //xxxxx
   end;
 
-  Dec(gSysParam.FProberUser);
-  {$IFNDEF HR1847}
-  if gSysParam.FProberUser < 1 then
-    gProberManager.StopProber;
-  //xxxxx
+  {$IFNDEF MITTruckProber}
+    Dec(gSysParam.FProberUser);
+    {$IFNDEF HR1847}
+    if gSysParam.FProberUser < 1 then
+      gProberManager.StopProber;
+    //xxxxx
+    {$ENDIF}
   {$ENDIF}
 
   nIni := TIniFile.Create(gPath + sFormConfig);
@@ -238,9 +245,6 @@ begin
         Align := alTop;
         HintLabel.Caption := nT.FName;
         PoundTunnel := nT;
-
-        Additional.Clear;
-        SplitStr(nT.FAdditional, Additional, 0, ';', False);
       end;
     end;
   end;
