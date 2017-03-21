@@ -896,7 +896,8 @@ const
        'P_FactID varChar(32), P_PStation varChar(10), P_MStation varChar(10),' +
        'P_Direction varChar(10), P_PModel varChar(10), P_Status Char(1),' +
        'P_Valid Char(1), P_PrintNum Integer Default 1,' +
-       'P_DelMan varChar(32), P_DelDate DateTime, P_KZValue $Float)';
+       'P_Import Char(1) Default ''N'',' +
+       'P_DelMan varChar(32), P_DelDate DateTime, P_KZValue $Float Default 0)';
   {-----------------------------------------------------------------------------
    过磅记录: Materails
    *.P_ID: 编号
@@ -921,6 +922,7 @@ const
    *.P_PrintNum: 打印次数
    *.P_DelMan,P_DelDate: 删除记录
    *.P_KZValue: 供应扣杂
+   *.P_Import: 是否为导入数据Y、是;N、否
   -----------------------------------------------------------------------------}
 
   sSQL_NewTransBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +

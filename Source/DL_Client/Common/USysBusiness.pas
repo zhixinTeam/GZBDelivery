@@ -160,6 +160,8 @@ function GetTruckLastTime(const nTruck: string): Integer;
 //车辆上次过磅记录
 function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
 //打开读卡器道闸
+function RemoteImportPounds(const nData: string): Boolean;
+//导入过磅数据
 
 function SaveOrderBase(const nOrderData: string): string;
 //保存采购申请单
@@ -2375,6 +2377,12 @@ var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessHardware(cBC_OpenDoorByReader, nReader, nType,
             @nOut, False);
+end;
+
+function RemoteImportPounds(const nData: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrder(cBC_ImportOrderPoundS, nData, '', @nOut);
 end;
 
 end.

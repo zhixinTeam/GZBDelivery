@@ -92,6 +92,8 @@ type
     //供应订单到榜单
     function SyncYT_BillEdit(var nData: string): Boolean;
     //发货单状态同步
+    function SyncYT_ProvidePound(var nData: string): Boolean;
+    //同步供应磅单到磅单
     function SaveLadingSealInfo(var nData: string): Boolean;
     //修改发货单批次号
     function GetYTBatchCode(var nData: string): Boolean;
@@ -145,6 +147,9 @@ type
     //获取岗位采购单
     function SavePostOrderItems(var nData: string): Boolean;
     //保存岗位采购单
+
+    function ImportOrderPoundS(var nData: string): Boolean;
+    //插入磅单信息
   public
     constructor Create; override;
     destructor destroy; override;
@@ -416,6 +421,7 @@ begin
    cBC_SyncStockBill       : Result := SyncYT_Sale(nData);
    cBC_SyncStockOrder      : Result := SyncYT_Provide(nData);
    cBC_SyncBillEdit        : Result := SyncYT_BillEdit(nData);
+   cBC_SyncProvidePound    : Result := SyncYT_ProvidePound(nData);
 
    cBC_GetYTBatchCode      : Result := GetYTBatchCode(nData);
    cBC_SaveLadingSealInfo  : Result := SaveLadingSealInfo(nData);
@@ -2543,6 +2549,176 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2017/3/21
+//Parm: 磅单号列表(FIn.FData)
+//Desc: 同步供应订单到云天
+function TWorkerBusinessCommander.SyncYT_ProvidePound(var nData: string): Boolean;
+var nBills: TLadingBillItems;
+    nStr,nSQL,nRID: string;
+    nIdx,nErrNum: Integer;
+    nWorker: PDBWorker;
+begin
+  Result := False;
+  FListA.Text := FIn.FData;
+  nStr := AdjustListStrFormat2(FListA, '''', True, ',', False, False);
+
+  nSQL := 'Select * From %s ' +
+          'Where (P_ID In (%s) or P_Order In (%s)) And P_Type=''P''';
+  nSQL := Format(nSQL, [sTable_PoundLog, nStr, nStr]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '采购磅单[ %s ]信息已丢失.';
+      nData := Format(nData, [CombinStr(FListA, ',', False)]);
+      Exit;
+    end;
+
+    SetLength(nBills, RecordCount);
+    FListA.Clear;
+    nIdx := 0;
+    First;
+
+    while not Eof do
+    begin
+      with nBills[nIdx] do
+      begin
+        FID         := FieldByName('P_ID').AsString;
+        FZhiKa      := FieldByName('P_Order').AsString;
+
+        FCusID      := FieldByName('P_CusID').AsString;
+        FTruck      := FieldByName('P_Truck').AsString;
+        FStockNo    := FieldByName('P_MID').AsString;
+        FKZValue    := FieldByName('P_KZValue').AsFloat;
+
+        with FPData do
+        begin
+          FValue    := FieldByName('P_PValue').AsFloat;
+          FDate     := FieldByName('P_PDate').AsDateTime;
+          FOperator := FieldByName('P_PMan').AsString;
+        end;
+
+        with FMData do
+        begin
+          FValue    := FieldByName('P_MValue').AsFloat;
+          FDate     := FieldByName('P_MDate').AsDateTime;
+          FOperator := FieldByName('P_MMan').AsString;
+        end;
+      end;
+
+      Inc(nIdx);
+      Next;
+    end;
+  end;
+
+  nWorker := nil;
+  try
+    nWorker := gDBConnManager.GetConnection(sFlag_DB_YT, nErrNum);
+
+    if not Assigned(nWorker) then
+    begin
+      nStr := Format('连接[ %s ]数据库失败(ErrCode: %d).', [sFlag_DB_YT, nErrNum]);
+      WriteLog(nStr);
+      raise Exception.Create(nStr);
+    end;
+
+    if not nWorker.FConn.Connected then
+      nWorker.FConn.Connected := True;
+    //conn db
+
+    FListA.Clear;
+    FListA.Add('begin');
+    //init sql list
+
+    for nIdx:=Low(nBills) to High(nBills) do
+    begin
+      nRID := YT_NewID('DB_TURN_MATERIN', nWorker);
+      //记录编号
+
+      nSQL := MakeSQLByStr([SF('DTM_ID', nRID),
+              SF('DTM_Card', nBills[nIdx].FZhiKa),
+              SF('DTM_ScaleBill', nBills[nIdx].FID),
+
+              SF('DTM_IsTBalance', '0'),
+              SF('DTM_IsBalance', '0'),
+              SF('DTM_IsStore', '0'),
+              SF('DTM_Status', '1'),
+              SF('DTM_Del', '0'),
+
+              SF('DTM_Impur', '0'),
+              SF('DTM_Corner', '0'),
+              SF('DTM_Freight', '0'),
+              SF('DTM_CGWeight', '0'),
+              SF('DTM_CTWeight', '0'),
+              SF('DTM_CNWeight', '0'),
+              SF('DTM_PrintNum', '0'),
+              {$IFDEF GZBSZ}
+              SF('DTM_COLTYPE', '103'),
+              {$ENDIF}
+
+              SF('DTM_IsPlan', '0'),
+              SF('DTM_KeepNum', '0'),
+              SF('DTM_OtherNum', '0'),
+              SF('DTM_ColPrice', '0'),
+              SF('DTM_ColTotal', '0'),
+              SF('DTM_FundWeight', '0'),
+
+              SF('DTM_Vehicle', nBills[nIdx].FTruck),
+
+              SF('DTM_InDate', Date2StrOracle(nBills[nIdx].FMData.FDate), sfVal),
+              SF('DTM_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
+              SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+              SF('DTM_Material', nBills[nIdx].FStockNo),
+              SF('DTM_Company', nBills[nIdx].FCusID),
+              SF('DTM_FIRM', gSysParam.FProvFirm),
+              SF('DTM_TYPE', '101'),
+
+              SF('DTM_RWeight', nBills[nIdx].FKZValue, sfVal),
+              SF('DTM_GWeight', nBills[nIdx].FMData.FValue, sfVal),
+              SF('DTM_TWeight', nBills[nIdx].FPData.FValue, sfVal),
+              SF('DTM_NWeight', Float2Float(nBills[nIdx].FMData.FValue -
+                   nBills[nIdx].FPData.FValue-nBills[nIdx].FKZValue, cPrecision,
+                   True), sfVal)
+              ], 'DB_Turn_MaterIn', '', True);
+      FListA.Add(nSQL + ';'); //材料进厂表
+
+      nSQL := YT_NewInsertLog(nSQL + ';', nWorker);
+      FListA.Add(nSQL);
+    end;
+
+    //nWorker.FConn.BeginTrans;
+    try
+      nStr := 'commit;' + #13#10 +
+              'exception' + #13#10 +
+              ' when others then rollback; raise;' + #13#10 +
+              'end;';
+      FListA.Add(nStr);
+      //oracle需明确提交
+
+     gDBConnManager.WorkerExec(nWorker, FListA.Text);
+     //执行脚本
+
+      //nWorker.FConn.CommitTrans;
+      Result := True;
+    except
+      on E:Exception do
+      begin
+        //nWorker.FConn.RollbackTrans;
+        nData := '同步云天数据时发生错误,描述: ' + E.Message;
+        Exit;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/3/21
+//Parm:
+//Desc: 同步销售订单状态
 function TWorkerBusinessCommander.SyncYT_BillEdit(var nData: string): Boolean;
 var nIdx: Integer;
     nWorker: PDBWorker;
@@ -3367,6 +3543,7 @@ begin
    cBC_GetPostOrders        : Result := GetPostOrderItems(nData);
    cBC_SavePostOrders       : Result := SavePostOrderItems(nData);
    cBC_GetGYOrderValue      : Result := GetGYOrderValue(nData);
+   cBC_ImportOrderPoundS    : Result := ImportOrderPoundS(nData);
    else
     begin
       Result := False;
@@ -4390,6 +4567,128 @@ begin
       gHardShareData('TruckOut:' + nPound[0].FCard);
     //磅房处理自动出厂
   end;
+end;
+
+function TWorkerBusinessOrders.ImportOrderPoundS(var nData: string): Boolean;
+var nIdx: Integer;
+    nSQL, nIDS: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  Result := False;
+  FListA.Text := PackerDecodeStr(FIn.FData);
+  //批量插入信息
+
+  if FListA.Count < 1 then
+  begin
+    nData := '无导入信息记录';
+    Exit;
+  end;
+
+  FListC.Clear;
+  //磅单编号
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+    FListC.Add('''' + FListB.Values['P_ID'] + '''');
+  end;
+
+  nIDS := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
+  nIDS := Format('Select P_ID From %s Where P_ID In (%s)', [sTable_PoundLog, nIDS]);
+  
+  with gDBConnManager.WorkerQuery(FDBConn, nIDS) do
+  if RecordCount > 0 then
+  begin
+    First;
+
+    nIDS := '';
+    while not Eof do
+    begin
+      nIDS := nIDS + Fields[0].AsString + ',';
+      Next;
+    end;
+
+    nData := '磅单号[%s]已存在';
+    nData := Format(nData, [nIDS]);
+    Exit;
+  end;
+  //重复磅单号禁止使用
+  
+  FListC.Clear;
+  //数据库语句
+  
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+    //单条记录信息
+
+    nSQL := MakeSQLByStr([
+            SF('P_ID', FListB.Values['P_ID']),
+            SF('P_Type', sFlag_Provide),
+            SF('P_Order', FListB.Values['P_Order']),
+            SF('P_Truck', FListB.Values['P_Truck']),
+            SF('P_CusID', FListB.Values['P_CusID']),
+            SF('P_CusName', FListB.Values['P_CusName']),
+            SF('P_MID', FListB.Values['P_MID']),
+            SF('P_MName', FListB.Values['P_MName']),
+            SF('P_MType', sFlag_San),
+            SF('P_LimValue', 0),
+
+            SF('P_PValue', StrToFloat(FListB.Values['P_PValue']), sfVal),
+            SF('P_PDate', FListB.Values['P_PDate']),
+            SF('P_PMan', FIn.FBase.FFrom.FUser),
+
+            SF('P_MValue', StrToFloat(FListB.Values['P_MValue']), sfVal),
+            SF('P_MDate', FListB.Values['P_MDate']),
+            SF('P_MMan', FIn.FBase.FFrom.FUser),
+
+            SF('P_KZValue', StrToFloat(FListB.Values['P_KZValue']), sfStr),
+            SF('P_Import', sFlag_Yes),
+
+            SF('P_Direction', '进厂'),
+            SF('P_PModel', sFlag_PoundPD),
+            SF('P_Status', sFlag_TruckBFP),
+            SF('P_Valid', sFlag_Yes),
+            SF('P_PrintNum', 1, sfVal)], sTable_PoundLog, '', True);
+    FListC.Add(nSQL);
+  end;
+
+  FDBConn.FConn.BeginTrans;
+  try
+    for nIdx := 0 to FListC.Count - 1 do
+      gDBConnManager.WorkerExec(FDBConn, FListC[nIdx]);
+
+    FDBConn.FConn.CommitTrans;
+  except
+    FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
+  //保存磅单数据
+
+  FListC.Clear;
+  //磅单编号
+  
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+    FListC.Add('''' + FListB.Values['P_ID'] + '''');
+  end;
+
+  if FListC.Count < 1 then
+  begin
+    nData := '无同步信息记录';
+    Exit;
+  end;
+
+  if not TWorkerBusinessCommander.CallMe(cBC_SyncProvidePound, FListC.Text,
+     '', @nOut) then
+  begin
+    nSQL := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
+    nSQL := Format('Delete From %s Where P_ID In (%s)', [sTable_PoundLog, nSQL]);
+    gDBConnManager.WorkerExec(FDBConn, nSQL);
+    raise Exception.Create(nOut.FData);
+  end;
+
+  Result := True;
 end;
 
 //Date: 2014-09-15

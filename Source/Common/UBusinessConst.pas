@@ -57,6 +57,7 @@ const
   cBC_SaveOrderBase           = $0046;   //保存采购申请单
   cBC_DeleteOrderBase         = $0047;   //删除采购申请单
   cBC_GetGYOrderValue         = $0048;   //获取已收货量
+  cBC_ImportOrderPoundS       = $0049;   //批量插入过磅信息
 
   cBC_GetPostBills            = $0030;   //获取岗位交货单
   cBC_SavePostBills           = $0031;   //保存岗位交货单
@@ -93,6 +94,8 @@ const
   cBC_GetYTBatchCode          = $0088;   //获取云天系统批次
   cBC_SaveLadingSealInfo      = $0089;   //更新批次信息
   cBC_SyncYTBatchCodeInfo     = $0090;   //获取化验单信息
+
+  cBC_SyncProvidePound        = $0092;   //同步供应磅单到远程
 
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;

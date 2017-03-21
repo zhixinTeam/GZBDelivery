@@ -59,6 +59,7 @@ const
   cFI_FrameZhiKaDetail  = $0055;                     //纸卡明细
   cFI_FrameDispatchQuery = $0056;                    //调度查询
   cFI_FrameOrderDetailQuery = $0057;                 //采购明细
+  cFI_FrameImportOrderDetail= $0058;                 //数据导入
 
   cFI_FrameSaleInvoice  = $0061;                     //发票管理
   cFI_FrameMakeInvoice  = $0062;                     //开具发票
@@ -356,7 +357,8 @@ begin
   AddMenuModuleItem('MAIN_L07', cFI_FrameSaleTotalQuery);
   AddMenuModuleItem('MAIN_L08', cFI_FrameZhiKaDetail);
   AddMenuModuleItem('MAIN_L09', cFI_FrameOrderDetailQuery);
-  AddMenuModuleItem('MAIN_L11', cFI_FrameTransferDetailQuery); 
+  AddMenuModuleItem('MAIN_L11', cFI_FrameTransferDetailQuery);
+  AddMenuModuleItem('MAIN_L12', cFI_FrameImportOrderDetail);
 
   AddMenuModuleItem('MAIN_H01', cFI_FormTruckIn, mtForm);
   AddMenuModuleItem('MAIN_H02', cFI_FormTruckOut, mtForm);
