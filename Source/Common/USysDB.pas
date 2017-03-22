@@ -228,6 +228,11 @@ ResourceString
   sFlag_NetPlayVoice  = 'NetPlayVoice';              //使用网络语音播发
   sFlag_SaveHKRecord  = 'SaveHKRecord';              //保存合单表信息
 
+  sFlag_Departments   = 'Departments';               //部门列表
+  sFlag_DepDaTing     = '大厅';                      //服务大厅
+  sFlag_DepJianZhuang = '监装';                      //监装
+  sFlag_DepBangFang   = '磅房';                      //磅房
+
   sFlag_BusGroup      = 'BusFunction';               //业务编码组
   sFlag_BillNo        = 'Bus_Bill';                  //交货单号
   sFlag_PoundID       = 'Bus_Pound';                 //称重记录
@@ -260,6 +265,7 @@ ResourceString
   sTable_SerialBase   = 'Sys_SerialBase';            //编码种子
   sTable_SerialStatus = 'Sys_SerialStatus';          //编号状态
   sTable_WorkePC      = 'Sys_WorkePC';               //验证授权
+  sTable_ManualEvent  = 'Sys_ManualEvent';           //人工干预
   
   sTable_Customer     = 'S_Customer';                //客户信息
   sTable_Salesman     = 'S_Salesman';                //业务人员
@@ -411,7 +417,9 @@ const
   sSQL_NewWorkePC = 'Create Table $Table(R_ID $Inc, W_Name varChar(100),' +
        'W_MAC varChar(32), W_Factory varChar(32), W_Serial varChar(32),' +
        'W_Departmen varChar(32), W_ReqMan varChar(32), W_ReqTime DateTime,' +
-       'W_RatifyMan varChar(32), W_RatifyTime DateTime, W_Valid Char(1))';
+       'W_RatifyMan varChar(32), W_RatifyTime DateTime,' +
+       'W_PoundID varChar(50), W_MITUrl varChar(128), W_HardUrl varChar(128),' +
+       'W_Valid Char(1))';
   {-----------------------------------------------------------------------------
    工作授权: WorkPC
    *.R_ID: 编号
@@ -422,7 +430,28 @@ const
    *.W_Serial: 编号
    *.W_ReqMan,W_ReqTime: 接入申请
    *.W_RatifyMan,W_RatifyTime: 批准
+   *.W_PoundID:磅站编号
+   *.W_MITUrl:业务服务
+   *.W_HardUrl:硬件服务
    *.W_Valid: 有效(Y/N)
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewManualEvent = 'Create Table $Table(R_ID $Inc, E_ID varChar(32),' +
+       'E_From varChar(32), E_Key varChar(32), E_Event varChar(200), ' +
+       'E_Solution varChar(100), E_Result varChar(12),E_Departmen varChar(32),' +
+       'E_Date DateTime, E_ManDeal varChar(32), E_DateDeal DateTime)';
+  {-----------------------------------------------------------------------------
+   人工干预事件: ManualEvent
+   *.R_ID: 编号
+   *.E_ID: 流水号
+   *.E_From: 来源
+   *.E_Key: 记录标识
+   *.E_Event: 事件
+   *.E_Solution: 处理方案(格式如: Y=通过;N=禁止) 
+   *.E_Result: 处理结果(Y/N)
+   *.E_Departmen: 处理部门
+   *.E_Date: 发生时间
+   *.E_ManDeal,E_DateDeal: 处理人
   -----------------------------------------------------------------------------}
 
   sSQL_NewSyncItem = 'Create Table $Table(R_ID $Inc, S_Table varChar(100),' +
@@ -1470,6 +1499,7 @@ begin
   AddSysTableItem(sTable_SerialStatus, sSQL_NewSerialStatus);
   AddSysTableItem(sTable_StockMatch, sSQL_NewStockMatch);
   AddSysTableItem(sTable_WorkePC, sSQL_NewWorkePC);
+  AddSysTableItem(sTable_ManualEvent, sSQL_NewManualEvent);
 
   AddSysTableItem(sTable_Customer, sSQL_NewCustomer);
   AddSysTableItem(sTable_Salesman, sSQL_NewSalesMan);

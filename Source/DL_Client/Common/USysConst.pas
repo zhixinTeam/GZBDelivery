@@ -167,6 +167,9 @@ const
   cFI_FormTransBase     = $1093;                     //短倒办理
   cFI_FormMaterailTunnel= $1120;                     //原材料验收通道
 
+  cFI_FormTodo          = $1131;                     //需干预事件
+  cFI_FormTodoSend      = $1132;                     //推送事件
+
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
   cCmd_ViewSysLog       = $0003;                     //系统日志
@@ -201,6 +204,8 @@ type
     FLocalMAC   : string;                            //本机MAC
     FLocalName  : string;                            //本机名称
     FHardMonURL : string;                            //硬件守护
+    FMITServURL : string;                            //业务地址
+    FDepartment : string;                            //部门地址
 
     FFactNum    : string;                            //工厂编号
     FSerialID   : string;                            //电脑编号
@@ -306,6 +311,8 @@ begin
   AddMenuModuleItem('MAIN_A04', cFI_FormRestore, mtForm);
   AddMenuModuleItem('MAIN_A05', cFI_FormChangePwd, mtForm);
   AddMenuModuleItem('MAIN_A07', cFI_FrameAuthorize);
+  AddMenuModuleItem('MAIN_A08', cFI_FormTodo, mtForm);
+  AddMenuModuleItem('MAIN_A09', cFI_FormTodoSend, mtForm);
 
   AddMenuModuleItem('MAIN_B01', cFI_FormBaseInfo, mtForm);
   AddMenuModuleItem('MAIN_B02', cFI_FrameCustomer);

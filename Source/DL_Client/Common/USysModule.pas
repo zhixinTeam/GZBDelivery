@@ -38,7 +38,7 @@ uses
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
   UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
-  UFrameImportOrderDetail,
+  UFrameImportOrderDetail, UFormTodo, UFormTodoSend,
   {$IFDEF MicroMsg}
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,
@@ -55,7 +55,7 @@ implementation
 
 uses
   UMgrChannel, UChannelChooser, UDataModule, USysDB, USysMAC, SysUtils,
-  USysLoger, USysConst,UMemDataPool;
+  USysLoger, USysConst,UMemDataPool, UFormBase;
 
 //Desc: 初始化系统对象
 procedure InitSystemObject;
@@ -85,15 +85,19 @@ begin
     GetLocalIPConfig(FLocalName, FLocalIP);
   end;
 
-  nStr := 'Select W_Factory,W_Serial From %s ' +
+  nStr := 'Select W_Factory,W_Serial,W_Departmen,W_HardUrl,W_MITUrl From %s ' +
           'Where W_MAC=''%s'' And W_Valid=''%s''';
   nStr := Format(nStr, [sTable_WorkePC, gSysParam.FLocalMAC, sFlag_Yes]);
 
-  with FDM.QueryTemp(nStr) do
+  with FDM.QueryTemp(nStr),gSysParam do
   if RecordCount > 0 then
   begin
-    gSysParam.FFactNum := Fields[0].AsString;
-    gSysParam.FSerialID := Fields[1].AsString;
+    FFactNum := Fields[0].AsString;
+    FSerialID := Fields[1].AsString;
+
+    FDepartment := Fields[2].AsString;
+    FHardMonURL := Trim(Fields[3].AsString);
+    FMITServURL := Trim(Fields[4].AsString);
   end;
 
   //----------------------------------------------------------------------------
@@ -147,33 +151,45 @@ begin
   end;
 
   //----------------------------------------------------------------------------
-  nStr := 'Select D_Value From %s Where D_Name=''%s''';
-  nStr := Format(nStr, [sTable_SysDict, sFlag_MITSrvURL]);
-
-  with FDM.QueryTemp(nStr) do
-  if RecordCount > 0 then
+  if gSysParam.FMITServURL = '' then  //使用默认URL
   begin
-    First;
+    nStr := 'Select D_Value From %s Where D_Name=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_MITSrvURL]);
 
-    while not Eof do
+    with FDM.QueryTemp(nStr) do
+    if RecordCount > 0 then
     begin
-      gChannelChoolser.AddChannelURL(Fields[0].AsString);
-      Next;
+      First;
+
+      while not Eof do
+      begin
+        gChannelChoolser.AddChannelURL(Fields[0].AsString);
+        Next;
+      end;
+
+      {$IFNDEF DEBUG}
+      //gChannelChoolser.StartRefresh;
+      {$ENDIF}//update channel
     end;
-
-    {$IFNDEF DEBUG}
-    //gChannelChoolser.StartRefresh;
-    {$ENDIF}//update channel
-  end;
-
-  nStr := 'Select D_Value From %s Where D_Name=''%s''';
-  nStr := Format(nStr, [sTable_SysDict, sFlag_HardSrvURL]);
-
-  with FDM.QueryTemp(nStr) do
-  if RecordCount > 0 then
+  end else
   begin
-    gSysParam.FHardMonURL := Fields[0].AsString;
+    gChannelChoolser.AddChannelURL(gSysParam.FMITServURL);
+    //电脑专用URL
   end;
+
+  if gSysParam.FHardMonURL = '' then //采用系统默认硬件守护
+  begin
+    nStr := 'Select D_Value From %s Where D_Name=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_HardSrvURL]);
+
+    with FDM.QueryTemp(nStr) do
+     if RecordCount > 0 then
+      gSysParam.FHardMonURL := Fields[0].AsString;
+    //xxxxx
+  end;
+
+  CreateBaseFormItem(cFI_FormTodo);
+  //待处理事项
 end;
 
 //Desc: 释放系统对象
