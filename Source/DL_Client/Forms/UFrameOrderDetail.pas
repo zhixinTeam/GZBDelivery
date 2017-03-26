@@ -41,6 +41,8 @@ type
     N3: TMenuItem;
     Check1: TcxCheckBox;
     N4: TMenuItem;
+    N5: TMenuItem;
+    N6: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
@@ -50,6 +52,7 @@ type
     procedure N3Click(Sender: TObject);
     procedure Check1Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
+    procedure N6Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -72,7 +75,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UFormDateFilter, USysPopedom, USysBusiness,
-  UBusinessConst, USysConst, USysDB, UDataModule;
+  UBusinessConst, USysConst, USysDB, UDataModule,UFormBase,UBusinessPacker;
 
 class function TfFrameOrderDetail.FrameID: integer;
 begin
@@ -302,6 +305,102 @@ begin
   begin
     nStr := SQLQuery.FieldByName('D_ID').AsString;
     PrintOrderReport(nStr, False);
+  end;
+end;
+
+procedure TfFrameOrderDetail.N6Click(Sender: TObject);
+var
+  nStr:string;
+  nDID: string;//采购明细号
+  nDOID:string;//采购单号
+  npcid:string;//采购合同单号
+  nprovider_name,ncon_materiel_name:string;
+  nNetWeight:Double;//净重，毛重-皮重
+  nP: TFormCommandParam;
+  nPopedom:string;
+  function GetPcid(const noid:string;var npcid,nprovname,nmatename:string):Boolean;
+  var
+    nSql:string;
+    nDs:TDataSet;
+  begin
+    Result := False;
+    nSql := 'select O_ProName,O_StockName,pcid from %s where O_ID=''%s''';
+    nSql := Format(nSql,[sTable_Order,noid]);
+    nDs := fdm.QueryTemp(nSql);
+    npcid := nDs.FieldByName('pcid').AsString;
+    nprovname := nDs.FieldByName('O_ProName').AsString;
+    nmatename := nDs.FieldByName('O_StockName').AsString;
+    if npcid='' then
+    begin
+      Exit;
+    end;
+    Result := True;
+  end;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nNetWeight := SQLQuery.FieldByName('D_NetWeight').AsFloat;
+    if nNetWeight<=0 then
+    begin
+      ShowMsg('两次过磅未完成，无法继续操作',sHint);
+      Exit;
+    end;
+    
+    nDOID := SQLQuery.FieldByName('D_OID').AsString;
+    if nDOID='' then
+    begin
+      ShowMsg('未关联采购订单，无法继续操作',sHint);
+      Exit;
+    end;
+
+    if not GetPcid(nDOID,npcid,nprovider_name,ncon_materiel_name) then
+    begin
+      ShowMsg('未关联采购合同,无法继续操作',sHint);
+      Exit;
+    end;
+
+    nStr := 'select * from %s where pcid=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseContractDetail,npcid]);
+    if fdm.QueryTemp(nStr).RecordCount<=0 then
+    begin
+      ShowMsg('关联的采购合同无指标信息，无法继续操作',sHint);
+      Exit;
+    end;
+    nDID := SQLQuery.FieldByName('D_ID').AsString;
+
+    with TStringList.Create do
+    begin
+      Values['pcid'] := npcid;
+      Values['provider_name'] := nprovider_name;
+      Values['con_materiel_name'] := ncon_materiel_name;
+      Values['NetWeight'] := FloatToStr(nNetWeight);
+      Values['DID'] := nDID;
+      nPopedom := Text;
+      Free;
+    end;
+
+    nStr := 'select * from %s where D_ID=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseAssayResult,nDID]);
+    //查看化验结果
+    if fdm.QueryTemp(nStr).RecordCount>0 then
+    begin
+      np.FCommand := cCmd_ViewData;
+      CreateBaseFormItem(cFI_FormPurchaseAssayRes, nPopedom, @np);
+      if (np.FCommand = cCmd_ModalResult) and (np.FParamA = mrOK) then
+      begin
+        InitFormData(FWhere);
+      end;
+    end
+    //录入化验结果
+    else begin
+      np.FCommand := cCmd_AddData;
+      CreateBaseFormItem(cFI_FormPurchaseAssayRes, nPopedom, @np);
+      if (np.FCommand = cCmd_ModalResult) and (np.FParamA = mrOK) then
+      begin
+        InitFormData(FWhere);
+      end;
+    end;
   end;
 end;
 

@@ -110,5 +110,9 @@ inherited fFrameProvider: TfFrameProvider
       Visible = False
       OnClick = N1Click
     end
+    object N2: TMenuItem
+      Caption = #20851#32852#24494#20449#21830#22478#36134#25143
+      OnClick = N2Click
+    end
   end
 end

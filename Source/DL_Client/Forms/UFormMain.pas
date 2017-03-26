@@ -38,6 +38,7 @@ type
     procedure wPagePageChanging(Sender: TObject; NewPage: TcxTabSheet;
       var AllowChange: Boolean);
     procedure wPageChange(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     { Private declarations }
     FTrayIcon: TTrayIcon;
@@ -608,6 +609,20 @@ end;
 procedure TfMainForm.wPageChange(Sender: TObject);
 begin
   LockWindowUpdate(0);
+end;
+
+procedure TfMainForm.FormShow(Sender: TObject);
+var
+  nSql:string;
+begin
+  nSql := 'select D_value from %s where d_name=''%s''';
+  nSql := Format(nSql,[sTable_SysDict,sFlag_Factoryid]);
+  if FDM.QueryTemp(nSql).RecordCount<=0 then
+  begin
+    ShowMsg('Î´ÉèÖÃ¹¤³§ID',sHint);
+    Exit;
+  end;
+  gSysParam.FFactory := FDM.QueryTemp(nSql).FieldByName('D_value').AsString;
 end;
 
 end.

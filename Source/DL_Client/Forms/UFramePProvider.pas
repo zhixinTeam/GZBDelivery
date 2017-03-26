@@ -27,6 +27,7 @@ type
     dxLayout1Item4: TdxLayoutItem;
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
+    N2: TMenuItem;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -34,8 +35,10 @@ type
     procedure BtnDelClick(Sender: TObject);
     procedure N1Click(Sender: TObject);
     procedure PopupMenu1Popup(Sender: TObject);
+    procedure N2Click(Sender: TObject);
   private
     { Private declarations }
+    function AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string):Boolean;
   protected
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
@@ -48,7 +51,8 @@ implementation
 
 {$R *.dfm}
 uses
-  ULibFun, UMgrControl, USysConst, USysDB, UDataModule, UFormBase, USysBusiness;
+  ULibFun, UMgrControl, USysConst, USysDB, UDataModule, UFormBase, USysBusiness,
+  UBusinessPacker,USysLoger;
 
 class function TfFrameProvider.FrameID: integer;
 begin
@@ -138,6 +142,85 @@ begin
   {$IFDEF SyncRemote}
   N1.Visible := True;
   {$ENDIF}
+end;
+
+procedure TfFrameProvider.N2Click(Sender: TObject);
+var
+  nWechartAccount:string;
+  nParam: TFormCommandParam;
+  nPID,nPName:string;
+  nBindcustomerid:string;
+  nStr:string;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要开通的记录', sHint);
+    Exit;
+  end;
+  nWechartAccount := SQLQuery.FieldByName('P_WechartAccount').AsString;
+  if nWechartAccount<>'' then
+  begin
+    ShowMsg('商城账户['+nWechartAccount+']已存在，请勿重复操作', sHint);
+    Exit;
+  end;
+  nParam.FCommand := cCmd_AddData;
+  CreateBaseFormItem(cFI_FormGetWechartAccount, PopedomItem, @nParam);
+  if (nParam.FCommand = cCmd_ModalResult) and (nParam.FParamA = mrOK) then
+  begin
+    nBindcustomerid := PackerDecodeStr(nParam.FParamB);
+    nWechartAccount := PackerDecodeStr(nParam.FParamC);
+    nPID := SQLQuery.FieldByName('P_ID').AsString;
+    nPName := SQLQuery.FieldByName('P_Name').AsString;
+    if not AddMallUser(nBindcustomerid,nPID,nPName) then Exit;
+
+    nStr := 'update %s set P_WechartAccount=''%s'' where P_ID=''%s''';
+    nStr := Format(nStr,[sTable_Provider,nWechartAccount,nPID]);
+    FDM.ADOConn.BeginTrans;
+    try
+      FDM.ExecuteSQL(nStr);
+      FDM.ADOConn.CommitTrans;
+      ShowMsg('供应商 [ '+nPName+' ] 开通商城用户成功！',sHint);
+      InitFormData(FWhere);
+    except
+      FDM.ADOConn.RollbackTrans;
+      ShowMsg('开通商城用户失败', '未知错误');
+    end;
+  end;  
+end;
+
+function TfFrameProvider.AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string): Boolean;
+var
+  nXmlStr:string;
+  nData:string;
+begin
+  Result := False;
+  //发送绑定请求开户请求
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8" ?>'
+            +'<DATA>'
+            +'<head>'
+            +'<Factory>%s</Factory>'
+            +'<Provider>%s</Provider>'
+            +'<type>add</type>'
+            +'</head>'
+            +'<Items>'
+            +'<Item>'
+            +'<providername>%s</providername>'
+            +'<cash>0</cash>'
+            +'<providernumber>%s</providernumber>'
+            +'</Item>'
+            +'</Items>'
+            +'<remark />'
+            +'</DATA>';
+  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nBindcustomerid,nprov_name,nprov_num]);
+  nXmlStr := PackerEncodeStr(nXmlStr);
+  nData := edit_shopclients(nXmlStr);
+  gSysLoger.AddLog(TfFrameProvider,'AddMallUser',nData);
+  if nData<>sFlag_Yes then
+  begin
+    ShowMsg('供应商[ '+nProv_num+' ]关联商城用户失败！', sError);
+    Exit;
+  end;
+  Result := True;
 end;
 
 initialization

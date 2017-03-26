@@ -90,7 +90,9 @@ type
   end;
 
 implementation
-
+uses
+  uhardbusiness;
+  
 class function TWorkerBusinessBills.FunctionName: string;
 begin
   Result := sBus_BusinessSaleBill;
@@ -824,6 +826,16 @@ begin
     Result := True;
   except
     FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
+
+  //发送微信消息
+  FDBConn.FConn.BeginTrans;
+  try
+    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill);
+    FDBConn.FConn.CommitTrans;
+  except
+     FDBConn.FConn.RollbackTrans;
     raise;
   end;
 

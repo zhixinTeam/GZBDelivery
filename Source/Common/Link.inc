@@ -58,6 +58,9 @@
   {$DEFINE GZBJM}
 {$ENDIF}
 
+//¸ðÖÞ°ÓÖÓÏé
+{$DEFINE GZBZHONGXIANG}
+
 //¸ðÖÞ°Ó¾£ÃÅ
 {$IFDEF GZBJM}
   {$DEFINE COMMON}

@@ -171,6 +171,16 @@ function SaveOrder(const nOrderData: string): string;
 //保存采购单
 function DeleteOrder(const nOrder: string): Boolean;
 //删除采购单
+
+//保存采购合同
+function SavePurchaseContract(const nData:string):string;
+
+//保存采购合同
+function ModifyPurchaseContract(const nData:string):string;
+
+//删除采购合同
+function DeletePurchaseContract(const nData: string): Boolean;
+
 //function ChangeLadingTruckNo(const nBill,nTruck: string): Boolean;
 ////更改提货车辆
 function SetOrderCard(const nOrder,nTruck: string; nVerify: Boolean): Boolean;
@@ -251,6 +261,24 @@ function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
 function PrintHuaYanReport(const nHID: string; const nAsk: Boolean): Boolean;
 function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 //化验单,合格证
+
+//获取客户注册信息
+function getCustomerInfo(const nXmlStr: string): string;
+
+//客户与微信账号绑定
+function get_Bindfunc(const nXmlStr: string): string;
+
+//发送消息
+function send_event_msg(const nXmlStr: string): string;
+
+//新增商城用户
+function edit_shopclients(const nXmlStr: string): string;
+
+//添加商品
+function edit_shopgoods(const nXmlStr: string): string;
+
+//获取订单信息
+function get_shoporders(const nXmlStr: string): string;
 
 implementation
 
@@ -1503,6 +1531,31 @@ begin
   Result := CallBusinessPurchaseOrder(cBC_DeleteOrderBase, nOrder, '', @nOut);
 end;
 
+//保存采购合同
+function SavePurchaseContract(const nData:string):string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrder(cBC_SavePurchaseContract, nData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+//修改采购合同
+function ModifyPurchaseContract(const nData:string):string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrder(cBC_ModifyPurchaseContract, nData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+//删除采购合同
+function DeletePurchaseContract(const nData: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrder(cBC_DeletePurchaseContract, nData, '', @nOut);
+end;
+
 //Date: 2014-09-15
 //Parm: 开单数据
 //Desc: 保存采购单,返回采购单号列表
@@ -2383,6 +2436,60 @@ function RemoteImportPounds(const nData: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_ImportOrderPoundS, nData, '', @nOut);
+end;
+
+//获取客户注册信息
+function getCustomerInfo(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_getCustomerInfo, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//客户与微信账号绑定
+function get_Bindfunc(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_get_Bindfunc, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//发送消息
+function send_event_msg(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_send_event_msg, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//新增商城用户
+function edit_shopclients(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_edit_shopclients, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//添加商品
+function edit_shopgoods(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_edit_shopgoods, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//获取订单信息
+function get_shoporders(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_get_shoporders, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
 end;
 
 end.

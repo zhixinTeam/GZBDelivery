@@ -106,6 +106,49 @@ type
     function SyncRemoteCustomer(var nData: string): Boolean;
     function SyncRemoteProviders(var nData: string): Boolean;
     function SyncRemoteMaterails(var nData: string): Boolean;
+
+    //防伪码校验
+    function CheckSecurityCodeValid(var nData: string): Boolean;
+
+    //工厂待装查询
+    function GetWaitingForloading(var nData: string):Boolean;
+
+    //网上订单可下单数量查询
+    function GetBillSurplusTonnage(var nData:string):boolean;
+
+    //获取订单信息，用于网上下单
+    function GetOrderInfo(var nData:string):Boolean;
+
+    //获取订单信息，用于网上下单
+    function GetOrderList(var nData:string):Boolean;
+
+    //获取采购合同列表，用于网上下单
+    function GetPurchaseContractList(var nData:string):Boolean;
+
+    //获取客户注册信息
+    function getCustomerInfo(var nData:string):Boolean;
+
+    //客户与微信账号绑定
+    function get_Bindfunc(var nData:string):Boolean;
+
+    //发送消息
+    function send_event_msg(var nData:string):Boolean;
+
+    //新增商城用户
+    function edit_shopclients(var nData:string):Boolean;
+
+    //添加商品
+    function edit_shopgoods(var nData:string):Boolean;
+
+    //获取订单信息
+    function get_shoporders(var nData:string):Boolean;
+
+    //根据订单号获取订单信息
+    function get_shoporderbyno(var nData:string):Boolean;
+
+    //修改订单状态
+    function complete_shoporders(var nData:string):Boolean;
+
   public
     constructor Create; override;
     destructor destroy; override;
@@ -134,6 +177,9 @@ type
 
     function SaveOrderBase(var nData: string):Boolean;
     function DeleteOrderBase(var nData: string):Boolean;
+    function SavePurchaseContract(var nData: string):Boolean;
+    function ModifyPurchaseContract(var nData: string):Boolean;
+    function DeletePurchaseContract(var nData: string):Boolean;
     function SaveOrder(var nData: string):Boolean;
     function DeleteOrder(var nData: string): Boolean;
     function SaveOrderCard(var nData: string): Boolean;
@@ -167,7 +213,8 @@ type
   //Oracle Time Field
 
 implementation
-
+uses
+  UMgrQueue,uFormCallWechatWebService;
 class function TBusWorkerQueryField.FunctionName: string;
 begin
   Result := sBus_GetQueryField;
@@ -431,6 +478,22 @@ begin
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
    cBC_SyncProvider        : Result := SyncRemoteProviders(nData);
    cBC_SyncMaterails       : Result := SyncRemoteMaterails(nData);
+
+   cBC_VerifPrintCode      : Result := CheckSecurityCodeValid(nData); //验证码查询
+   cBC_WaitingForloading   : Result := GetWaitingForloading(nData); //待装车辆查询
+   cBC_BillSurplusTonnage  : Result := GetBillSurplusTonnage(nData); //查询商城订单可用量
+   cBC_GetOrderInfo        : Result := GetOrderInfo(nData); //查询云天系统订单信息
+   cBC_GetOrderList        : Result := GetOrderList(nData); //查询云天系统订单列表
+   cBC_GetPurchaseContractList : Result := GetPurchaseContractList(nData); //查询采购合同列表
+   
+   cBC_WeChat_getCustomerInfo : Result := getCustomerInfo(nData);   //微信平台接口：获取客户注册信息
+   cBC_WeChat_get_Bindfunc    : Result := get_Bindfunc(nData);   //微信平台接口：客户与微信账号绑定
+   cBC_WeChat_send_event_msg  : Result := send_event_msg(nData);   //微信平台接口：发送消息
+   cBC_WeChat_edit_shopclients : Result := edit_shopclients(nData);   //微信平台接口：新增商城用户
+   cBC_WeChat_edit_shopgoods  : Result := edit_shopgoods(nData);   //微信平台接口：添加商品
+   cBC_WeChat_get_shoporders  : Result := get_shoporders(nData);   //微信平台接口：获取订单信息
+   cBC_WeChat_complete_shoporders  : Result := complete_shoporders(nData);   //微信平台接口：修改订单状态
+   cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);   //微信平台接口：根据订单号获取订单信息   
    else
     begin
       Result := False;
@@ -1332,7 +1395,7 @@ begin
           Continue;
           //Has Saved
 
-          nStr := MakeSQLByStr([SF('C_ID', FieldByName('XOB_Code').AsString),
+          nStr := MakeSQLByStr([SF('C_ID', FieldByName('XOB_ID').AsString),
                   SF('C_Name', FieldByName('XOB_Name').AsString),
                   SF('C_PY', FieldByName('XOB_JianPin').AsString),
                   SF('C_Param', FieldByName('XOB_ID').AsString),
@@ -1570,6 +1633,652 @@ begin
     if FDBConn.FConn.InTransaction then
       FDBConn.FConn.RollbackTrans;
     raise;
+  end;
+end;
+
+//Date: 2016-09-20
+//Parm: 防伪码[FIn.FData]
+//Desc: 防伪码校验
+function TWorkerBusinessCommander.CheckSecurityCodeValid(var nData: string): Boolean;
+var
+  nStr,nCode,nBill_id: string;
+  nSprefix:string;
+  nIdx,nIdlen:Integer;
+  nDs:TDataSet;
+  nBills: TLadingBillItems;
+begin
+  nSprefix := '';
+  nidlen := 0;
+  Result := True;
+  nCode := FIn.FData;
+  if nCode='' then
+  begin
+    nData := '';
+    FOut.FData := nData;
+    Exit;
+  end;
+
+  nStr := 'Select B_Prefix, B_IDLen From %s ' +
+          'Where B_Group=''%s'' And B_Object=''%s''';
+  nStr := Format(nStr, [sTable_SerialBase, sFlag_BusGroup, sFlag_BillNo]);
+  nDs :=  gDBConnManager.WorkerQuery(FDBConn, nStr);
+
+  if nDs.RecordCount>0 then
+  begin
+    nSprefix := nDs.FieldByName('B_Prefix').AsString;
+    nIdlen := nDs.FieldByName('B_IDLen').AsInteger;
+    nIdlen := nIdlen-length(nSprefix);
+  end;
+
+  //生成提货单号
+  nBill_id := nSprefix+Copy(nCode,Length(nCode)-nIdlen+1,nIdlen);
+
+  //查询数据库
+  nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
+      'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
+      'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue From $Bill b ';
+  nStr := nStr + 'Where L_ID=''$CD''';
+  nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill), MI('$CD', nBill_id)]);
+
+  nDs := gDBConnManager.WorkerQuery(FDBConn, nStr);
+  if nDs.RecordCount<1 then
+  begin
+    SetLength(nBills, 1);
+    ZeroMemory(@nBills[0],0);
+    FOut.FData := CombineBillItmes(nBills);
+    Exit;
+  end;
+
+  SetLength(nBills, nDs.RecordCount);
+  nIdx := 0;
+  nDs.First;
+  while not nDs.eof do
+  begin
+    with  nBills[nIdx] do
+    begin
+      FID         := nDs.FieldByName('L_ID').AsString;
+      FZhiKa      := nDs.FieldByName('L_ZhiKa').AsString;
+      FCusID      := nDs.FieldByName('L_CusID').AsString;
+      FCusName    := nDs.FieldByName('L_CusName').AsString;
+      FTruck      := nDs.FieldByName('L_Truck').AsString;
+
+      FType       := nDs.FieldByName('L_Type').AsString;
+      FStockNo    := nDs.FieldByName('L_StockNo').AsString;
+      FStockName  := nDs.FieldByName('L_StockName').AsString;
+      FValue      := nDs.FieldByName('L_Value').AsFloat;
+      FPrice      := nDs.FieldByName('L_Price').AsFloat;
+
+      FCard       := nDs.FieldByName('L_Card').AsString;
+      FIsVIP      := nDs.FieldByName('L_IsVIP').AsString;
+      FStatus     := nDs.FieldByName('L_Status').AsString;
+      FNextStatus := nDs.FieldByName('L_NextStatus').AsString;
+      FSelected := True;
+      if FIsVIP = sFlag_TypeShip then
+      begin
+        FStatus    := sFlag_TruckZT;
+        FNextStatus := sFlag_TruckOut;
+      end;
+
+      if FStatus = sFlag_BillNew then
+      begin
+        FStatus     := sFlag_TruckNone;
+        FNextStatus := sFlag_TruckNone;
+      end;
+
+      FPData.FValue := nDs.FieldByName('L_PValue').AsFloat;
+      FMData.FValue := nDs.FieldByName('L_MValue').AsFloat;
+    end;
+
+    Inc(nIdx);
+    nDs.Next;
+  end;
+
+  FOut.FData := CombineBillItmes(nBills);
+end;
+
+//Date: 2016-09-20
+//Parm: 
+//Desc: 工厂待装查询
+function TWorkerBusinessCommander.GetWaitingForloading(var nData: string):Boolean;
+var nFind: Boolean;
+    nLine: PLineItem;
+    nIdx,nInt, i: Integer;
+    nQueues: TQueueListItems;
+begin
+  gTruckQueueManager.RefreshTrucks(True);
+  Sleep(320);
+  //刷新数据
+
+  with gTruckQueueManager do
+  try
+    SyncLock.Enter;
+    Result := True;
+
+    FListB.Clear;
+    FListC.Clear;
+
+    i := 0;
+    SetLength(nQueues, 0);
+    //保存查询记录
+
+    for nIdx:=0 to Lines.Count - 1 do
+    begin
+      nLine := Lines[nIdx];
+
+      nFind := False;
+      for nInt:=Low(nQueues) to High(nQueues) do
+      begin
+        with nQueues[nInt] do
+          if FStockNo = nLine.FStockNo then
+          begin
+            Inc(FLineCount);
+            FTruckCount := FTruckCount + nLine.FRealCount;
+
+            nFind := True;
+            Break;
+          end;
+      end;
+
+      if not nFind then
+      begin
+        SetLength(nQueues, i+1);
+        with nQueues[i] do
+        begin
+          FStockNO    := nLine.FStockNo;
+          FStockName  := nLine.FStockName;
+
+          FLineCount  := 1;
+          FTruckCount := nLine.FRealCount;
+        end;
+
+        Inc(i);
+      end;
+    end;
+
+    for nIdx:=Low(nQueues) to High(nQueues) do
+    begin
+      with FListB, nQueues[nIdx] do
+      begin
+        Clear;
+
+        Values['StockName'] := FStockName;
+        Values['LineCount'] := IntToStr(FLineCount);
+        Values['TruckCount']:= IntToStr(FTruckCount);
+      end;
+
+      FListC.Add(PackerEncodeStr(FListB.Text));
+    end;
+
+    FOut.FData := PackerEncodeStr(FListC.Text);
+  finally
+    SyncLock.Leave;
+  end;
+end;
+
+//Date: 2016-09-23
+//Parm:
+//Desc: 网上订单可下单数量查询
+function TWorkerBusinessCommander.GetBillSurplusTonnage(var nData:string):boolean;
+var nStr,nCusID: string;
+    nVal,nCredit,nPrice: Double;
+    nStockNo:string;
+begin
+  nCusID := '';
+  nStockNo := '';
+  nPrice := 1;
+  nCredit := 0;
+  nVal := 0;
+  Result := False;
+  nCusID := Fin.FData;
+  if nCusID='' then Exit;  
+  //未传递客户号
+
+  nStockNo := Fin.FExtParam;
+  if nStockNo='' then Exit;
+  //未传递产品编号
+
+  //产品销售价格表擦查询单价
+  nStr := 'select p_price from %s where P_StockNo=''%s'' order by P_Date desc';
+  //nStr := Format(nStr, [sTable_SPrice, nStockNo]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '未设单价，查询失败!';
+      Exit;
+    end;
+    nPrice := FieldByName('p_price').AsFloat;
+    if Float2PInt(nPrice, 100000, False)<=0 then
+    begin
+      nData := '单价设置不正确，查询失败!';
+      Exit;    
+    end;
+  end;
+
+  //调用GetCustomerValidMoney查询可用金额
+  Result := GetCustomerValidMoney(nData);
+  if not Result then Exit;
+  nVal := StrToFloat(FOut.FData);
+  if Float2PInt(nVal, cPrecision, False)<=0 then
+  begin
+    nData := '编号为[ %s ]的客户账户可用金额不足.';
+    nData := Format(nData, [nCusID]);
+    Exit;
+  end;
+  FOut.FData := FormatFloat('0.0000',nVal/nPrice);
+  Result := True;  
+end;
+
+//获取订单信息，用于网上下单
+function TWorkerBusinessCommander.GetOrderInfo(var nData:string):Boolean;
+var nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+    nCard,nParam:string;
+    nLoginAccount,nLoginCusId,nOrderCusId:string;
+    nSql:string;
+    nDataSet:TDataSet;
+    nOrderValid:Boolean;
+begin
+  nCard := fin.FData;
+  nLoginAccount := FIn.FExtParam;
+  nParam := sFlag_LoadExtInfo;
+  Result := CallMe(cBC_ReadYTCard, nCard, '', @nOut);
+  if not Result then
+  begin
+    nCard := nOut.FBase.FErrDesc;
+    Exit;
+  end;
+  nList := TStringList.Create;
+  try
+    nList.Text := PackerDecodeStr(nOut.FData);
+    nCard := nList[0];
+    //cBC_ReadYTCard读取指令允许读取多条,取第一条
+  finally
+    nList.Free;
+  end;
+
+  Result := CallMe(cBC_VerifyYTCard, nCard, nParam, @nOut);
+  if not Result then
+  begin
+    nCard := nOut.FBase.FErrDesc;
+  end;
+  FOut.FData := nCard;
+
+  //------防伪校验begin-------
+  nList := TStringList.Create;
+  try
+    nList.Text := PackerDecodeStr(nCard);
+    nOrderCusId := nList.Values['XCB_Client'];
+  finally
+    nList.Free;
+  end;
+
+  nSql := 'select i_itemid from %s where i_group=''%s'' and i_item=''%s'' and i_info=''%s''';
+  nSql := Format(nSql,[sTable_ExtInfo,sFlag_CustomerItem,'手机',nLoginAccount]);
+
+  nDataSet := gDBConnManager.WorkerQuery(FDBConn, nSql);
+  //未找到注册的手机号
+  if nDataSet.RecordCount<1 then
+  begin
+    nData := '未找到注册的手机号码';
+    nout.FBase.FErrDesc := nData;  
+    Result := False;
+    Exit;
+  end;
+
+  nOrderValid := False;
+    
+  while not nDataSet.Eof do
+  begin
+    nLoginCusId := nDataSet.FieldByName('i_itemid').AsString;
+    if nLoginCusId=nOrderCusId then
+    begin
+      nOrderValid := True;
+      Break;
+    end;
+    nDataSet.Next;
+  end;
+
+  if not nOrderValid then
+  begin
+    nData := '请勿冒用其他客户的订单号.';
+    nout.FBase.FErrDesc := nData;  
+    Result := False;
+    Exit;  
+  end;
+  //------防伪校验end-------
+end;
+
+//获取订单列表，用于网上下单
+function TWorkerBusinessCommander.GetOrderList(var nData:string):Boolean;
+var
+  nCusId,nStr:string;
+  nWorker: PDBWorker;
+  nFactRemain:Double;
+  i:Integer;
+begin
+  Result := False;
+  nCusId := Trim(fin.FData);
+  if nCusId='' then Exit;
+  nStr := 'select XCB_ID,' +                      //内部编号
+        '  XCB_CardId,' +                       //销售卡片编号
+        '  XCB_Origin,' +                       //卡片来源
+        '  XCB_BillID,' +                       //来源单据号
+        '  XCB_SetDate,' +                      //办理日期
+        '  XCB_CardType,' +                     //卡片类型
+        '  XCB_SourceType,' +                   //来源类型
+        '  XCB_Option,' +                       //控制方式:0,控单价;1,控数量
+        '  XCB_Client,' +                       //客户编号
+        '  xob.XOB_Name as XCB_ClientName,' +   //客户名称
+        '  xgd.XOB_Name as XCB_WorkAddr,' +     //工程工地
+        '  XCB_Alias,' +                        //客户别名
+        '  XCB_OperMan,' +                      //业务员
+        '  XCB_Area,' +                         //销售区域
+        '  XCB_CementType as XCB_Cement,' +     //品种编号
+        '  PCM_Name as XCB_CementName,' +       //品种名称
+        '  XCB_LadeType,' +                     //提货方式
+        '  XCB_Number,' +                       //初始数量
+        '  XCB_FactNum,' +                      //已开数量
+        '  XCB_PreNum,' +                       //原已提量
+        '  XCB_ReturnNum,' +                    //退货数量
+        '  XCB_OutNum,' +                       //转出数量
+        '  XCB_RemainNum,' +                    //剩余数量
+        '  XCB_ValidS,XCB_ValidE,' +            //提货有效期
+        '  XCB_AuditState,' +                   //审核状态
+        '  XCB_Status,' +                       //卡片状态:0,停用;1,启用;2,冲红;3,作废
+        '  XCB_IsImputed,' +                    //卡片是否估算
+        '  XCB_IsOnly,' +                       //是否一车一票
+        '  XCB_Del,' +                          //删除标记:0,正常;1,删除
+        '  XCB_Creator,' +                      //创建人
+        '  pub.pub_name as XCB_CreatorNM,' +    //创建人名
+        '  XCB_CDate,' +                        //创建时间
+        '  XCB_Firm,' +                         //所属厂区
+        '  pbf.pbf_name as XCB_FirmName,' +     //工厂名称
+        '  pcb.pcb_id, pcb.pcb_name, ' +        //销售片区
+        '  xcg.xob_id as XCB_TransID, ' +       //运输单位编号
+        '  xcg.XOB_Name as XCB_TransName ' +    //运输单位
+        'from XS_Card_Base xcb' +
+        '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
+        '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
+        '  left join PB_Code_Material pcm on pcm.PCM_ID = xcb.XCB_CementType' +
+        '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
+        '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
+        '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
+        '  Left Join XS_Card_Freight xcf on xcf.Xcf_Card=xcb.xcb_ID ' +
+        '  Left Join XS_Compy_Base xcg on xcg.xob_id=xcf.xcf_tran ' +
+        //未删除、可用数量大于0、卡片启用并且处于已审核状态
+        ' where xcb.xcb_del=''0'''
+              +' and xcb.XCB_Status=''1'''
+              +' and xcb.XCB_RemainNum>0.001'
+              +' and xcb.XCB_AuditState=''201'''
+              +' and xcb.XCB_Client = ''%s''';
+  nStr := Format(nStr,[nCusId]);
+
+  nWorker := nil;
+
+  try
+    with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
+    begin
+      if RecordCount < 1 then
+      begin
+        nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nCusId]);
+        Exit;
+      end;
+
+      FListA.Clear;
+      FListB.Clear;
+      First;
+
+      while not Eof do
+      begin
+        FListB.Values['XCB_ID']         := FieldByName('XCB_ID').AsString;
+        FListB.Values['XCB_CardId']     := FieldByName('XCB_CardId').AsString;
+        FListB.Values['XCB_Origin']     := FieldByName('XCB_Origin').AsString;
+        FListB.Values['XCB_BillID']     := FieldByName('XCB_BillID').AsString;
+        FListB.Values['XCB_SetDate']    := Date2Str(FieldByName('XCB_SetDate').AsDateTime,True);
+        FListB.Values['XCB_CardType']   := FieldByName('XCB_CardType').AsString;
+        FListB.Values['XCB_SourceType'] := FieldByName('XCB_SourceType').AsString;
+        FListB.Values['XCB_Option']     := FieldByName('XCB_Option').AsString;
+        FListB.Values['XCB_Client']     := FieldByName('XCB_Client').AsString;
+        FListB.Values['XCB_ClientName'] := FieldByName('XCB_ClientName').AsString;
+        FListB.Values['XCB_WorkAddr']   := FieldByName('XCB_WorkAddr').AsString;
+        FListB.Values['XCB_Alias']      := FieldByName('XCB_Alias').AsString;
+        FListB.Values['XCB_OperMan']    := FieldByName('XCB_OperMan').AsString;
+        FListB.Values['XCB_Area']       := FieldByName('XCB_Area').AsString;
+        FListB.Values['XCB_Cement']     := FieldByName('XCB_Cement').AsString;
+        FListB.Values['XCB_CementName'] := FieldByName('XCB_CementName').AsString;
+        FListB.Values['XCB_LadeType']   := FieldByName('XCB_LadeType').AsString;
+        FListB.Values['XCB_Number']     := FloatToStr(FieldByName('XCB_Number').AsFloat);
+        FListB.Values['XCB_FactNum']    := FloatToStr(FieldByName('XCB_FactNum').AsFloat);
+        FListB.Values['XCB_PreNum']     := FloatToStr(FieldByName('XCB_PreNum').AsFloat);
+        FListB.Values['XCB_ReturnNum']  := FloatToStr(FieldByName('XCB_ReturnNum').AsFloat);
+        FListB.Values['XCB_OutNum']     := FloatToStr(FieldByName('XCB_OutNum').AsFloat);
+        FListB.Values['XCB_RemainNum']  := FloatToStr(FieldByName('XCB_RemainNum').AsFloat);
+        FListB.Values['XCB_AuditState'] := FieldByName('XCB_AuditState').AsString;
+        FListB.Values['XCB_Status']     := FieldByName('XCB_Status').AsString;
+        FListB.Values['XCB_IsOnly']     := FieldByName('XCB_IsOnly').AsString;
+        FListB.Values['XCB_Del']        := FieldByName('XCB_Del').AsString;
+        FListB.Values['XCB_Creator']    := FieldByName('XCB_Creator').AsString;
+        FListB.Values['XCB_CreatorNM']  := FieldByName('XCB_CreatorNM').AsString;
+        FListB.Values['XCB_CDate']      := DateTime2Str(FieldByName('XCB_CDate').AsDateTime);
+        FListB.Values['XCB_Firm']       := FieldByName('XCB_Firm').AsString;
+        FListB.Values['XCB_FirmName']   := FieldByName('XCB_FirmName').AsString;
+        FListB.Values['pcb_id']         := FieldByName('pcb_id').AsString;
+        FListB.Values['pcb_name']       := FieldByName('pcb_name').AsString;
+        FListB.Values['XCB_TransID']    := FieldByName('XCB_TransID').AsString;
+        FListB.Values['XCB_TransName']  := FieldByName('XCB_TransName').AsString;
+
+        FListA.Add(PackerEncodeStr(FListB.Text));
+        Next;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+
+  //begin查询补货//查询剩余量
+  for i := FListA.Count-1 downto 0 do
+  begin
+    FListB.Text := PackerDecodeStr(FListA.Strings[i]);
+    nStr := 'select XCB_FactRemain from V_CARD_BASE t where XCB_ID=''%s'' and XCB_FactRemain>0.001';
+    nStr := Format(nStr,[FListB.Values['XCB_ID']]);
+    nWorker := nil;
+    try
+      with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
+      begin
+        if RecordCount < 1 then
+        begin
+          FListA.Delete(i);
+          Continue;
+        end;
+        FListB.Values['XCB_RemainNum'] := FieldByName('XCB_FactRemain').AsString;
+        FListA.Strings[i] := PackerEncodeStr(FListB.Text);
+      end;
+    finally
+      gDBConnManager.ReleaseConnection(nWorker);
+    end;
+  end;
+  //end查询补货//查询剩余量
+
+  if FListA.Count < 1 then
+  begin
+    nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nCusId]);
+    Exit;
+  end;
+
+  FOut.FData := PackerEncodeStr(FListA.Text);
+  Result := True;
+end;
+
+//获取采购合同列表，用于网上下单
+function TWorkerBusinessCommander.GetPurchaseContractList(var nData:string):Boolean;
+var
+  nProvId:string;
+  nWorker:PDBWorker;
+  nStr:string;
+begin
+  Result := False;
+  nProvId := Trim(fin.FData);
+  if nProvId='' then Exit;
+  nStr := 'select * from %s where provider_code=''%s'' and con_status>0 and con_quantity-con_finished_quantity>0.00001';
+  nStr := format(nStr,[sTable_PurchaseContract,nProvId]);
+
+  nWorker := nil;
+  try
+    with gDBConnManager.SQLQuery(nStr, nWorker) do
+    begin
+      if RecordCount < 1 then
+      begin
+        nData := Format('未查询到供应商[ %s ]对应的订单信息.', [nProvId]);
+        Exit;
+      end;
+
+      FListA.Clear;
+      FListB.Clear;
+      First;
+      while not Eof do
+      begin
+        FListB.Values['pcId'] := FieldByName('pcId').AsString;
+        FListB.Values['provider_code'] := FieldByName('provider_code').AsString;
+        FListB.Values['provider_name'] := FieldByName('provider_name').AsString;
+        FListB.Values['con_code'] := FieldByName('con_code').AsString;
+        FListB.Values['con_materiel_Code'] := FieldByName('con_materiel_Code').AsString;
+        FListB.Values['con_materiel_name'] := FieldByName('con_materiel_name').AsString;
+        FListB.Values['con_price'] := FieldByName('con_price').AsString;
+        FListB.Values['con_quantity'] := FieldByName('con_quantity').AsString;
+        FListB.Values['con_finished_quantity'] := FieldByName('con_finished_quantity').AsString;
+        FListB.Values['con_date'] := FieldByName('con_date').AsString;
+        FListB.Values['con_remark'] := FieldByName('con_remark').AsString;
+        FListA.Add(PackerEncodeStr(FListB.Text));
+        Next;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+  FOut.FData := PackerEncodeStr(FListA.Text);
+  Result := True;
+end;
+
+//获取客户注册信息
+function TWorkerBusinessCommander.getCustomerInfo(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_getCustomerInfo,fin.FData);
+    nData := fin.FData;
+    FOut.FData := fin.FData;
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//客户与微信账号绑定
+function TWorkerBusinessCommander.get_Bindfunc(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_Bindfunc,fin.FData);
+    FOut.FData := 'Y';
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//发送消息
+function TWorkerBusinessCommander.send_event_msg(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_send_event_msg,fin.FData);
+    FOut.FData := 'Y';
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//新增商城用户
+function TWorkerBusinessCommander.edit_shopclients(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_edit_shopclients,fin.FData);
+    FOut.FData := 'Y';
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//添加商品
+function TWorkerBusinessCommander.edit_shopgoods(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_edit_shopgoods,fin.FData);
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//获取订单信息
+function TWorkerBusinessCommander.get_shoporders(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shoporders,fin.FData);
+    nData := fin.FData;
+    FOut.FData := fin.FData;
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//根据订单号获取订单信息
+function TWorkerBusinessCommander.get_shoporderbyno(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shoporderbyNO,fin.FData);
+    nData := fin.FData;
+    FOut.FData := fin.FData;
+  finally
+    frmCall.Free;
+  end;
+end;
+
+//修改订单状态
+function TWorkerBusinessCommander.complete_shoporders(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_complete_shoporders,fin.FData);
+    FOut.FData := 'Y';
+  finally
+    frmCall.Free;
   end;
 end;
 
@@ -3537,6 +4246,9 @@ begin
    cBC_DeleteOrder          : Result := DeleteOrder(nData);
    cBC_SaveOrderBase        : Result := SaveOrderBase(nData);
    cBC_DeleteOrderBase      : Result := DeleteOrderBase(nData);
+   cBC_SavePurchaseContract : Result := SavePurchaseContract(nData);
+   cBC_ModifyPurchaseContract : Result := ModifyPurchaseContract(nData);
+   cBC_DeletePurchaseContract : Result := DeletePurchaseContract(nData);
    cBC_SaveOrderCard        : Result := SaveOrderCard(nData);
    cBC_LogoffOrderCard      : Result := LogoffOrderCard(nData);
    cBC_ModifyBillTruck      : Result := ChangeOrderTruck(nData);
@@ -3684,6 +4396,261 @@ begin
 end;
 
 //------------------------------------------------------------------------------
+//Date: 2017/3/16
+//Parm: 
+//Desc: 保存采购合同
+function TWorkerBusinessOrders.SavePurchaseContract(var nData: string):Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nOut: TWorkerBusinessCommand;
+    nPcid:string;
+    nQuotaList,nTempList:TStrings;
+    nName,nCondition,nValue:string;
+    npunishcondition:string;
+    npunishBasis,punish_standard:double;
+    npunishmode:integer;
+    ndValue:Double;
+begin
+  FListA.Text := PackerDecodeStr(FIn.FData);
+  nQuotaList := TStringList.Create;
+  nTempList := TStringList.Create;
+  try
+    //unpack Order
+    FDBConn.FConn.BeginTrans;
+    try
+      FOut.FData := '';
+      //bill list
+
+      FListC.Values['Group'] :=sFlag_BusGroup;
+      FListC.Values['Object'] := sFlag_PurchaseContract;
+      //to get serial no
+
+      if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+            FListC.Text, sFlag_Yes, @nOut) then
+        raise Exception.Create(nOut.FData);
+      //xxxxx
+
+      nPcid := nOut.FData;
+      FOut.FData := nOut.FData;
+      //combine Order
+      //bill list
+
+      nStr := MakeSQLByStr([SF('pcid', nPcid),
+              SF('provider_code', FListA.Values['ProviderCode']),
+              SF('provider_name', FListA.Values['ProviderName']),
+              SF('con_code', FListA.Values['ContractNo']),
+              SF('con_materiel_Code', FListA.Values['MeterailCode']),
+              SF('con_materiel_name',FListA.Values['MeterailName']),
+              SF('con_price',  StrToFloatDef(FListA.Values['Price'],0),sfVal),
+              SF('con_quantity', StrToFloatDef(FListA.Values['quantity'],0),sfVal),
+              SF('con_finished_quantity', 0,sfVal),
+              SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
+              SF('con_Man', FIn.FBase.FFrom.FUser),
+              SF('con_remark', FListA.Values['Remark'])
+          ], sTable_PurchaseContract, '', True);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+
+      nStr :=  PackerDecodeStr(FListA.Values['QuotaList']);
+      nQuotaList.Text := nStr;
+      for nIdx := 0 to nQuotaList.Count-1 do
+      begin
+        nStr := nQuotaList.Strings[nIdx];
+        nTempList.CommaText := nStr;
+        npunishcondition :='';
+        npunishBasis := 0;
+        punish_standard := 0;
+        npunishmode := 0;
+        nName := nTempList.Strings[0];
+        nValue := nTempList.Strings[1];
+        nValue :=  StringReplace(nValue, '%', '', [rfReplaceAll, rfIgnoreCase]);
+        ndValue := StrToFloatDef(nValue,0)/100;
+        nCondition := nTempList.Strings[2];
+        if nTempList.Count>4 then
+        begin
+          npunishcondition := nTempList.Strings[3];
+          npunishBasis := StrToFloatDef(nTempList.Strings[4],0)/100;
+          punish_standard := StrToFloatDef(nTempList.Strings[5],0);
+          if nTempList.Strings[6]='单价' then
+          begin
+            npunishmode := 1;
+          end;
+        end;
+        nStr := MakeSQLByStr([SF('pcid', nPcid),
+                SF('quota_name', nName),
+                SF('quota_condition', nCondition),
+                SF('quota_value', ndValue,sfval),
+                SF('punish_condition', npunishcondition),
+                SF('punish_Basis', npunishBasis,sfVal),
+                SF('punish_standard', punish_standard,sfVal),
+                SF('punish_mode', npunishmode,sfVal),
+                SF('remark', '')
+          ], sTable_PurchaseContractDetail, '', True);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end;
+  
+      FDBConn.FConn.CommitTrans;
+      Result := True;
+    except
+      FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+  finally
+    nTempList.Free;
+    nQuotaList.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/3/16
+//Parm: 
+//Desc: 修改采购合同
+function TWorkerBusinessOrders.ModifyPurchaseContract(var nData: string):Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nOut: TWorkerBusinessCommand;
+    nPcid:string;
+    nQuotaList,nTempList:TStrings;
+    nName,nCondition,nValue:string;
+    npunishcondition:string;
+    npunishBasis,punish_standard:double;
+    npunishmode:integer;
+    ndValue:Double;
+begin
+  FListA.Text := PackerDecodeStr(FIn.FData);
+  nQuotaList := TStringList.Create;
+  nTempList := TStringList.Create;
+  try
+    FDBConn.FConn.BeginTrans;
+    try
+      nPcid := FListA.Values['fid'];
+      FOut.FData := nPcid;
+
+      nStr := MakeSQLByStr([SF('provider_code', FListA.Values['ProviderCode']),
+              SF('provider_name', FListA.Values['ProviderName']),
+              SF('con_code', FListA.Values['ContractNo']),
+              SF('con_materiel_Code', FListA.Values['MeterailCode']),
+              SF('con_materiel_name',FListA.Values['MeterailName']),
+              SF('con_price',  StrToFloatDef(FListA.Values['Price'],0),sfVal),
+              SF('con_quantity', StrToFloatDef(FListA.Values['quantity'],0),sfVal),
+              SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
+              SF('con_MdyMan', FIn.FBase.FFrom.FUser),
+              SF('con_MdyDate', sField_SQLServer_Now,sfVal),
+              SF('con_remark', FListA.Values['Remark'])
+          ], sTable_PurchaseContract, 'pcId=''%s''', False);
+      nStr := Format(nStr,[nPcid]);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+
+      //保存历史合同明细到备份表
+      nStr := 'insert into %s(pcId,quota_name,quota_condition,quota_value,'
+        +'punish_condition,punish_Basis,punish_standard,punish_mode,Del_man,Del_Date,remark) '
+        +'select pcId,quota_name,quota_condition,quota_value,punish_condition,'
+        +'punish_Basis,punish_standard,punish_mode,''%s'',%s,remark from %s where pcid=''%s''';
+      nStr := Format(nStr,[sTable_PurchaseContractDetail_bak,
+        FIn.FBase.FFrom.FUser,
+        sField_SQLServer_Now,
+        sTable_PurchaseContractDetail,
+        nPcid]);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+
+      //更新合同明细
+      nStr := 'delete from %s where pcid=''%s''';
+      nStr := Format(nStr,[sTable_PurchaseContractDetail,nPcid]);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+      
+      nStr :=  PackerDecodeStr(FListA.Values['QuotaList']);
+      nQuotaList.Text := nStr;
+      for nIdx := 0 to nQuotaList.Count-1 do
+      begin
+        nStr := nQuotaList.Strings[nIdx];
+        nTempList.CommaText := nStr;
+        npunishcondition :='';
+        npunishBasis := 0;
+        punish_standard := 0;
+        npunishmode := 0;
+        nName := nTempList.Strings[0];
+        nValue := nTempList.Strings[1];
+        nValue :=  StringReplace(nValue, '%', '', [rfReplaceAll, rfIgnoreCase]);
+        ndValue := StrToFloatDef(nValue,0)/100;
+        nCondition := nTempList.Strings[2];
+        if nTempList.Count>4 then
+        begin
+          npunishcondition := nTempList.Strings[3];
+          npunishBasis := StrToFloatDef(nTempList.Strings[4],0)/100;
+          punish_standard := StrToFloatDef(nTempList.Strings[5],0);
+          if nTempList.Strings[6]='单价' then
+          begin
+            npunishmode := 1;
+          end;
+        end;
+        nStr := MakeSQLByStr([SF('pcid', nPcid),
+                SF('quota_name', nName),
+                SF('quota_condition', nCondition),
+                SF('quota_value', ndValue,sfval),
+                SF('punish_condition', npunishcondition),
+                SF('punish_Basis', npunishBasis,sfVal),
+                SF('punish_standard', punish_standard,sfVal),
+                SF('punish_mode', npunishmode,sfVal),
+                SF('remark', '')
+          ], sTable_PurchaseContractDetail, '', True);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end;
+  
+      FDBConn.FConn.CommitTrans;
+      Result := True;
+    except
+      FDBConn.FConn.RollbackTrans;
+      raise;
+    end;
+  finally
+    nTempList.Free;
+    nQuotaList.Free;
+  end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/3/16
+//Parm: 
+//Desc: 删除采购合同
+function TWorkerBusinessOrders.DeletePurchaseContract(var nData: string):Boolean;
+var
+  nStr:string;
+  nPcid:string;
+begin
+  Result := False;
+  nPcid := FIn.FData;
+  nStr := 'Select Count(*) From %s Where PCID=''%s''';
+  nStr := Format(nStr, [sTable_Order, FIn.FData]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if Fields[0].AsInteger > 0 then
+    begin
+      nData := '采购合同[ %s ]已被使用.';
+      nData := Format(nData, [FIn.FData]);
+      Exit;
+    end;
+  end;
+
+  FDBConn.FConn.BeginTrans;
+  try
+    nStr := 'update %s set con_DelMan=''%s'',con_DelDate=%s,con_status=%d where pcid=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseContract,
+      FIn.FBase.FFrom.FUser,
+      sField_SQLServer_Now,
+      StrToInt(sFlag_PurchaseContract_deleted),
+      nPcid]);
+
+    gDBConnManager.WorkerExec(FDBConn, nStr);
+
+    FDBConn.FConn.CommitTrans;
+    Result := True;
+  except
+    FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
+end;
+
+//------------------------------------------------------------------------------
 //Date: 2015/9/20
 //Parm: 
 //Desc: 获取供应可收货量
@@ -3775,6 +4742,7 @@ begin
             SF('O_Area', FListA.Values['Area']),
 
             SF('O_BID', FListA.Values['SQID']),
+            SF('pcid', FListA.Values['SQID']),
             SF('O_Value', nVal,sfVal),
 
             SF('O_ProID', FListA.Values['ProviderID']),
@@ -4244,6 +5212,8 @@ var nVal: Double;
     nStr,nSQL, nYS: string;
     nPound: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
+    npcid:string;//采购合同号
+    nSum:Double;
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nPound);
@@ -4506,6 +5476,31 @@ begin
     if RecordCount > 0 then
     begin
       FOut.FData := Fields[0].AsString;
+    end;
+
+    //计算合同已完成量
+    nSum:=0;
+    nSQL := 'select * from %s where P_Order where O_ID=%s';
+    nSQL := Format(nSQL,[sTable_Order,nPound[0].FZhiKa]);
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      npcid := FieldByName('pcid').AsString;
+    end;
+    if npcid<>'' then
+    begin
+      nSQL := 'select isnull(sum((D_MValue-D_PValue-D_KZValue)),0) as D_NetWeight'
+        +' from %s where D_OID in (select O_ID from %s'
+        +' where pcid=''%s'')';
+      nStr := Format(nStr,[sTable_OrderDtl,sTable_Order,npcid]);
+      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+      if RecordCount > 0 then
+      begin
+        nSum := FieldByName('D_NetWeight').AsFloat;
+      end;
+      nSQL := 'update %s set con_finished_quantity=%f where pcid=''%s''';
+      nSQL := Format(nStr,[sTable_PurchaseContract,nSum,npcid]);
+      gDBConnManager.WorkerQuery(FDBConn, nSQL);
     end;
   end else
 

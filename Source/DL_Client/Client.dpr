@@ -12,7 +12,8 @@ uses
   UFrameBase in 'Forms\UFrameBase.pas' {BaseFrame: TBaseFrame},
   UFormBase in 'Forms\UFormBase.pas' {BaseForm},
   UFrameNormal in 'Forms\UFrameNormal.pas' {fFrameNormal: TFrame},
-  UFormNormal in 'Forms\UFormNormal.pas' {fFormNormal};
+  UFormNormal in 'Forms\UFormNormal.pas' {fFormNormal},
+  uFormGetWechartAccount in 'Forms\uFormGetWechartAccount.pas' {fFormGetWechartAccount};
 
 {$R *.res}
 var

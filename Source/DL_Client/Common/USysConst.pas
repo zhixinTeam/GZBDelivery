@@ -18,6 +18,12 @@ const
   cShouJuIDLength       = 7;                         //财务收据标识长度
   cItemIconIndex        = 11;                        //默认的提货单列表图标
 
+  cSendWeChatMsgType_AddBill=1; //开提货单
+  cSendWeChatMsgType_OutFactory=2; //车辆出厂
+  cSendWeChatMsgType_Report=3; //报表
+  cSendWeChatMsgType_DelBill=4; //删提货单  
+  
+
 const
   {*Frame ID*}
   cFI_FrameSysLog       = $0001;                     //系统日志
@@ -83,6 +89,7 @@ const
   cFI_FrameWXSendLog    = $0111;                     //发送日志
 
   cFI_FrameMaterailTunnels = $0120;                     //原材料验收
+  cFI_FramePurchaseContract = $0121;                     //采购合同
 
   cFI_FormMemo          = $1000;                     //备注窗口
   cFI_FormBackup        = $1001;                     //数据备份
@@ -140,6 +147,7 @@ const
   cFI_FormPurchase      = $1055;                     //采购验收
   cFI_FormGetPOrderBase  = $1056;                     //采购订单
   cFI_FormGetYTBatch    = $1057;                     //获取云天批次
+  cFI_FormGetWechartAccount = $1058;                 //获取商城注册信息
 
   cFI_FormStockParam    = $1065;                     //品种管理
   cFI_FormStockHuaYan   = $1066;                     //开化验单
@@ -170,6 +178,10 @@ const
   cFI_FormTodo          = $1131;                     //需干预事件
   cFI_FormTodoSend      = $1132;                     //推送事件
 
+  cFI_FormPurchaseContract= $1121;                     //采购合同
+  cFI_FormGetPurchaseContract  = $1122;                     //选择采购合同
+  cFI_FormPurchaseAssayRes  = $1123;                     //采购化验结果
+
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
   cCmd_ViewSysLog       = $0003;                     //系统日志
@@ -188,6 +200,7 @@ type
     FMainTitle  : string;                            //主窗体标题
     FHintText   : string;                            //提示文本
     FCopyRight  : string;                            //主窗体提示内容
+    FFactory    : string;                            //工厂ID
 
     FUserID     : string;                            //用户标识
     FUserName   : string;                            //当前用户
@@ -380,6 +393,7 @@ begin
   AddMenuModuleItem('MAIN_M08', cFI_FrameOrderDetail);
   AddMenuModuleItem('MAIN_M09', cFI_FrameOrderBase);
   AddMenuModuleItem('MAIN_M10', cFI_FrameMaterailTunnels);
+  AddMenuModuleItem('MAIN_M11', cFI_FramePurchaseContract);
 
   AddMenuModuleItem('MAIN_W01', cFI_FrameWXAccount);
   AddMenuModuleItem('MAIN_W02', cFI_FrameWXSendLog);

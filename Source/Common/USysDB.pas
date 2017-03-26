@@ -131,6 +131,11 @@ ResourceString
   sFlag_CardLoss      = 'L';                         //挂失卡
   sFlag_CardInvalid   = 'N';                         //注销卡
 
+  sFlag_PurchaseContract_deleted  = '0';           //已删除
+  sFlag_PurchaseContract_input    = '1';           //合同录入
+  sFlag_PurchaseContract_assayRes = '2';           //化验结果录入
+  sFlag_PurchaseContract_Uploaded = '3';           //已上传
+
   sFlag_TruckNone     = 'N';                         //无状态车辆
   sFlag_TruckIn       = 'I';                         //进厂车辆
   sFlag_TruckOut      = 'O';                         //出厂车辆
@@ -215,6 +220,7 @@ ResourceString
 
   sFlag_HardSrvURL    = 'HardMonURL';
   sFlag_MITSrvURL     = 'MITServiceURL';             //服务地址
+  sFlag_Factoryid     = 'FactoryId';                 //工厂ID，与微信平台交互数据时使用  
 
   sFlag_AutoIn        = 'Truck_AutoIn';              //自动进厂
   sFlag_AutoOut       = 'Truck_AutoOut';             //自动出厂
@@ -248,6 +254,7 @@ ResourceString
   sFlag_HKRecord      = 'Bus_HKRecord';              //合单编号
   sFlag_TransBase     = 'Bus_TransBase';             //短倒申请单号
   sFlag_Transfer      = 'Bus_Transfer';              //短倒单号
+  sFlag_PurchaseContract  = 'Bus_PurchaseContract';  //采购合同单号
 
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组
@@ -326,6 +333,12 @@ ResourceString
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
 
+  sTable_WebOrderMatch   = 'S_WebOrderMatch';        //商城订单映射
+  sTable_PurchaseContract = 'P_PurchaseContract';    //采购合同
+  sTable_PurchaseContractDetail='P_PurchaseContractDetail'; //采购合同明细
+  sTable_PurchaseContractDetail_bak='P_PurchaseContractDetail_bak'; //已删除采购合同明细
+  sTable_PurchaseQuotaStandard='sys_PurchaseQuotaStandard'; //采购指标标准表
+  sTable_PurchaseAssayResult='P_PurchaseAssayResult'; //采购化验结果
 const
   {*新建表*}
   sSQL_NewSysDict = 'Create Table $Table(D_ID $Inc, D_Name varChar(15),' +
@@ -506,12 +519,12 @@ const
    *.T_Memo: 备注
   -----------------------------------------------------------------------------}
 
-  sSQL_NewCustomer = 'Create Table $Table(R_ID $Inc, C_ID varChar(15), ' +
+  sSQL_NewCustomer = 'Create Table $Table(R_ID $Inc, C_ID varChar(32), ' +
        'C_Name varChar(80), C_PY varChar(80), C_Addr varChar(100), ' +
        'C_FaRen varChar(50), C_LiXiRen varChar(50), C_WeiXin varChar(15),' +
        'C_Phone varChar(15), C_Fax varChar(15), C_Tax varChar(32),' +
        'C_Bank varChar(35), C_Account varChar(18), C_SaleMan varChar(15),' +
-       'C_Param varChar(32), C_Memo varChar(50), C_XuNi Char(1))';
+       'C_Param varChar(32), C_Memo varChar(50), C_XuNi Char(1), C_WechartAccount varchar(32))';
   {-----------------------------------------------------------------------------
    客户信息表: Customer
    *.R_ID: 记录号
@@ -531,6 +544,7 @@ const
    *.C_Param: 备用参数
    *.C_Memo: 备注信息
    *.C_XuNi: 虚拟(临时)客户
+   *.C_WechartAccount:微信商城账户
   -----------------------------------------------------------------------------}
   
   sSQL_NewCusAccount = 'Create Table $Table(R_ID $Inc, A_CID varChar(15),' +
@@ -794,7 +808,7 @@ const
    *.B_Memo: 动作备注
   -----------------------------------------------------------------------------}
 
-  sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, O_ID varChar(20),' +
+  sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, pcid varchar(32),O_ID varChar(20),' +
        'O_BID varChar(20),O_Card varChar(16), O_CType varChar(1),' +
        'O_Value $Float,O_Area varChar(50), O_Project varChar(100),' +
        'O_ProID varChar(32), O_ProName varChar(80), O_ProPY varChar(80),' +
@@ -807,6 +821,7 @@ const
    采购订单表: Order
    *.R_ID: 编号
    *.O_ID: 提单号
+   *.pcid: 采购合同单号
    *.O_BID: 采购申请单据号
    *.O_Card,O_CType: 磁卡号,磁卡类型(L、临时卡;G、固定卡)
    *.O_Value:订单量，
@@ -1215,9 +1230,26 @@ const
    *.W_TComment: 备注
   -----------------------------------------------------------------------------}
 
+  sSQL_NewWeixinCusBind = 'Create Table $Table(R_ID $Inc, wcb_Phone varchar(11),'
+        +'wcb_Appid varchar(20),wcb_Bindcustomerid varchar(32),wcb_Namepinyin varchar(20),'
+        +'wcb_Email varchar(20),wcb_Openid varchar(28),wcb_Binddate varchar(25),'
+        +'wcb_WebMallStatus char(1))';
+  {-----------------------------------------------------------------------------
+  sys_WeixinCusBind微信客户绑定
+  *.R_ID:记录号
+  *.wcb_Phone:电话号码
+  *.wcb_Appid:appid
+  *.wcb_Bindcustomerid:绑定客户id
+  *.wcb_Namepinyin:姓名
+  *.wcb_Email:邮箱
+  *.wcb_Openid:openid
+  *.wcb_Binddate:绑定日期
+  *.wcb_WebMallStatus:是否开通商城用户，默认值0：未开通 1：已开通
+  -----------------------------------------------------------------------------}
+
   sSQL_NewProvider = 'Create Table $Table(R_ID $Inc, P_ID varChar(32),' +
        'P_Name varChar(80),P_PY varChar(80), P_Phone varChar(20),' +
-       'P_Saler varChar(32),P_Memo varChar(50))';
+       'P_Saler varChar(32),p_WechartAccount varchar(32), P_Memo varChar(50))';
   {-----------------------------------------------------------------------------
    供应商: Provider
    *.P_ID: 编号
@@ -1225,6 +1257,7 @@ const
    *.P_PY: 拼音简写
    *.P_Phone: 联系方式
    *.P_Saler: 业务员
+   *.p_WechartAccount：商城账号
    *.P_Memo: 备注
   -----------------------------------------------------------------------------}
 
@@ -1386,6 +1419,117 @@ const
    *.C_Stock: 品种编号
    *.C_Freeze: 冻结量
    *.C_HasDone: 完成量
+  -----------------------------------------------------------------------------}
+  
+  sSQL_NewWebOrderMatch = 'Create Table $Table(R_ID $Inc,'
+      +'WOM_WebOrderID varchar(32) null,'
+      +'WOM_LID varchar(20) null,'
+      +'WOM_deleted char(1) default ''N'')';
+  {-----------------------------------------------------------------------------
+   商城订单与提货单对照表: WebOrderMatch
+   *.R_ID: 记录编号
+   *.WOM_WebOrderID: 商城订单
+   *.WOM_LID: 提货单
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPurchaseContract = 'Create Table $Table(R_ID $Inc,'
+      +'pcId varchar(32),'
+      +'provider_code varchar(32),'
+      +'provider_name varchar(200),'
+      +'con_code varchar(32),'
+      +'con_materiel_Code varchar(32),'
+      +'con_materiel_name varchar(200),'
+      +'con_price $Float,'
+      +'con_quantity $Float,'
+      +'con_finished_quantity $Float,'
+      +'con_date DateTime default getdate(),'
+      +'con_status integer,'
+      +'con_Man varChar(32),'
+      +'con_MdyMan varChar(32),'
+      +'con_MdyDate DateTime,'
+      +'con_DelMan varChar(32),'
+      +'con_DelDate DateTime,'
+      +'con_remark varchar(200))';
+  {-----------------------------------------------------------------------------
+   采购合同: P_PurchaseContract
+   *.R_ID: 记录编号
+   *.pcId: 合同编号（自动生成）
+   *.provider_code: 供应商编号
+   *.provider_name: 供应商名称
+   *.con_code: 合同编号
+   *.con_materiel_Code: 物料编号
+   *.con_materiel_name: 物料名称
+   *.con_price: 合同单价
+   *.con_quantity: 合同数量
+   *.con_finished_quantity: 已完成数量
+   *.con_date: 创建时间
+   *.con_status:状态，0已删除；1合同录入；2化验结果录入；3已上传
+   *.con_Man:录入人
+   *.con_MdyMan: 修改人
+   *.con_MdyDate: 修改时间
+   *.con_DelMan: 删除人
+   *.con_DelDate: 删除时间
+   *.con_remark: 备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPurchaseContractDetail = 'Create Table $Table(R_ID $Inc,'
+      +'pcId varchar(32),'
+      +'quota_name varchar(32),'
+      +'quota_condition varchar(2), '
+      +'quota_value $float,'
+      +'punish_condition varchar(2),'
+      +'punish_Basis $float,'
+      +'punish_standard $float,'
+      +'punish_mode integer,'
+      +'Del_man varchar(32),'
+      +'Del_Date Datetime,'
+      +'remark varchar(200))';
+  {-----------------------------------------------------------------------------
+   采购合同明细: P_PurchaseContractDetail
+   *.R_ID: 记录编号
+   *.pcId: 合同表记录编号（外键）
+   *.quota_name: 指标名称
+   *.quota_condition：指标条件,'≤'或'≥'
+   *.quota_value：指标值
+   *.punish_condition：惩罚条件,'≤'或'≥'
+   *.punish_Basis：惩罚依据,1%或5%
+   *.punish_standard：惩罚标准，0.1或0.5
+   *.punish_mode：惩罚模式，0为quantity，1未price
+   *.Del_man:删除人
+   *.Del_Date:删除时间
+   *.remark：备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPurchaseQuotaStandard = 'Create Table $Table(R_ID $Inc,'
+  +'quota_name varchar(32),'
+  +'reference_condition varchar(2),'
+  +'reference_value varchar(32),'
+  +'remark varchar(255))';
+  {-----------------------------------------------------------------------------
+   采购指标标准表: sys_PurchaseQuotaStandard
+   *.R_ID: 记录编号
+   *.quota_name: 指标名称
+   *.reference_condition: 指标条件,条件,'≤'或'≥'
+   *.reference_value: 参考值
+   *.remark: 备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPurchaseAssayResult='Create Table $Table(R_ID $Inc,'
+    +'D_ID varchar(32),'
+    +'quota_name varchar(32),'
+    +'pas_Man varchar(32),'
+    +'pas_Date DateTime,'
+    +'Del_Man varchar(32),'
+    +'Del_Date DateTime,'
+    +'AssayRes $float)';
+  {-----------------------------------------------------------------------------
+   采购化验结果: P_PurchaseAssayResult
+   *.R_ID: 记录编号
+   *.D_ID: 采购明细号
+   *.quota_name:指标名称
+   *.AssayRes: 化验结果
+   *.pas_Man: 录入人
+   *.pas_Date: 录入时间
   -----------------------------------------------------------------------------}
 
 //------------------------------------------------------------------------------
@@ -1556,6 +1700,13 @@ begin
 
   AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
   AddSysTableItem(sTable_YT_CodeInfo, sSQL_NewYTCode);
+  AddSysTableItem(sTable_WebOrderMatch,sSQL_NewWebOrderMatch);
+
+  AddSysTableItem(sTable_PurchaseContract,sSQL_NewPurchaseContract);
+  AddSysTableItem(sTable_PurchaseContractDetail,sSQL_NewPurchaseContractDetail);
+  AddSysTableItem(sTable_PurchaseContractDetail_bak,sSQL_NewPurchaseContractDetail);
+  AddSysTableItem(sTable_PurchaseQuotaStandard,sSQL_NewPurchaseQuotaStandard);
+  AddSysTableItem(sTable_PurchaseAssayResult,sSQL_NewPurchaseAssayResult);
 end;
 
 //Desc: 清理系统表

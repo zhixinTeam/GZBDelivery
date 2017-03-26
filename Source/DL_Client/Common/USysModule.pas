@@ -44,6 +44,8 @@ uses
   UFormWeiXinSendlog,
   {$ENDIF}
   //----------------------------------------------------------------------------
+  UFramePurchaseContract,UFormPurchaseContract,UFormGetPurchaseContract,
+  UFormPurchaseAssayRes,
   UFormHYStock, UFormHYData, UFormHYRecord, UFormGetStockNo,
   UFrameHYStock, UFrameHYData, UFrameHYRecord;
 

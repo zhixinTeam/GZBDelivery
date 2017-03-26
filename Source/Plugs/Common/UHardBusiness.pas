@@ -26,10 +26,22 @@ procedure WhenBusinessMITSharedDataIn(const nData: string);
 procedure WhenSaveJS(const nTunnel: PMultiJSTunnel);
 //保存计数结果
 
+//推送消息到微信平台
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
+
+//发送消息
+function Do_send_event_msg(const nXmlStr: string): string;
+
+//修改网上订单状态
+procedure ModifyWebOrderStatus(const nLId:string);
+
+//修改网上订单状态
+function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
+
 implementation
 
 uses
-  ULibFun, USysDB, USysLoger, UTaskMonitor;
+  ULibFun, USysDB, USysLoger, UTaskMonitor,UMITConst,UWorkerBusinessCommand;
 
 const
   sPost_In   = 'in';
@@ -537,6 +549,165 @@ begin
   end;
 end;
 
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
+var
+  nSql:string;
+  nDs:TDataSet;
+
+  nBills: TLadingBillItems;
+  nXmlStr,nData:string;
+  i,nIdx:Integer;
+  nItem:TLadingBillItem;
+  nMobileNo,nCustomerid:string;
+  nDBConn: PDBWorker;
+begin
+  //加载提货单信息
+  if not GetLadingBills(nLid, sFlag_BillDone, nBills) then
+  begin
+    Exit;
+  end;
+
+  nDBConn := nil;
+  with gParamManager.ActiveParam^ do
+  begin
+    try
+      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+      if not Assigned(nDBConn) then
+      begin
+        Exit;
+      end;
+      if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+      
+      //调用web接口发送消息
+      for i := Low(nBills) to High(nBills) do
+      begin
+        nItem := nBills[i];
+
+        nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+            +'<DATA>'
+            +'<head>'
+            +'<Factory>%s</Factory>'
+            +'<ToUser>%s</ToUser>'
+            +'<MsgType>%d</MsgType>'
+            +'</head>'
+            +'<Items>'
+            +'	  <Item>'
+            +'	      <BillID>%s</BillID>'
+            +'	      <Card>%s</Card>'
+            +'	      <Truck>%s</Truck>'
+            +'	      <StockNo>%s</StockNo>'
+            +'	      <StockName>%s</StockName>'
+            +'	      <CusID>%s</CusID>'
+            +'	      <CusName>%s</CusName>'
+            +'	      <CusAccount>0</CusAccount>'
+            +'	      <MakeDate></MakeDate>'
+            +'	      <MakeMan></MakeMan>'
+            +'	      <TransID></TransID>'
+            +'	      <TransName></TransName>'
+            +'	      <Searial></Searial>'
+            +'	      <OutFact></OutFact>'
+            +'	      <OutMan></OutMan>'
+            +'	  </Item>	'
+            +'</Items>'
+            +'   <remark/>'
+            +'</DATA>';
+        nXmlStr := Format(nXmlStr,[gSysParam.FFactory, nItem.FCusID, MsgType,//cSendWeChatMsgType_DelBill,
+              nItem.FID,nItem.FCard,nitem.FTruck,
+              nItem.FStockNo,nItem.FStockName,nItem.FCusID,
+              nItem.FCusName]);
+        nXmlStr := PackerEncodeStr(nXmlStr);
+        nData := Do_send_event_msg(nXmlStr);
+        gSysLoger.AddLog(nData);
+
+        if ndata<>'' then
+        begin
+          WriteHardHelperLog(nData, sPost_Out);
+        end;
+      end;
+    finally
+      gDBConnManager.ReleaseConnection(nDBConn);
+    end;
+  end;
+end;
+
+//发送消息
+function Do_send_event_msg(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if TWorkerBusinessCommander.CallMe(cBC_WeChat_send_event_msg, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
+//修改网上订单状态
+procedure ModifyWebOrderStatus(const nLId:string);
+var
+  nXmlStr,nData,nSql:string;
+  nDBConn: PDBWorker;
+  nWebOrderId:string;
+  nIdx:Integer;
+begin
+  nWebOrderId := '';
+  nDBConn := nil;
+
+  with gParamManager.ActiveParam^ do
+  begin
+    try
+      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+      if not Assigned(nDBConn) then
+      begin
+//        WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
+        Exit;
+      end;
+      if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+
+      //查询网上商城订单
+      nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+      nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
+
+      with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+        begin
+          if recordcount>0 then
+          begin
+            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+          end;
+        end;
+    finally
+      gDBConnManager.ReleaseConnection(nDBConn);
+    end;
+  end;
+
+  if nWebOrderId='' then Exit;
+  
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+            +'<DATA>'
+            +'<head><ordernumber>%s</ordernumber>'
+            +'<status>1</status>'
+            +'</head>'
+            +'</DATA>';
+  nXmlStr := Format(nXmlStr,[nWebOrderId]);
+  nXmlStr := PackerEncodeStr(nXmlStr);
+
+  nData := Do_ModifyWebOrderStatus(nXmlStr);
+  gSysLoger.AddLog(nData);
+
+  if ndata<>'' then
+  begin
+    WriteHardHelperLog(nData, sPost_Out);
+  end;
+end;
+
+//修改网上订单状态
+function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if TWorkerBusinessCommander.CallMe(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
+end;
+
 //Date: 2012-4-22
 //Parm: 卡号;读头;打印机
 //Desc: 对nCard放行出厂
@@ -612,7 +783,8 @@ begin
 
   BlueOpenDoor(nReader);
   //抬杆
-
+  //发送微信商城
+  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory);
   //发起一次打印
   with nTrucks[0] do
   begin
@@ -630,6 +802,8 @@ begin
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
     else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
+
+    ModifyWebOrderStatus(FID);
   end;  
   //打印报表
 

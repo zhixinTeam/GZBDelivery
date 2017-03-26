@@ -74,6 +74,7 @@ type
     function InitFormDataSQL(const nWhere: string): string; override;
     procedure AfterInitFormData; override;
     {*查询SQL*}
+    procedure SendMsgToWebMall(const nBillno:string);
   public
     { Public declarations }
     class function FrameID: integer; override;
@@ -84,7 +85,8 @@ implementation
 {$R *.dfm}
 uses
   ULibFun, UMgrControl, UDataModule, UFormBase, UFormInputbox, USysPopedom,
-  USysConst, USysDB, USysBusiness, UFormDateFilter;
+  USysConst, USysDB, USysBusiness, UFormDateFilter,UBusinessConst,
+  UBusinessPacker,USysLoger;
 
 //------------------------------------------------------------------------------
 class function TfFrameBill.FrameID: integer;
@@ -385,6 +387,71 @@ begin
       FDM.WriteSysLog(sFlag_BillItem, nStr, nTmp, False);
       InitFormData(FWhere);
       ShowMsg('调拨成功', sHint);
+    end;
+  end;
+end;
+
+procedure TfFrameBill.SendMsgToWebMall(const nBillno: string);
+var
+  nSql:string;
+  nDs:TDataSet;
+
+  nBills: TLadingBillItems;
+  nXmlStr,nData:string;
+  i:Integer;
+  nItem:TLadingBillItem;
+begin
+
+  //加载提货单信息
+  if not GetLadingBills(nBillno, sFlag_BillDel, nBills) then
+  begin
+    Exit;
+  end;
+
+  //调用web接口发送消息
+  for i := Low(nBills) to High(nBills) do
+  begin
+    nItem := nBills[i];
+
+    nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+        +'<DATA>'
+        +'<head>'
+        +'<Factory>%s</Factory>'
+        +'<ToUser>%s</ToUser>'
+        +'<MsgType>%d</MsgType>'
+        +'</head>'
+        +'<Items>'
+        +'	  <Item>'
+        +'	      <BillID>%s</BillID>'
+        +'	      <Card>%s</Card>'
+        +'	      <Truck>%s</Truck>'
+        +'	      <StockNo>%s</StockNo>'
+        +'	      <StockName>%s</StockName>'
+        +'	      <CusID>%s</CusID>'
+        +'	      <CusName>%s</CusName>'
+        +'	      <CusAccount>0</CusAccount>'
+        +'	      <MakeDate></MakeDate>'
+        +'	      <MakeMan></MakeMan>'
+        +'	      <TransID></TransID>'
+        +'	      <TransName></TransName>'
+        +'	      <Searial></Searial>'
+        +'	      <OutFact></OutFact>'
+        +'	      <OutMan></OutMan>'
+        +'	  </Item>	'
+        +'</Items>'
+        +'   <remark/>'
+        +'</DATA>';
+    nXmlStr := Format(nXmlStr,[gSysParam.FFactory, nItem.FCusID,cSendWeChatMsgType_DelBill,
+          nItem.FID,nItem.FCard,nitem.FTruck,
+          nItem.FStockNo,nItem.FStockName,nItem.FCusID,
+          nItem.FCusName]);
+    nXmlStr := PackerEncodeStr(nXmlStr);
+    nData := send_event_msg(nXmlStr);
+    gSysLoger.AddLog(TfFrameBill,'SendMsgToWebMall',nData);
+
+    if ndata<>'' then
+    begin
+      ShowMsg(nData,sHint);
     end;
   end;
 end;

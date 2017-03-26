@@ -94,8 +94,27 @@ const
   cBC_GetYTBatchCode          = $0088;   //获取云天系统批次
   cBC_SaveLadingSealInfo      = $0089;   //更新批次信息
   cBC_SyncYTBatchCodeInfo     = $0090;   //获取化验单信息
+  cBC_SyncProvidePound        = $0192;   //同步供应磅单到远程
 
-  cBC_SyncProvidePound        = $0092;   //同步供应磅单到远程
+  cBC_VerifPrintCode          = $0091;   //验证喷码信息
+  cBC_WaitingForloading       = $0092;   //工厂待装查询
+  cBC_BillSurplusTonnage      = $0093;   //网上订单可下单数量查询
+  cBC_GetOrderInfo            = $0094;   //获取订单信息，用于网上商城下单
+  cBC_GetOrderList            = $0103;   //获取订单列表，用于网上商城下单
+  cBC_GetPurchaseContractList = $0107;   //获取采购合同列表，用于网上商城下单  
+
+  cBC_WeChat_getCustomerInfo  = $0095;   //微信平台接口：获取客户注册信息
+  cBC_WeChat_get_Bindfunc     = $0096;   //微信平台接口：客户与微信账号绑定
+  cBC_WeChat_send_event_msg   = $0097;   //微信平台接口：发送消息
+  cBC_WeChat_edit_shopclients = $0098;   //微信平台接口：新增商城用户
+  cBC_WeChat_edit_shopgoods   = $0099;   //微信平台接口：添加商品
+  cBC_WeChat_get_shoporders   = $0100;   //微信平台接口：获取订单信息
+  cBC_WeChat_complete_shoporders   = $0101;   //微信平台接口：修改订单状态
+  cBC_WeChat_get_shoporderbyNO   = $0102;   //微信平台接口：根据订单号获取订单信息  
+
+  cBC_SavePurchaseContract           = $0104;   //保存采购合同
+  cBC_DeletePurchaseContract         = $0105;   //删除采购合同
+  cBC_ModifyPurchaseContract           = $0106;   //修改采购合同
 
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;
@@ -111,6 +130,7 @@ type
     FCommand  : Integer;           //命令
     FData     : string;            //数据
     FExtParam : string;            //参数
+    FRemoteUL : string;            //工厂服务器UL
   end;
 
   TPoundStationData = record
@@ -160,6 +180,25 @@ type
   TLadingBillItems = array of TLadingBillItem;
   //交货单列表
 
+  TQueueListItem = record
+    FStockNO   : string;
+    FStockName : string;
+
+    FLineCount : Integer;
+    FTruckCount: Integer;
+  end;
+  //待装车辆排队列表
+  TQueueListItems = array of TQueueListItem;
+
+  PWorkerWebChatData = ^TWorkerWebChatData;
+  TWorkerWebChatData = record
+    FBase     : TBWDataBase;
+    FCommand  : Integer;           //类型
+    FData     : string;            //数据
+    FExtParam : string;            //参数
+    FRemoteUL : string;            //工厂服务器UL
+  end;        
+
 procedure AnalyseBillItems(const nData: string; var nItems: TLadingBillItems);
 //解析由业务对象返回的交货单数据
 function CombineBillItmes(const nItems: TLadingBillItems): string;
@@ -170,6 +209,11 @@ function Sbc2Dbc(const nStr: string):string;
 function Dbc2Sbc(const nStr: string):string;
 //全角符号转半角符号
 
+//解析由业务对象返回的待装排队数据
+procedure AnalyseQueueListItems(const nData: string; var nItems: TQueueListItems);
+
+
+
 resourcestring
   {*PBWDataBase.FParam*}
   sParam_NoHintOnError        = 'NHE';                  //不提示错误
@@ -179,6 +223,8 @@ resourcestring
                                                         //业务模块
   sPlug_ModuleHD              = '{B584DCD6-40E5-413C-B9F3-6DD75AEF1C62}';
                                                         //硬件守护
+  sPlug_ModuleRemote          = '{B584DCD7-40E5-413C-B9F3-6DD75AEF1C63}';
+                                                      //MIT互相访问                                                        
                                                                                                    
   {*common function*}  
   sSys_BasePacker             = 'Sys_BasePacker';       //基本封包器
@@ -196,6 +242,7 @@ resourcestring
   {*client function name*}
   sCLI_ServiceStatus          = 'CLI_ServiceStatus';    //服务状态
   sCLI_GetQueryField          = 'CLI_GetQueryField';    //查询的字段
+  sBus_BusinessWebchat        = 'Bus_BusinessWebchat';  //Web平台服务
 
   sCLI_BusinessSaleBill       = 'CLI_BusinessSaleBill'; //交货单业务
   sCLI_BusinessCommand        = 'CLI_BusinessCommand';  //业务指令
@@ -497,6 +544,41 @@ begin
 
   Result:= nStrTmp;
 end;
+
+//Date: 2016-09-20
+//Parm: 待装队列数据;解析结果
+//Desc: 解析nData为结构化列表数据
+procedure AnalyseQueueListItems(const nData: string; var nItems: TQueueListItems);
+var nIdx,nInt: Integer;
+    nListA,nListB: TStrings;
+begin
+  nListA := TStringList.Create;
+  nListB := TStringList.Create;
+  try
+    nListA.Text := PackerDecodeStr(nData);
+    //bill list
+    nInt := 0;
+    SetLength(nItems, nListA.Count);
+
+    for nIdx:=0 to nListA.Count - 1 do
+    begin
+      nListB.Text := PackerDecodeStr(nListA[nIdx]);
+      //bill item
+
+      with nListB,nItems[nInt] do
+      begin
+        FStockName := Values['StockName'];
+        FLineCount := StrToIntDef(Values['LineCount'],0);
+        FTruckCount := StrToIntDef(Values['TruckCount'],0);
+      end;
+      Inc(nInt);
+    end;
+  finally
+    nListB.Free;
+    nListA.Free;
+  end;   
+end;
+
 
 end.
 
