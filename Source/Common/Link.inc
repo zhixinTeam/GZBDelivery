@@ -50,12 +50,23 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBZX}
 //特定系统
 
 //葛洲坝松滋
 {$IFDEF GZBSZ}
-  {$DEFINE GZBJM}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE SyncRemote}
+  //远程同步
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE MicroMsg}
+  //微信支持
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -73,5 +84,25 @@
   //状态栏显示
   {$DEFINE MicroMsg}
   //微信支持
+  {$DEFINE CODECOMMON}
+  //通用喷码
+{$ENDIF}
+
+//葛洲坝钟祥
+{$IFDEF GZBZX}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE SyncRemote}
+  //远程同步
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE MicroMsg}
+  //微信支持
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
+  {$DEFINE MITTruckProber}
+  //服务器操作车间控制柜
 {$ENDIF}
 

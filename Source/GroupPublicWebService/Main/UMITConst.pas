@@ -101,7 +101,7 @@ ResourceString
   
   sFormConfig         = 'FormInfo.ini';              //窗体配置
   sLogDir             = 'Logs\';                     //日志目录
-  sLogSyncLock        = 'SyncLock_MIT_CommonMIT';    //日志同步锁
+  sLogSyncLock        = 'SyncLock_WebChat_CommonMIT';    //日志同步锁
 
   sPlugDir            = 'Plugs\';                    //插件目录
   sInvalidConfig      = '配置文件无效或已经损坏';    //配置文件无效

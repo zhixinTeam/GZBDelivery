@@ -167,6 +167,11 @@ ResourceString
   sFlag_InvRequst     = 'R';                         //申请开出
   sFlag_InvDaily      = 'D';                         //日常开出
 
+  sFlag_ManualA       = 'A';                         //皮重预警(错误事件类型)
+  sFlag_ManualB       = 'B';                         //皮重超出范围
+  sFlag_ManualC       = 'C';                         //净重超出误差范围
+  sFlag_ManualD       = 'D';                         //
+
   sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
   sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量
 
@@ -189,6 +194,7 @@ ResourceString
   sFlag_PSanWuChaF    = 'PoundSanWuChaF';            //散装负误差
   sFlag_PoundWuCha    = 'PoundWuCha';                //过磅误差分组
   sFlag_PoundIfDai    = 'PoundIFDai';                //袋装是否过磅
+  sFlag_PoundWarning  = 'PoundWarning';              //皮重预警
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
   sFlag_StockIfYS     = 'StockIfYS';                 //现场是否验收
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
@@ -233,11 +239,6 @@ ResourceString
   sFlag_PoundQueue    = 'PoundQueue';                //延迟排队(厂内依据过皮时间)
   sFlag_NetPlayVoice  = 'NetPlayVoice';              //使用网络语音播发
   sFlag_SaveHKRecord  = 'SaveHKRecord';              //保存合单表信息
-
-  sFlag_Departments   = 'Departments';               //部门列表
-  sFlag_DepDaTing     = '大厅';                      //服务大厅
-  sFlag_DepJianZhuang = '监装';                      //监装
-  sFlag_DepBangFang   = '磅房';                      //磅房
 
   sFlag_BusGroup      = 'BusFunction';               //业务编码组
   sFlag_BillNo        = 'Bus_Bill';                  //交货单号
@@ -340,6 +341,13 @@ ResourceString
   sTable_PurchaseQuotaStandard='sys_PurchaseQuotaStandard'; //采购指标标准表
   sTable_PurchaseAssayResult='P_PurchaseAssayResult'; //采购化验结果
 const
+  sFlag_Departments   = 'Departments';               //部门列表
+  sFlag_DepDaTing     = '大厅';                      //服务大厅
+  sFlag_DepJianZhuang = '监装';                      //监装
+  sFlag_DepBangFang   = '磅房';                      //磅房
+  sFlag_Solution_YN   = 'Y=通过;N=禁止';
+  sFlag_Solution_YNI  = 'Y=通过;N=禁止;I=忽略';
+
   {*新建表*}
   sSQL_NewSysDict = 'Create Table $Table(D_ID $Inc, D_Name varChar(15),' +
        'D_Desc varChar(30), D_Value varChar(50), D_Memo varChar(20),' +

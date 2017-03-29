@@ -656,44 +656,52 @@ end;
 
 //Desc: 保存销售
 function TfFrameAutoPoundItem.SavePoundSale: Boolean;
-var nStr: string;
-    nVal,nNet: Double;
+var nHint: string;
+    nVal,nNet, nWarn: Double;
 begin
   Result := False;
   //init
 
-  if FBillItems[0].FNextStatus = sFlag_TruckBFP then
+  with FUIData do
+  if FNextStatus = sFlag_TruckBFP then
   begin
-    if FUIData.FPData.FValue <= 0 then
+    if not VerifyPoundWarning(nHint, nWarn) then
     begin
-      WriteLog('请先称量皮重');
-      Exit;
+      if not VerifyManualEventRecord(FID + sFlag_ManualA, nHint) then
+      begin
+        AddManualEventRecord(FID + sFlag_ManualA, FTruck, nHint);
+
+        WriteSysLog(nHint);
+        PlayVoice(nHint);
+        Exit;
+      end;
     end;
-    
-    nNet := GetTruckEmptyValue(FUIData.FTruck);
-    nVal := nNet * 1000 - FUIData.FPData.FValue * 1000;
+    //设置皮重预警范围
 
-    if (nNet > 0) and (Abs(nVal) > gSysParam.FPoundSanF) then
+    nNet := GetTruckEmptyValue(FTruck);
+    nVal := nNet * 1000 - FPData.FValue * 1000;
+
+    if (nNet > 0) and (nWarn > 0) and (Abs(nVal) > nWarn) then
     begin
-      nStr := '车辆[%s]实时皮重误差较大,请通知司机检验车厢';
-      nStr := Format(nStr, [FUIData.FTruck]);
-      PlayVoice(nStr);
-
-      nStr := '车辆[ %s ]实时皮重误差较大,详情如下:' + #13#10#13#10 +
+      nHint := '车辆[ %s ]实时皮重误差较大,详情如下:' + #13#10 +
               '※.实时皮重: %.2f吨' + #13#10 +
               '※.历史皮重: %.2f吨' + #13#10 +
-              '※.误差量: %.2f公斤' + #13#10#13#10 +
+              '※.误差量: %.2f公斤' + #13#10 +
               '是否继续保存?';
-      nStr := Format(nStr, [FUIData.FTruck, FUIData.FPData.FValue,
+      nHint := Format(nHint, [FTruck, FPData.FValue,
               nNet, nVal]);
-      if not QueryDlg(nStr, sAsk) then Exit;
-    end;
-  end else
-  begin
-    if FUIData.FMData.FValue <= 0 then
-    begin
-      WriteLog('请先称量毛重');
-      Exit;
+
+      if not VerifyManualEventRecord(FID + sFlag_ManualB, nHint) then
+      begin
+        AddManualEventRecord(FID + sFlag_ManualB, FTruck, nHint);
+        WriteSysLog(nHint);
+
+        nHint := '[n1]%s皮重超出预警,请等待管理员处理';
+        nHint := Format(nHint, [FTruck]);
+        PlayVoice(nHint);
+        Exit;
+      end;
+      //判断皮重是否超差
     end;
   end;
 
@@ -723,31 +731,26 @@ begin
 
       if ((FType = sFlag_Dai) and (
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
-          ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF)))){  or
-         ((FType = sFlag_San) and (
-          (nVal < 0) and (FPoundSanF > 0) and (-nVal > FPoundSanF))) }then
+          ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF))))then
       begin
-        nStr := '车辆[%s]实际装车量误差较大，请通知司机检验载重';
-        nStr := Format(nStr, [FTruck]);
-        PlayVoice(nStr);
-
-        nStr := '车辆[ %s ]实际装车量误差较大,详情如下:' + #13#10#13#10 +
+        nHint := '车辆[ %s ]实际装车量误差较大,详情如下:' + #13#10 +
                 '※.开单量: %.2f吨' + #13#10 +
                 '※.装车量: %.2f吨' + #13#10 +
-                '※.误差量: %.2f公斤';
+                '※.误差量: %.2f公斤' + #13#10 +
+                '请确认是否可以过磅';
+        nHint := Format(nHint, [FTruck, FInnerData.FValue, nNet, nVal]);
 
-        if FDaiWCStop and (FType = sFlag_Dai) then
+
+        if not VerifyManualEventRecord(FID + sFlag_ManualC, nHint) then
         begin
-          nStr := nStr + #13#10#13#10 + '请通知司机点验包数.';
-          nStr := Format(nStr, [FTruck, FInnerData.FValue, nNet, nVal]);
+          AddManualEventRecord(FID + sFlag_ManualC, FTruck, nHint,
+            sFlag_DepBangFang, sFlag_Solution_YN, sFlag_DepJianZhuang);
+          WriteSysLog(nHint);
 
-          ShowDlg(nStr, sHint);
+          nHint := '车辆[n1]%s净重与开票量误差较大,请去包装点包';
+          nHint := Format(nHint, [FTruck]);
+          PlayVoice(nHint);
           Exit;
-        end else
-        begin
-          nStr := nStr + #13#10#13#10 + '是否继续保存?';
-          nStr := Format(nStr, [FTruck, FInnerData.FValue, nNet, nVal]);
-          if not QueryDlg(nStr, sAsk) then Exit;
         end;
       end;    
 
@@ -798,13 +801,6 @@ var nNextStatus: string;
 begin
   Result := False;
   //init
-
-  if (FUIData.FPData.FValue <= 0) and (FUIData.FMData.FValue <= 0) then
-  begin
-    WriteLog('请先称重');
-    Exit;
-  end;
-
   if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) then
   begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
@@ -1043,7 +1039,7 @@ begin
 
   for nIdx:=FPoundTunnel.FSampleNum-1 downto 1 do
   begin
-    if FValueSamples[nIdx] < 1 then Exit;
+    if FValueSamples[nIdx] < FPoundTunnel.FPort.FMinValue then Exit;
     //样本不完整
 
     nVal := Trunc(FValueSamples[nIdx] * 1000 - FValueSamples[nIdx-1] * 1000);

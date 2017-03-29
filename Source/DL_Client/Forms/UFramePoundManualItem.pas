@@ -753,7 +753,7 @@ end;
 procedure TfFrameManualPoundItem.BtnReadCardClick(Sender: TObject);
 var nInit: Int64;
     nChar: Char;
-    nStr, nCard, nReader: string;
+    nStr, nCard: string;
 begin
   nCard := '';
   try
@@ -763,32 +763,18 @@ begin
     while GetTickCount - nInit < 5 * 1000 do
     begin
       ShowWaitForm(ParentForm, 'ÕýÔÚ¶Á¿¨', False);
+      FCardNOSync := gPoundCardReader.GetCardNOSync(FCardReader);
+      if FCardNOSync='' then Continue;
 
-      if Assigned(gPoundCardReader) then
+      nStr := 'Select C_Card From $TB Where C_Card=''$CD'' or ' +
+          'C_Card2=''$CD'' or C_Card3=''$CD''';
+      nStr := MacroValue(nStr, [MI('$TB', sTable_Card), MI('$CD', FCardNOSync)]);
+
+      with FDM.QueryTemp(nStr) do
+      if RecordCount > 0 then
       begin
-        FCardNOSync := gPoundCardReader.GetCardNOSync(FCardReader);
-        if FCardNOSync='' then Continue;
-
-        nStr := 'Select C_Card From $TB Where C_Card=''$CD'' or ' +
-            'C_Card2=''$CD'' or C_Card3=''$CD''';
-        nStr := MacroValue(nStr, [MI('$TB', sTable_Card), MI('$CD', FCardNOSync)]);
-
-        with FDM.QueryTemp(nStr) do
-        if RecordCount > 0 then
-        begin
-          nCard := Fields[0].AsString;
-          Break;
-        end;
-      end
-      else
-      begin
-        nStr := ReadPoundCard(nReader, FPoundTunnel.FID);
-
-        if nStr <> '' then
-        begin
-          nCard := nStr;
-          Break;
-        end else Sleep(1000);
+        nCard := Fields[0].AsString;
+        Break;
       end;
     end;
 

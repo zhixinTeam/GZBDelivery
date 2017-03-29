@@ -474,17 +474,7 @@ begin
         nData := Format('交货单[ %s ]已无效.', [FIn.FData]); Exit;
       end;
 
-      {$IFDEF XAZL}
-      nCode := StringReplace(FieldByName('L_ID').AsString, 'TH', '', [rfIgnoreCase]);
-      nCode := FieldByName('L_Seal').AsString.AsString + ' ' + nCode;
-      {$ENDIF}
-
-      {$IFDEF RDHX}
-      nCode := Trim(FieldByName('L_Seal').AsString);
-      nCode := nCode + Date2Str(Now, False);;
-      {$ENDIF}
-
-      {$IFDEF GZBJM}
+      {$IFDEF CODECOMMON}
       nStr := FieldByName('L_ID').AsString;
       nIDLen := Length(nStr);
 
@@ -498,7 +488,7 @@ begin
       nCode := Dbc2Sbc(nCode);
       {$ENDIF}
 
-      {$IFDEF GZBSZ}
+      {$IFDEF CODEAREA}
       nStr := FieldByName('L_ID').AsString;
       nIDLen := Length(nStr);
 

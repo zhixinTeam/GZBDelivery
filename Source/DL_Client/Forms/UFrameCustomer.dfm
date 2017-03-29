@@ -4,9 +4,11 @@ inherited fFrameCustomer: TfFrameCustomer
   inherited ToolBar1: TToolBar
     Width = 830
     inherited BtnAdd: TToolButton
+      Visible = False
       OnClick = BtnAddClick
     end
     inherited BtnEdit: TToolButton
+      Visible = False
       OnClick = BtnEditClick
     end
     inherited BtnDel: TToolButton

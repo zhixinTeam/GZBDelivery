@@ -162,6 +162,10 @@ function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
 //打开读卡器道闸
 function RemoteImportPounds(const nData: string): Boolean;
 //导入过磅数据
+function IsTunnelOK(const nTunnel: string): Boolean;
+//查询通道光栅是否正常
+procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
+//控制通道红绿灯开合
 
 function SaveOrderBase(const nOrderData: string): string;
 //保存采购申请单
@@ -279,6 +283,16 @@ function edit_shopgoods(const nXmlStr: string): string;
 
 //获取订单信息
 function get_shoporders(const nXmlStr: string): string;
+
+function VerifyPoundWarning(var nHint: string; var nWarnVal: Double): Boolean;
+//车辆皮重预警设置
+function AddManualEventRecord(nEID, nKey, nEvent:string;
+    nFrom: string = '磅房'; nSolution: string=sFlag_Solution_YN;
+    nDepartmen: string=sFlag_DepDaTing): Boolean;
+//添加待处理事项记录
+function VerifyManualEventRecord(const nEID: string; var nHint: string;
+    const nWant: string = 'Y'): Boolean;
+//检查事件是否通过处理
 
 implementation
 
@@ -2438,6 +2452,27 @@ begin
   Result := CallBusinessPurchaseOrder(cBC_ImportOrderPoundS, nData, '', @nOut);
 end;
 
+//Date: 2014-07-03
+//Parm: 通道号
+//Desc: 查询nTunnel的光栅状态是否正常
+function IsTunnelOK(const nTunnel: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessHardware(cBC_IsTunnelOK, nTunnel, '', @nOut);
+  if not Result then Exit;
+  Result := nOut.FData = sFlag_Yes;
+end;
+
+procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
+var nStr: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  if nOpen then
+       nStr := sFlag_Yes
+  else nStr := sFlag_No;
+  CallBusinessHardware(cBC_TunnelOC, nTunnel, nStr, @nOut);
+end;
+
 //获取客户注册信息
 function getCustomerInfo(const nXmlStr: string): string;
 var nOut: TWorkerBusinessCommand;
@@ -2490,6 +2525,105 @@ begin
   Result := '';
   if CallBusinessCommand(cBC_WeChat_get_shoporders, nXmlStr, '', @nOut) then
     Result := nOut.FData;
+end;
+
+//Date: 2016/11/27
+//Parm: 参数描述
+//Desc: 判断是否设置预警范围
+function VerifyPoundWarning(var nHint: string; var nWarnVal: Double): Boolean;
+var nStr, nWarn: string;
+begin
+  nWarn := '';
+  Result:= False;
+  //init
+
+  nStr := 'Select D_Value from %s Where D_Name=''%s'' And D_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_PoundWarning]);
+
+
+  with FDM.QueryTemp(nStr, False) do
+  if RecordCount > 0 then nWarn := Fields[0].AsString;
+
+  if  Length(nWarn) = 0 then
+  begin
+     nHint := '请设置皮重预警范围';
+     Exit;
+  end;
+
+  Result := True;
+  nWarnVal := StrToFloatDef(nWarn, 0);
+end;
+
+//Date: 2016/11/27
+//Parm: 参数描述
+//Desc: 添加异常事件处理
+function AddManualEventRecord(nEID, nKey, nEvent:string;
+    nFrom: string; nSolution: string; nDepartmen: string): Boolean;
+var nSQL, nStr: string;
+begin
+  Result := False;
+  //init
+
+  if Trim(nSolution) = '' then
+  begin
+    WriteLog('请选择处理方案.');
+    Exit;
+  end;
+
+  nSQL := 'Select * From %s Where E_ID=''%s''';
+  nSQL := Format(nSQL, [sTable_ManualEvent, nEID]);
+  with FDM.QuerySQL(nSQL) do
+  if RecordCount > 0 then
+  begin
+    nStr := '事件记录:[ %s ]已存在';
+    nStr := Format(nStr, [nEID]);
+    WriteLog(nStr);
+    Exit;
+  end;
+
+  nSQL := MakeSQLByStr([
+          SF('E_ID', nEID),
+          SF('E_Key', nKey),
+          SF('E_From', nFrom),
+          SF('E_Event', nEvent),
+          SF('E_Solution', nSolution),
+          SF('E_Departmen', nDepartmen),
+          SF('E_Date', sField_SQLServer_Now, sfVal)
+          ], sTable_ManualEvent, '', True);
+  FDM.ExecuteSQL(nSQL);
+end;
+
+//Date: 2016/11/27
+//Parm: 事件ID;预期结果;错误返回
+//Desc: 判断事件是否处理
+function VerifyManualEventRecord(const nEID: string; var nHint: string;
+    const nWant: string): Boolean;
+var nSQL, nStr: string;
+begin
+  Result := False;
+  //init
+
+  nSQL := 'Select E_Result, E_Event From %s Where E_ID=''%s''';
+  nSQL := Format(nSQL, [sTable_ManualEvent, nEID]);
+
+  with FDM.QuerySQL(nSQL) do
+  if RecordCount > 0 then
+  begin
+    nStr := Trim(FieldByName('E_Result').AsString);
+    if nStr = '' then
+    begin
+      nHint := FieldByName('E_Event').AsString;
+      Exit;
+    end;
+
+    if nStr <> nWant then
+    begin
+      nHint := '请联系管理员，做换票处理';
+      Exit;
+    end;
+
+    Result := True;
+  end;
 end;
 
 end.

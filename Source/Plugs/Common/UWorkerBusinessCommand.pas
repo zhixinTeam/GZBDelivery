@@ -3197,6 +3197,9 @@ begin
               SF('DTM_CTWeight', '0'),
               SF('DTM_CNWeight', '0'),
               SF('DTM_PrintNum', '0'),
+              {$IFDEF GZBZX}
+              SF('DTM_COLTYPE', '102'),
+              {$ENDIF}
               {$IFDEF GZBSZ}
               SF('DTM_COLTYPE', '103'),
               {$ENDIF}
@@ -3363,6 +3366,9 @@ begin
               SF('DTM_CTWeight', '0'),
               SF('DTM_CNWeight', '0'),
               SF('DTM_PrintNum', '0'),
+              {$IFDEF GZBZX}
+              SF('DTM_COLTYPE', '102'),
+              {$ENDIF}
               {$IFDEF GZBSZ}
               SF('DTM_COLTYPE', '103'),
               {$ENDIF}
