@@ -470,8 +470,24 @@ begin
 end;
 
 procedure TfFormPurchaseContract.FillUI;
+var
+  nStr:string;
+  i:integer;
 begin
-
+  editContractno.Text := FPurchaseContractInfo.FContractno;
+  editProvider.Text := FPurchaseContractInfo.FProviderName;
+  FProvider.FID := FPurchaseContractInfo.FProviderCode;
+  FProvider.FName := FPurchaseContractInfo.FProviderName;
+  editMateriel.Text := FPurchaseContractInfo.FMaterielName;
+  FMeterail.FID := FPurchaseContractInfo.FMaterielCode;
+  FMeterail.FName := FPurchaseContractInfo.FMaterielName;
+  editPrice.Text := FloatToStr(FPurchaseContractInfo.FPrice);
+  editQuantity.Text := FloatToStr(FPurchaseContractInfo.FQuantity);
+  for i := 0 to FPurchaseContractInfo.FQuotaList.Count-1 do
+  begin
+    nStr := FPurchaseContractInfo.FQuotaList.Strings[i];
+    InfoList.Items.Add(nStr);
+  end;
 end;
 
 procedure TfFormPurchaseContract.InitComboxControl;

@@ -160,8 +160,7 @@ begin
   nWechartAccount := SQLQuery.FieldByName('P_WechartAccount').AsString;
   if nWechartAccount<>'' then
   begin
-    ShowMsg('商城账户['+nWechartAccount+']已存在，请勿重复操作', sHint);
-    Exit;
+    if not QueryDlg('商城账户['+nWechartAccount+']已存在，是否重新关联?', sHint) then Exit;
   end;
   nParam.FCommand := cCmd_AddData;
   CreateBaseFormItem(cFI_FormGetWechartAccount, PopedomItem, @nParam);
@@ -179,11 +178,11 @@ begin
     try
       FDM.ExecuteSQL(nStr);
       FDM.ADOConn.CommitTrans;
-      ShowMsg('供应商 [ '+nPName+' ] 开通商城用户成功！',sHint);
+      ShowMsg('供应商 [ '+nPName+' ] 关联商城用户成功！',sHint);
       InitFormData(FWhere);
     except
       FDM.ADOConn.RollbackTrans;
-      ShowMsg('开通商城用户失败', '未知错误');
+      ShowMsg('关联商城用户失败', '未知错误');
     end;
   end;  
 end;

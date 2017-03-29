@@ -28,6 +28,7 @@ type
     procedure edtinputKeyPress(Sender: TObject; var Key: Char);
     procedure BtnOKClick(Sender: TObject);
     procedure ListQueryDblClick(Sender: TObject);
+    procedure edtinputPropertiesChange(Sender: TObject);
   private
     { Private declarations }
     //微信注册用户信息列表
@@ -144,7 +145,9 @@ begin
     for i := 0 to FCustomerInfos.Count-1 do
     begin
       nRec := PWechartCustomerInfo(FCustomerInfos.Items[i]);
-      if (Pos(LowerCase(nInputStr),LowerCase(nRec.FNamepinyin))>0)
+      if (LowerCase(nInputStr)=LowerCase(nRec.FNamepinyin))
+        or (LowerCase(nInputStr)=LowerCase(nrec.Fphone))
+        or (Pos(LowerCase(nInputStr),LowerCase(nRec.FNamepinyin))>0)
         or (Pos(LowerCase(nInputStr),LowerCase(nrec.Fphone))>0) then
       begin
         with ListQuery.Items.Add do
@@ -219,6 +222,12 @@ end;
 procedure TfFormGetWechartAccount.ListQueryDblClick(Sender: TObject);
 begin
   BtnOK.Click;
+end;
+
+procedure TfFormGetWechartAccount.edtinputPropertiesChange(
+  Sender: TObject);
+begin
+  FilterFunc(edtinput.Text);
 end;
 
 initialization
