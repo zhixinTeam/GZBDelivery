@@ -69,9 +69,6 @@
   //喷码打印销售区域
 {$ENDIF}
 
-//葛洲坝钟祥
-{$DEFINE GZBZHONGXIANG}
-
 //葛洲坝荆门
 {$IFDEF GZBJM}
   {$DEFINE COMMON}
@@ -104,5 +101,6 @@
   //喷码打印销售区域
   {$DEFINE MITTruckProber}
   //服务器操作车间控制柜
+  {$DEFINE MultiReplay}
 {$ENDIF}
 

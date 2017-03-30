@@ -215,6 +215,7 @@ ResourceString
   sFlag_ZhiKaItem     = 'ZhiKaItem';                 //纸卡信息项
   sFlag_BillItem      = 'BillItem';                  //提单信息项
   sFlag_TruckQueue    = 'TruckQueue';                //车辆队列
+  sFlag_ZTLineGroup   = 'ZTLineGroup';               //栈台分组
                                                                
   sFlag_PaymentItem   = 'PaymentItem';               //付款方式信息项
   sFlag_PaymentItem2  = 'PaymentItem2';              //销售回款信息项
@@ -744,7 +745,7 @@ const
        'L_PValue $Float,L_PDate DateTime,L_PMan varChar(32),' +
        'L_MValue $Float,L_MDate DateTime,L_MMan varChar(32),' +
        'L_IsEmpty Char(1),L_LadeTime DateTime,L_LadeMan varChar(32),' +
-       'L_LadeLine varChar(15),L_LineName varChar(32),' +
+       'L_LadeLine varChar(15),L_LineName varChar(32),L_LineGroup varChar(10),'+
        'L_DaiTotal Integer,L_DaiNormal Integer,L_DaiBuCha Integer,' +
        'L_OutFact DateTime,L_OutMan varChar(32),' +
        'L_Lading Char(1),L_IsVIP Char(1),L_Seal varChar(100),' +
@@ -774,7 +775,7 @@ const
    *.L_PValue,L_PDate,L_PMan: 称皮重
    *.L_MValue,L_MDate,L_MMan: 称毛重
    *.L_LadeTime,L_LadeMan: 发货时间,发货人
-   *.L_LadeLine,L_LineName: 发货通道
+   *.L_LadeLine,L_LineName,L_LineGroup: 发货通道
    *.L_DaiTotal,L_DaiNormal,L_DaiBuCha:总装,正常,补差
    *.L_OutFact,L_OutMan: 出厂放行
    *.L_Lading: 提货方式(自提,送货)
@@ -1053,7 +1054,7 @@ const
 
   sSQL_NewZTLines = 'Create Table $Table(R_ID $Inc, Z_ID varChar(15),' +
        'Z_Name varChar(32), Z_StockNo varChar(20), Z_Stock varChar(80),' +
-       'Z_StockType Char(1), Z_PeerWeight Integer,' +
+       'Z_StockType Char(1), Z_PeerWeight Integer, Z_Group Char(1),' +
        'Z_QueueMax Integer, Z_VIPLine Char(1), Z_Valid Char(1), Z_Index Integer)';
   {-----------------------------------------------------------------------------
    装车线配置: ZTLines
@@ -1064,10 +1065,12 @@ const
    *.Z_Stock: 品名
    *.Z_StockType: 类型(袋,散)
    *.Z_PeerWeight: 袋重
+   *.Z_Group: 栈台分组
    *.Z_QueueMax: 队列大小
    *.Z_VIPLine: VIP通道
    *.Z_Valid: 是否有效
    *.Z_Index: 顺序索引
+
   -----------------------------------------------------------------------------}
 
   sSQL_NewZTTrucks = 'Create Table $Table(R_ID $Inc, T_Truck varChar(15),' +
@@ -1087,6 +1090,7 @@ const
    *.T_Stock: 品种名称
    *.T_Type: 品种类型(D,S)
    *.T_Line: 所在道
+   *.T_LineGroup: 所在道
    *.T_Index: 顺序索引
    *.T_InTime: 入队时间
    *.T_InFact: 进厂时间
@@ -1272,7 +1276,7 @@ const
 
   sSQL_NewMaterails = 'Create Table $Table(R_ID $Inc, M_ID varChar(32),' +
        'M_Name varChar(80),M_PY varChar(80),M_Unit varChar(20),M_Price $Float,' +
-       'M_PrePValue Char(1), M_PrePTime Integer, M_Memo varChar(50))';
+       'M_PrePValue Char(1), M_PrePTime Integer, M_IsSale Char(1), M_Memo varChar(50))';
   {-----------------------------------------------------------------------------
    物料表: Materails
    *.M_ID: 编号

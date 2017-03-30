@@ -89,11 +89,7 @@ begin
   end else nP := nParam;
 
   try
-//    {$IFDEF GZBZHONGXIANG}
     CreateBaseFormItem(cFI_FormGetPurchaseContract, nPopedom, nP);
-//    {$ELSE}
-//    CreateBaseFormItem(cFI_FormGetPOrderBase, nPopedom, nP);
-//    {$ENDIF}
     if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
     nStr := nP.FParamB;
   finally

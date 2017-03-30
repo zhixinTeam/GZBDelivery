@@ -42,6 +42,12 @@ type
     cxLabel5: TcxLabel;
     dxLayout1Group10: TdxLayoutGroup;
     dxLayout1Group12: TdxLayoutGroup;
+    EditLineGroup: TcxComboBox;
+    dxLayout1Item6: TdxLayoutItem;
+    dxLayout1Item9: TdxLayoutItem;
+    cxLabel1: TcxLabel;
+    dxLayout1Group7: TdxLayoutGroup;
+    dxLayout1Group5: TdxLayoutGroup;
     procedure BtnOKClick(Sender: TObject);
     procedure EditStockIDPropertiesChange(Sender: TObject);
   protected
@@ -69,7 +75,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UDataModule, UFormInputbox, USysGrid,
-  UFormCtrl, USysDB, USysConst ,USysLoger;
+  UFormCtrl, USysDB, USysConst ,USysLoger, USysBusiness;
 
 type
   TLineStockItem = record
@@ -129,6 +135,11 @@ var nStr: string;
 begin
   ResetHintAllForm(Self, 'T', sTable_ZTLines);
   //重置表名称
+
+  LoadZTLineGroup(EditLineGroup.Properties.Items);
+  //载入栈台分组列表
+  if EditLineGroup.Properties.Items.Count > 0 then
+    EditLineGroup.ItemIndex := 0;
 
   if nID <> '' then
   begin

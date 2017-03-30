@@ -933,7 +933,6 @@ begin
   if FBillItems[0].FNextStatus = sFlag_TruckBFP then
        FUIData.FPData.FValue := nValue
   else FUIData.FMData.FValue := nValue;
-  SetUIData(False);
 
   SetUIData(False);
   //更新界面

@@ -294,6 +294,9 @@ function VerifyManualEventRecord(const nEID: string; var nHint: string;
     const nWant: string = 'Y'): Boolean;
 //检查事件是否通过处理
 
+function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;
+//读取栈台分组信息
+
 implementation
 
 //Desc: 记录日志
@@ -2624,6 +2627,25 @@ begin
 
     Result := True;
   end;
+end;
+
+//Desc: 读取栈台分组列表到nList中,包含附加数据
+function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;
+var nStr,nW: string;
+begin
+  if nWhere = '' then
+       nW := ''
+  else nW := Format(' And (%s)', [nWhere]);
+
+  nStr := 'D_Value=Select D_Value,D_Memo,D_ParamB From %s ' +
+          'Where D_Name=''%s'' %s Order By D_Value';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_ZTLineGroup, nW]);
+
+  AdjustStringsItem(nList, True);
+  FDM.FillStringsData(nList, nStr, -1, '.', DSA(['D_Value']));
+  
+  AdjustStringsItem(nList, False);
+  Result := nList.Count > 0;
 end;
 
 end.

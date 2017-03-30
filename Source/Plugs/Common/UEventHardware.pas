@@ -35,7 +35,8 @@ implementation
 uses
   SysUtils, USysLoger, UHardBusiness, UMgrTruckProbe, UMgrParam,
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
-  UMgrERelay, UMultiJS, UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp,
+  UMgrERelay,   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
+  UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp,
   UMgrRFID102, UMgrVoiceNet, UMemDataPool, UMgrTTCEM100;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
@@ -153,6 +154,10 @@ begin
 
   gHardwareHelper := THardwareHelper.Create;
   //Ô¶¾à¶ÁÍ·
+
+  if not Assigned(gMultiJSManager) then
+    gMultiJSManager := TMultiJSManager.Create;
+  //¼ÆÊýÆ÷
 
   gHardShareData := WhenBusinessMITSharedDataIn;
   //hard monitor share
