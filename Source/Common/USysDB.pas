@@ -333,6 +333,7 @@ ResourceString
 
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
+  sTable_YT_Batchcode = 'S_YTBatchcodeInfo';         //云天系统化验记录
 
   sTable_WebOrderMatch   = 'S_WebOrderMatch';        //商城订单映射
   sTable_PurchaseContract = 'P_PurchaseContract';    //采购合同
@@ -1428,7 +1429,120 @@ const
    *.C_Freeze: 冻结量
    *.C_HasDone: 完成量
   -----------------------------------------------------------------------------}
-  
+
+  sSQL_NewYTBatchcode = 'Create Table $Table(R_ID $Inc, CNO_ID varChar(64),' +
+       'CNO_NotifyID varChar (32), CNO_CementCode varChar (32), ' +
+       'CNO_CementYear varChar (32), CNO_PackCode varChar (32), ' +
+       'CNO_Cement varChar (32), CNO_Depositary varChar (32), ' +
+       'CNO_Count varChar (32), CNO_RemainCount varChar (32), ' +
+       'CNO_PackDate varChar (32), CNO_SetDate varChar (32), ' +
+       'CNO_OperMan varChar (32), CNO_ClientID varChar (32), ' +
+       'CNO_Status varChar (32), CNO_Del varChar (32), ' +
+       'CNO_Creator varChar (32), CNO_CDate varChar (32), ' +
+       'CNO_Mender varChar (32), CNO_MDate varChar (32), ' +
+       'CNO_Firm varChar (32), CNO_Remark varChar (500), ' +
+       'PAW_ID varChar (32), PAW_Analy varChar (32), ' +
+       'PAW_Cement varChar (32), PAW_Intensity varChar (32), ' +
+       'PAW_Store varChar (32), PAW_OutDate varChar (32), ' +
+       'PAW_Outnumber varChar (32), PAW_Stability varChar (32), ' +
+       'PAW_ProduDate varChar (32), PAW_MoldDate varChar (32), ' +
+       'PAW_Cohereend varChar (32), PAW_Facttab varChar (32), ' +
+       'PAW_Thick varChar (32), PAW_Fine varChar (32), ' +
+       'PAW_Waterash varChar (32), PAW_SurfaceArea varChar (32), ' +
+       'PAW_Mixture varChar (32), PAW_MoldMan varChar (32), ' +
+       'PAW_WhipMan varChar (32), PAW_CohereMan varChar (32), ' +
+       'PAW_BreakMan varChar (32), PAW_Remark varChar (500), ' +
+       'PAW_3Dcensor varChar (32), PAW_3Dconceit varChar (32), ' +
+       'PAW_3DcenMan varChar (32), PAW_3DcenDate varChar (32), ' +
+       'PAW_28Dcensor varChar (32), PAW_28Dconceit varChar (32), ' +
+       'PAW_28DcenMan varChar (32), PAW_28DcenDate varChar (32), ' +
+       'PAW_IsAudit varChar (32), PAW_AuditMan varChar (32), ' +
+       'PAW_AuditDate varChar (32), PAW_Del varChar (32), ' +
+       'PAW_Creator varChar (32), PAW_CDate varChar (32), ' +
+       'PAW_Mender varChar (32), PAW_MDate varChar (32), ' +
+       'PAW_Temp1 varChar (32), PAW_Temp2 varChar (32), '  +
+       'PAW_Temp3 varChar (32), PAW_Temp4 varChar (32), '  +
+       'PAW_Temp5 varChar (32), PAW_Temp6 varChar (32), '  +
+       'PAW_Temp7 varChar (32), PAW_Temp8 varChar (32), '  +
+       'PAW_Temp9 varChar (32), PAW_Temp10 varChar (32), '  +
+       'PAW_Temp11 varChar (32), PAW_Temp12 varChar (32), '  +
+       'PAW_Temp13 varChar (32), PAW_Temp14 varChar (32), '  +
+       'PAW_Temp15 varChar (32), PAW_Temp16 varChar (32), '  +
+       'PAW_Temp17 varChar (32), PAW_Temp18 varChar (32), '  +
+       'PAW_Temp19 varChar (32), PAW_Temp20 varChar (32), '  +
+       'PAW_Temp21 varChar (32), PAW_Temp22 varChar (32), '  +
+       'PAW_Temp23 varChar (32), PAW_Temp24 varChar (32), '  +
+       'PAW_Temp25 varChar (32), PAW_Temp26 varChar (32), '  +
+       'PAW_Temp27 varChar (32), PAW_Temp28 varChar (32), '  +
+       'PAW_Temp29 varChar (32), PAW_Temp30 varChar (32), '  +
+       'PAW_Temp31 varChar (32), PAW_Temp32 varChar (32), '  +
+       'PAW_Temp33 varChar (32), PAW_Temp34 varChar (32), '  +
+       'PAW_Temp35 varChar (32), PAW_Temp36 varChar (32), '  +
+       'PAW_Temp37 varChar (32), PAW_Temp38 varChar (32), '  +
+       'PAW_Temp39 varChar (32), PAW_Temp40 varChar (32), '  +
+       'PAW_Temp41 varChar (32), PAW_Temp42 varChar (32), '  +
+       'PAW_Temp43 varChar (32), PAW_Temp44 varChar (32), '  +
+       'PAW_Temp45 varChar (32), PAW_Temp46 varChar (32), '  +
+       'PAW_Temp47 varChar (32), PAW_Temp48 varChar (32), '  +
+       'PAW_Temp49 varChar (32), PAW_Temp50 varChar (32), '  +
+       'PAW_Temp51 varChar (32), PAW_Temp52 varChar (32), '  +
+       'PAW_Temp53 varChar (32), PAW_Temp54 varChar (32), '  +
+       'PAW_Temp55 varChar (32), PAW_Temp56 varChar (32), '  +
+       'PAW_Temp57 varChar (32), PAW_Temp58 varChar (32), '  +
+       'PAW_Temp59 varChar (32), PAW_Temp60 varChar (32), '  +
+       'PAW_Temp61 varChar (32), PAW_Temp62 varChar (32), '  +
+       'PAW_Temp63 varChar (32), PAW_Temp64 varChar (32), '  +
+       'PAW_Temp65 varChar (32), PAW_Temp66 varChar (32), '  +
+       'PAW_Temp67 varChar (32), PAW_Temp68 varChar (32), '  +
+       'PAW_Temp69 varChar (32), PAW_Temp70 varChar (32), '  +
+       'PAW_Temp71 varChar (32), PAW_Temp72 varChar (32), '  +
+       'PAW_Temp73 varChar (32), PAW_Temp74 varChar (32), '  +
+       'PAW_Temp75 varChar (32), PAW_Temp76 varChar (32), '  +
+       'PAW_Temp77 varChar (32), PAW_Temp78 varChar (32), '  +
+       'PAW_Temp79 varChar (32), PAW_Temp80 varChar (32), '  +
+       'PAW_Temp81 varChar (32), PAW_Temp82 varChar (32), '  +
+       'PAW_Temp83 varChar (32), PAW_Temp84 varChar (32), '  +
+       'PAW_Temp85 varChar (32), PAW_Temp86 varChar (32), '  +
+       'PAW_Temp87 varChar (32), PAW_Temp88 varChar (32), '  +
+       'PAW_Temp89 varChar (32), PAW_Temp90 varChar (32), '  +
+       'PAW_Temp91 varChar (32), PAW_Temp92 varChar (32), '  +
+       'PAW_Temp93 varChar (32), PAW_Temp94 varChar (32), '  +
+       'PAW_Temp95 varChar (32), PAW_Temp96 varChar (32), '  +
+       'PAW_Temp97 varChar (32), PAW_Temp98 varChar (32), '  +
+       'PAW_Temp99 varChar (32), PAW_Temp100 varChar (32), '  +
+       'PAW_Temp101 varChar (32), PAW_Temp102 varChar (32), '  +
+       'PAW_Temp103 varChar (32), PAW_Temp104 varChar (32), '  +
+       'PAW_Temp105 varChar (32), PAW_Temp106 varChar (32), '  +
+       'PAW_Temp107 varChar (32), PAW_Temp108 varChar (32), '  +
+       'PAW_Temp109 varChar (32), PAW_Temp110 varChar (32), '  +
+       'PAW_Temp111 varChar (32), PAW_Temp112 varChar (32), '  +
+       'PAW_Temp113 varChar (32), PAW_Temp114 varChar (32), '  +
+       'PAW_Temp115 varChar (32), PAW_Temp116 varChar (32), '  +
+       'PAW_Temp117 varChar (32), PAW_Temp118 varChar (32), '  +
+       'PAW_Temp119 varChar (32), PAW_Temp120 varChar (32), '  +
+       'PAW_Temp121 varChar (32), PAW_Temp122 varChar (32), '  +
+       'PAW_Temp123 varChar (32), PAW_Temp124 varChar (32), '  +
+       'PAW_Temp125 varChar (32), PAW_Temp126 varChar (32), '  +
+       'PAW_Temp127 varChar (32), PAW_Temp128 varChar (32), '  +
+       'PAW_Temp129 varChar (32), PAW_Temp130 varChar (32), '  +
+       'PAW_Temp131 varChar (32), PAW_Temp132 varChar (32), '  +
+       'PAW_Temp133 varChar (32), PAW_Temp134 varChar (32), '  +
+       'PAW_Temp135 varChar (32), PAW_Temp136 varChar (32), '  +
+       'PAW_Temp137 varChar (32), PAW_Temp138 varChar (32), '  +
+       'PAW_Temp139 varChar (32), PAW_Temp0 varChar (32)'  +
+       'PAW_Temp141 varChar (32), PAW_Temp143 varChar (32)'  +
+       'PAW_Temp145 varChar (32)'  +
+       ')';
+  {-----------------------------------------------------------------------------
+   水泥化验记录表: YTBatchcode
+   *.R_ID: 记录编号
+   *.C_ID: 检验记录
+   *.C_Code: 水泥编号
+   *.C_Stock: 品种编号
+   *.C_Freeze: 冻结量
+   *.C_HasDone: 完成量
+  -----------------------------------------------------------------------------}
+    
   sSQL_NewWebOrderMatch = 'Create Table $Table(R_ID $Inc,'
       +'WOM_WebOrderID varchar(32) null,'
       +'WOM_LID varchar(20) null,'
@@ -1708,6 +1822,7 @@ begin
 
   AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
   AddSysTableItem(sTable_YT_CodeInfo, sSQL_NewYTCode);
+  AddSysTableItem(sTable_YT_Batchcode, sSQL_NewYTBatchcode);
   AddSysTableItem(sTable_WebOrderMatch,sSQL_NewWebOrderMatch);
 
   AddSysTableItem(sTable_PurchaseContract,sSQL_NewPurchaseContract);

@@ -4191,9 +4191,508 @@ begin
   end;
 end;
 
+//Date: 2017/03/30
+//Parm: 云天批次号(FIn.FData)
+//Desc: 同步云天批次号信息
 function TWorkerBusinessCommander.SyncYT_BatchCodeInfo(var nData: string): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nDBWorker: PDBWorker;
 begin
-  Result := True;
+  FListA.Clear;
+  FListB.Clear;
+  Result := False;
+
+  nDBWorker := nil;
+  try
+    nStr := 'Select * From v_notify_print Where CNO_Del=''0'' ';
+    //已删除的批次号不同步
+
+    if FIn.FData <> '' then
+    begin
+      nStr := nStr + ' And Paw_analy=''%s''';
+      nStr := Format(nStr, [FIn.FData]);
+    end;  
+    //指定同步的批次号
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      try
+        nStr := SF('Paw_analy', FieldByName('Paw_analy').AsString);
+        nStr := MakeSQLByStr([
+                SF('CNO_ID', FieldByName('CNO_ID').AsString),
+                SF('CNO_NotifyID', FieldByName('CNO_NotifyID').AsString),
+                SF('CNO_CementCode', FieldByName('CNO_CementCode').AsString),
+                SF('CNO_CementYear', FieldByName('CNO_CementYear').AsString),
+                SF('CNO_PackCode', FieldByName('CNO_PackCode').AsString),
+                SF('CNO_Cement', FieldByName('CNO_Cement').AsString),
+                SF('CNO_Depositary', FieldByName('CNO_Depositary').AsString),
+                SF('CNO_Count', FieldByName('CNO_Count').AsString),
+                SF('CNO_RemainCount', FieldByName('CNO_RemainCount').AsString),
+                SF('CNO_PackDate', FieldByName('CNO_PackDate').AsString),
+                SF('CNO_SetDate', FieldByName('CNO_SetDate').AsString),
+                SF('CNO_OperMan', FieldByName('CNO_OperMan').AsString),
+                SF('CNO_ClientID', FieldByName('CNO_ClientID').AsString),
+                SF('CNO_Status', FieldByName('CNO_Status').AsString),
+                SF('CNO_Del', FieldByName('CNO_Del').AsString),
+                SF('CNO_Creator', FieldByName('CNO_Creator').AsString),
+                SF('CNO_CDate', FieldByName('CNO_CDate').AsString),
+                SF('CNO_Mender', FieldByName('CNO_Mender').AsString),
+                SF('CNO_MDate', FieldByName('CNO_MDate').AsString),
+                SF('CNO_Firm', FieldByName('CNO_Firm').AsString),
+                SF('CNO_Remark', FieldByName('CNO_Remark').AsString),
+
+                SF('PAW_ID', FieldByName('PAW_ID').AsString),
+                SF('PAW_Analy', FieldByName('PAW_Analy').AsString),
+                SF('PAW_Cement', FieldByName('PAW_Cement').AsString),
+                SF('PAW_Intensity', FieldByName('PAW_Intensity').AsString),
+                SF('PAW_Store', FieldByName('PAW_Store').AsString),
+                SF('PAW_OutDate', FieldByName('PAW_OutDate').AsString),
+                SF('PAW_Outnumber', FieldByName('PAW_Outnumber').AsString),
+                SF('PAW_Stability', FieldByName('PAW_Stability').AsString),
+                SF('PAW_ProduDate', FieldByName('PAW_ProduDate').AsString),
+                SF('PAW_MoldDate', FieldByName('PAW_MoldDate').AsString),
+                SF('PAW_Cohereend', FieldByName('PAW_Cohereend').AsString),
+                SF('PAW_Facttab', FieldByName('PAW_Facttab').AsString),
+                SF('PAW_Thick', FieldByName('PAW_Thick').AsString),
+                SF('PAW_Fine', FieldByName('PAW_Fine').AsString),
+                SF('PAW_Waterash', FieldByName('PAW_Waterash').AsString),
+                SF('PAW_SurfaceArea', FieldByName('PAW_SurfaceArea').AsString),
+                SF('PAW_Mixture', FieldByName('PAW_Mixture').AsString),
+                SF('PAW_MoldMan', FieldByName('PAW_MoldMan').AsString),
+                SF('PAW_WhipMan', FieldByName('PAW_WhipMan').AsString),
+                SF('PAW_CohereMan', FieldByName('PAW_CohereMan').AsString),
+                SF('PAW_BreakMan', FieldByName('PAW_BreakMan').AsString),
+                SF('PAW_Remark', FieldByName('PAW_Remark').AsString),
+                SF('PAW_3Dcensor', FieldByName('PAW_3Dcensor').AsString),
+                SF('PAW_3Dconceit', FieldByName('PAW_3Dconceit').AsString),
+                SF('PAW_3DcenMan', FieldByName('PAW_3DcenMan').AsString),
+                SF('PAW_3DcenDate', FieldByName('PAW_3DcenDate').AsString),
+                SF('PAW_28Dcensor', FieldByName('PAW_28Dcensor').AsString),
+                SF('PAW_28Dconceit', FieldByName('PAW_28Dconceit').AsString),
+                SF('PAW_28DcenMan', FieldByName('PAW_28DcenMan').AsString),
+                SF('PAW_28DcenDate', FieldByName('PAW_28DcenDate').AsString),
+                SF('PAW_IsAudit', FieldByName('PAW_IsAudit').AsString),
+                SF('PAW_AuditMan', FieldByName('PAW_AuditMan').AsString),
+                SF('PAW_AuditDate', FieldByName('PAW_AuditDate').AsString),
+                SF('PAW_Del', FieldByName('PAW_Del').AsString),
+                SF('PAW_Creator', FieldByName('PAW_Creator').AsString),
+                SF('PAW_CDate', FieldByName('PAW_CDate').AsString),
+                SF('PAW_Mender', FieldByName('PAW_Mender').AsString),
+                SF('PAW_MDate', FieldByName('PAW_MDate').AsString),
+
+                SF('PAW_Temp0', FieldByName('PAW_Temp0').AsString),
+                SF('PAW_Temp1', FieldByName('PAW_Temp1').AsString),
+                SF('PAW_Temp2', FieldByName('PAW_Temp2').AsString),
+                SF('PAW_Temp3', FieldByName('PAW_Temp3').AsString),
+                SF('PAW_Temp4', FieldByName('PAW_Temp4').AsString),
+                SF('PAW_Temp5', FieldByName('PAW_Temp5').AsString),
+                SF('PAW_Temp6', FieldByName('PAW_Temp6').AsString),
+                SF('PAW_Temp7', FieldByName('PAW_Temp7').AsString),
+                SF('PAW_Temp8', FieldByName('PAW_Temp8').AsString),
+                SF('PAW_Temp9', FieldByName('PAW_Temp9').AsString),
+
+                SF('PAW_Temp10', FieldByName('PAW_Temp10').AsString),
+                SF('PAW_Temp11', FieldByName('PAW_Temp11').AsString),
+                SF('PAW_Temp12', FieldByName('PAW_Temp12').AsString),
+                SF('PAW_Temp13', FieldByName('PAW_Temp13').AsString),
+                SF('PAW_Temp14', FieldByName('PAW_Temp14').AsString),
+                SF('PAW_Temp15', FieldByName('PAW_Temp15').AsString),
+                SF('PAW_Temp16', FieldByName('PAW_Temp16').AsString),
+                SF('PAW_Temp17', FieldByName('PAW_Temp17').AsString),
+                SF('PAW_Temp18', FieldByName('PAW_Temp18').AsString),
+                SF('PAW_Temp19', FieldByName('PAW_Temp19').AsString),
+
+                SF('PAW_Temp20', FieldByName('PAW_Temp20').AsString),
+                SF('PAW_Temp21', FieldByName('PAW_Temp21').AsString),
+                SF('PAW_Temp22', FieldByName('PAW_Temp22').AsString),
+                SF('PAW_Temp23', FieldByName('PAW_Temp23').AsString),
+                SF('PAW_Temp24', FieldByName('PAW_Temp24').AsString),
+                SF('PAW_Temp25', FieldByName('PAW_Temp25').AsString),
+                SF('PAW_Temp26', FieldByName('PAW_Temp26').AsString),
+                SF('PAW_Temp27', FieldByName('PAW_Temp27').AsString),
+                SF('PAW_Temp28', FieldByName('PAW_Temp28').AsString),
+                SF('PAW_Temp29', FieldByName('PAW_Temp29').AsString),
+
+                SF('PAW_Temp30', FieldByName('PAW_Temp30').AsString),
+                SF('PAW_Temp31', FieldByName('PAW_Temp31').AsString),
+                SF('PAW_Temp32', FieldByName('PAW_Temp32').AsString),
+                SF('PAW_Temp33', FieldByName('PAW_Temp33').AsString),
+                SF('PAW_Temp34', FieldByName('PAW_Temp34').AsString),
+                SF('PAW_Temp35', FieldByName('PAW_Temp35').AsString),
+                SF('PAW_Temp36', FieldByName('PAW_Temp36').AsString),
+                SF('PAW_Temp37', FieldByName('PAW_Temp37').AsString),
+                SF('PAW_Temp38', FieldByName('PAW_Temp38').AsString),
+                SF('PAW_Temp39', FieldByName('PAW_Temp39').AsString),
+
+                SF('PAW_Temp40', FieldByName('PAW_Temp40').AsString),
+                SF('PAW_Temp41', FieldByName('PAW_Temp41').AsString),
+                SF('PAW_Temp42', FieldByName('PAW_Temp42').AsString),
+                SF('PAW_Temp43', FieldByName('PAW_Temp43').AsString),
+                SF('PAW_Temp44', FieldByName('PAW_Temp44').AsString),
+                SF('PAW_Temp45', FieldByName('PAW_Temp45').AsString),
+                SF('PAW_Temp46', FieldByName('PAW_Temp46').AsString),
+                SF('PAW_Temp47', FieldByName('PAW_Temp47').AsString),
+                SF('PAW_Temp48', FieldByName('PAW_Temp48').AsString),
+                SF('PAW_Temp49', FieldByName('PAW_Temp49').AsString),
+
+                SF('PAW_Temp50', FieldByName('PAW_Temp50').AsString),
+                SF('PAW_Temp51', FieldByName('PAW_Temp51').AsString),
+                SF('PAW_Temp52', FieldByName('PAW_Temp52').AsString),
+                SF('PAW_Temp53', FieldByName('PAW_Temp53').AsString),
+                SF('PAW_Temp54', FieldByName('PAW_Temp54').AsString),
+                SF('PAW_Temp55', FieldByName('PAW_Temp55').AsString),
+                SF('PAW_Temp56', FieldByName('PAW_Temp56').AsString),
+                SF('PAW_Temp57', FieldByName('PAW_Temp57').AsString),
+                SF('PAW_Temp58', FieldByName('PAW_Temp58').AsString),
+                SF('PAW_Temp59', FieldByName('PAW_Temp59').AsString),
+
+                SF('PAW_Temp60', FieldByName('PAW_Temp60').AsString),
+                SF('PAW_Temp61', FieldByName('PAW_Temp61').AsString),
+                SF('PAW_Temp62', FieldByName('PAW_Temp62').AsString),
+                SF('PAW_Temp63', FieldByName('PAW_Temp63').AsString),
+                SF('PAW_Temp64', FieldByName('PAW_Temp64').AsString),
+                SF('PAW_Temp65', FieldByName('PAW_Temp65').AsString),
+                SF('PAW_Temp66', FieldByName('PAW_Temp66').AsString),
+                SF('PAW_Temp67', FieldByName('PAW_Temp67').AsString),
+                SF('PAW_Temp68', FieldByName('PAW_Temp68').AsString),
+                SF('PAW_Temp69', FieldByName('PAW_Temp69').AsString),
+
+                SF('PAW_Temp70', FieldByName('PAW_Temp70').AsString),
+                SF('PAW_Temp71', FieldByName('PAW_Temp71').AsString),
+                SF('PAW_Temp72', FieldByName('PAW_Temp72').AsString),
+                SF('PAW_Temp73', FieldByName('PAW_Temp73').AsString),
+                SF('PAW_Temp74', FieldByName('PAW_Temp74').AsString),
+                SF('PAW_Temp75', FieldByName('PAW_Temp75').AsString),
+                SF('PAW_Temp76', FieldByName('PAW_Temp76').AsString),
+                SF('PAW_Temp77', FieldByName('PAW_Temp77').AsString),
+                SF('PAW_Temp78', FieldByName('PAW_Temp78').AsString),
+                SF('PAW_Temp79', FieldByName('PAW_Temp79').AsString),
+
+                SF('PAW_Temp80', FieldByName('PAW_Temp80').AsString),
+                SF('PAW_Temp81', FieldByName('PAW_Temp81').AsString),
+                SF('PAW_Temp82', FieldByName('PAW_Temp82').AsString),
+                SF('PAW_Temp83', FieldByName('PAW_Temp83').AsString),
+                SF('PAW_Temp84', FieldByName('PAW_Temp84').AsString),
+                SF('PAW_Temp85', FieldByName('PAW_Temp85').AsString),
+                SF('PAW_Temp86', FieldByName('PAW_Temp86').AsString),
+                SF('PAW_Temp87', FieldByName('PAW_Temp87').AsString),
+                SF('PAW_Temp88', FieldByName('PAW_Temp88').AsString),
+                SF('PAW_Temp89', FieldByName('PAW_Temp89').AsString),
+
+                SF('PAW_Temp90', FieldByName('PAW_Temp90').AsString),
+                SF('PAW_Temp91', FieldByName('PAW_Temp91').AsString),
+                SF('PAW_Temp92', FieldByName('PAW_Temp92').AsString),
+                SF('PAW_Temp93', FieldByName('PAW_Temp93').AsString),
+                SF('PAW_Temp94', FieldByName('PAW_Temp94').AsString),
+                SF('PAW_Temp95', FieldByName('PAW_Temp95').AsString),
+                SF('PAW_Temp96', FieldByName('PAW_Temp96').AsString),
+                SF('PAW_Temp97', FieldByName('PAW_Temp97').AsString),
+                SF('PAW_Temp98', FieldByName('PAW_Temp98').AsString),
+                SF('PAW_Temp99', FieldByName('PAW_Temp99').AsString),
+
+                SF('PAW_Temp100', FieldByName('PAW_Temp100').AsString),
+                SF('PAW_Temp101', FieldByName('PAW_Temp101').AsString),
+                SF('PAW_Temp102', FieldByName('PAW_Temp102').AsString),
+                SF('PAW_Temp103', FieldByName('PAW_Temp103').AsString),
+                SF('PAW_Temp104', FieldByName('PAW_Temp104').AsString),
+                SF('PAW_Temp105', FieldByName('PAW_Temp105').AsString),
+                SF('PAW_Temp106', FieldByName('PAW_Temp106').AsString),
+                SF('PAW_Temp107', FieldByName('PAW_Temp107').AsString),
+                SF('PAW_Temp108', FieldByName('PAW_Temp108').AsString),
+                SF('PAW_Temp109', FieldByName('PAW_Temp109').AsString),
+
+                SF('PAW_Temp110', FieldByName('PAW_Temp110').AsString),
+                SF('PAW_Temp111', FieldByName('PAW_Temp111').AsString),
+                SF('PAW_Temp112', FieldByName('PAW_Temp112').AsString),
+                SF('PAW_Temp113', FieldByName('PAW_Temp113').AsString),
+                SF('PAW_Temp114', FieldByName('PAW_Temp114').AsString),
+                SF('PAW_Temp115', FieldByName('PAW_Temp115').AsString),
+                SF('PAW_Temp116', FieldByName('PAW_Temp116').AsString),
+                SF('PAW_Temp117', FieldByName('PAW_Temp117').AsString),
+                SF('PAW_Temp118', FieldByName('PAW_Temp118').AsString),
+                SF('PAW_Temp119', FieldByName('PAW_Temp119').AsString),
+
+                SF('PAW_Temp120', FieldByName('PAW_Temp20').AsString),
+                SF('PAW_Temp121', FieldByName('PAW_Temp21').AsString),
+                SF('PAW_Temp122', FieldByName('PAW_Temp22').AsString),
+                SF('PAW_Temp123', FieldByName('PAW_Temp23').AsString),
+                SF('PAW_Temp124', FieldByName('PAW_Temp24').AsString),
+                SF('PAW_Temp125', FieldByName('PAW_Temp25').AsString),
+                SF('PAW_Temp126', FieldByName('PAW_Temp26').AsString),
+                SF('PAW_Temp127', FieldByName('PAW_Temp27').AsString),
+                SF('PAW_Temp128', FieldByName('PAW_Temp28').AsString),
+                SF('PAW_Temp129', FieldByName('PAW_Temp29').AsString),
+
+                SF('PAW_Temp130', FieldByName('PAW_Temp130').AsString),
+                SF('PAW_Temp131', FieldByName('PAW_Temp131').AsString),
+                SF('PAW_Temp132', FieldByName('PAW_Temp132').AsString),
+                SF('PAW_Temp133', FieldByName('PAW_Temp133').AsString),
+                SF('PAW_Temp134', FieldByName('PAW_Temp134').AsString),
+                SF('PAW_Temp135', FieldByName('PAW_Temp135').AsString),
+                SF('PAW_Temp136', FieldByName('PAW_Temp136').AsString),
+                SF('PAW_Temp137', FieldByName('PAW_Temp137').AsString),
+                SF('PAW_Temp138', FieldByName('PAW_Temp138').AsString),
+                SF('PAW_Temp139', FieldByName('PAW_Temp139').AsString),
+                SF('PAW_Temp141', FieldByName('PAW_Temp141').AsString),
+                SF('PAW_Temp143', FieldByName('PAW_Temp143').AsString),
+                SF('PAW_Temp145', FieldByName('PAW_Temp145').AsString)
+                ],sTable_YT_Batchcode, nStr, False);
+        //更新信息
+        FListA.Add(nStr);
+        //先更新，更新失败则插入
+
+        nStr := MakeSQLByStr([
+                SF('CNO_ID', FieldByName('CNO_ID').AsString),
+                SF('CNO_NotifyID', FieldByName('CNO_NotifyID').AsString),
+                SF('CNO_CementCode', FieldByName('CNO_CementCode').AsString),
+                SF('CNO_CementYear', FieldByName('CNO_CementYear').AsString),
+                SF('CNO_PackCode', FieldByName('CNO_PackCode').AsString),
+                SF('CNO_Cement', FieldByName('CNO_Cement').AsString),
+                SF('CNO_Depositary', FieldByName('CNO_Depositary').AsString),
+                SF('CNO_Count', FieldByName('CNO_Count').AsString),
+                SF('CNO_RemainCount', FieldByName('CNO_RemainCount').AsString),
+                SF('CNO_PackDate', FieldByName('CNO_PackDate').AsString),
+                SF('CNO_SetDate', FieldByName('CNO_SetDate').AsString),
+                SF('CNO_OperMan', FieldByName('CNO_OperMan').AsString),
+                SF('CNO_ClientID', FieldByName('CNO_ClientID').AsString),
+                SF('CNO_Status', FieldByName('CNO_Status').AsString),
+                SF('CNO_Del', FieldByName('CNO_Del').AsString),
+                SF('CNO_Creator', FieldByName('CNO_Creator').AsString),
+                SF('CNO_CDate', FieldByName('CNO_CDate').AsString),
+                SF('CNO_Mender', FieldByName('CNO_Mender').AsString),
+                SF('CNO_MDate', FieldByName('CNO_MDate').AsString),
+                SF('CNO_Firm', FieldByName('CNO_Firm').AsString),
+                SF('CNO_Remark', FieldByName('CNO_Remark').AsString),
+
+                SF('PAW_ID', FieldByName('PAW_ID').AsString),
+                SF('PAW_Analy', FieldByName('PAW_Analy').AsString),
+                SF('PAW_Cement', FieldByName('PAW_Cement').AsString),
+                SF('PAW_Intensity', FieldByName('PAW_Intensity').AsString),
+                SF('PAW_Store', FieldByName('PAW_Store').AsString),
+                SF('PAW_OutDate', FieldByName('PAW_OutDate').AsString),
+                SF('PAW_Outnumber', FieldByName('PAW_Outnumber').AsString),
+                SF('PAW_Stability', FieldByName('PAW_Stability').AsString),
+                SF('PAW_ProduDate', FieldByName('PAW_ProduDate').AsString),
+                SF('PAW_MoldDate', FieldByName('PAW_MoldDate').AsString),
+                SF('PAW_Cohereend', FieldByName('PAW_Cohereend').AsString),
+                SF('PAW_Facttab', FieldByName('PAW_Facttab').AsString),
+                SF('PAW_Thick', FieldByName('PAW_Thick').AsString),
+                SF('PAW_Fine', FieldByName('PAW_Fine').AsString),
+                SF('PAW_Waterash', FieldByName('PAW_Waterash').AsString),
+                SF('PAW_SurfaceArea', FieldByName('PAW_SurfaceArea').AsString),
+                SF('PAW_Mixture', FieldByName('PAW_Mixture').AsString),
+                SF('PAW_MoldMan', FieldByName('PAW_MoldMan').AsString),
+                SF('PAW_WhipMan', FieldByName('PAW_WhipMan').AsString),
+                SF('PAW_CohereMan', FieldByName('PAW_CohereMan').AsString),
+                SF('PAW_BreakMan', FieldByName('PAW_BreakMan').AsString),
+                SF('PAW_Remark', FieldByName('PAW_Remark').AsString),
+                SF('PAW_3Dcensor', FieldByName('PAW_3Dcensor').AsString),
+                SF('PAW_3Dconceit', FieldByName('PAW_3Dconceit').AsString),
+                SF('PAW_3DcenMan', FieldByName('PAW_3DcenMan').AsString),
+                SF('PAW_3DcenDate', FieldByName('PAW_3DcenDate').AsString),
+                SF('PAW_28Dcensor', FieldByName('PAW_28Dcensor').AsString),
+                SF('PAW_28Dconceit', FieldByName('PAW_28Dconceit').AsString),
+                SF('PAW_28DcenMan', FieldByName('PAW_28DcenMan').AsString),
+                SF('PAW_28DcenDate', FieldByName('PAW_28DcenDate').AsString),
+                SF('PAW_IsAudit', FieldByName('PAW_IsAudit').AsString),
+                SF('PAW_AuditMan', FieldByName('PAW_AuditMan').AsString),
+                SF('PAW_AuditDate', FieldByName('PAW_AuditDate').AsString),
+                SF('PAW_Del', FieldByName('PAW_Del').AsString),
+                SF('PAW_Creator', FieldByName('PAW_Creator').AsString),
+                SF('PAW_CDate', FieldByName('PAW_CDate').AsString),
+                SF('PAW_Mender', FieldByName('PAW_Mender').AsString),
+                SF('PAW_MDate', FieldByName('PAW_MDate').AsString),
+
+                SF('PAW_Temp0', FieldByName('PAW_Temp0').AsString),
+                SF('PAW_Temp1', FieldByName('PAW_Temp1').AsString),
+                SF('PAW_Temp2', FieldByName('PAW_Temp2').AsString),
+                SF('PAW_Temp3', FieldByName('PAW_Temp3').AsString),
+                SF('PAW_Temp4', FieldByName('PAW_Temp4').AsString),
+                SF('PAW_Temp5', FieldByName('PAW_Temp5').AsString),
+                SF('PAW_Temp6', FieldByName('PAW_Temp6').AsString),
+                SF('PAW_Temp7', FieldByName('PAW_Temp7').AsString),
+                SF('PAW_Temp8', FieldByName('PAW_Temp8').AsString),
+                SF('PAW_Temp9', FieldByName('PAW_Temp9').AsString),
+
+                SF('PAW_Temp10', FieldByName('PAW_Temp10').AsString),
+                SF('PAW_Temp11', FieldByName('PAW_Temp11').AsString),
+                SF('PAW_Temp12', FieldByName('PAW_Temp12').AsString),
+                SF('PAW_Temp13', FieldByName('PAW_Temp13').AsString),
+                SF('PAW_Temp14', FieldByName('PAW_Temp14').AsString),
+                SF('PAW_Temp15', FieldByName('PAW_Temp15').AsString),
+                SF('PAW_Temp16', FieldByName('PAW_Temp16').AsString),
+                SF('PAW_Temp17', FieldByName('PAW_Temp17').AsString),
+                SF('PAW_Temp18', FieldByName('PAW_Temp18').AsString),
+                SF('PAW_Temp19', FieldByName('PAW_Temp19').AsString),
+
+                SF('PAW_Temp20', FieldByName('PAW_Temp20').AsString),
+                SF('PAW_Temp21', FieldByName('PAW_Temp21').AsString),
+                SF('PAW_Temp22', FieldByName('PAW_Temp22').AsString),
+                SF('PAW_Temp23', FieldByName('PAW_Temp23').AsString),
+                SF('PAW_Temp24', FieldByName('PAW_Temp24').AsString),
+                SF('PAW_Temp25', FieldByName('PAW_Temp25').AsString),
+                SF('PAW_Temp26', FieldByName('PAW_Temp26').AsString),
+                SF('PAW_Temp27', FieldByName('PAW_Temp27').AsString),
+                SF('PAW_Temp28', FieldByName('PAW_Temp28').AsString),
+                SF('PAW_Temp29', FieldByName('PAW_Temp29').AsString),
+
+                SF('PAW_Temp30', FieldByName('PAW_Temp30').AsString),
+                SF('PAW_Temp31', FieldByName('PAW_Temp31').AsString),
+                SF('PAW_Temp32', FieldByName('PAW_Temp32').AsString),
+                SF('PAW_Temp33', FieldByName('PAW_Temp33').AsString),
+                SF('PAW_Temp34', FieldByName('PAW_Temp34').AsString),
+                SF('PAW_Temp35', FieldByName('PAW_Temp35').AsString),
+                SF('PAW_Temp36', FieldByName('PAW_Temp36').AsString),
+                SF('PAW_Temp37', FieldByName('PAW_Temp37').AsString),
+                SF('PAW_Temp38', FieldByName('PAW_Temp38').AsString),
+                SF('PAW_Temp39', FieldByName('PAW_Temp39').AsString),
+
+                SF('PAW_Temp40', FieldByName('PAW_Temp40').AsString),
+                SF('PAW_Temp41', FieldByName('PAW_Temp41').AsString),
+                SF('PAW_Temp42', FieldByName('PAW_Temp42').AsString),
+                SF('PAW_Temp43', FieldByName('PAW_Temp43').AsString),
+                SF('PAW_Temp44', FieldByName('PAW_Temp44').AsString),
+                SF('PAW_Temp45', FieldByName('PAW_Temp45').AsString),
+                SF('PAW_Temp46', FieldByName('PAW_Temp46').AsString),
+                SF('PAW_Temp47', FieldByName('PAW_Temp47').AsString),
+                SF('PAW_Temp48', FieldByName('PAW_Temp48').AsString),
+                SF('PAW_Temp49', FieldByName('PAW_Temp49').AsString),
+
+                SF('PAW_Temp50', FieldByName('PAW_Temp50').AsString),
+                SF('PAW_Temp51', FieldByName('PAW_Temp51').AsString),
+                SF('PAW_Temp52', FieldByName('PAW_Temp52').AsString),
+                SF('PAW_Temp53', FieldByName('PAW_Temp53').AsString),
+                SF('PAW_Temp54', FieldByName('PAW_Temp54').AsString),
+                SF('PAW_Temp55', FieldByName('PAW_Temp55').AsString),
+                SF('PAW_Temp56', FieldByName('PAW_Temp56').AsString),
+                SF('PAW_Temp57', FieldByName('PAW_Temp57').AsString),
+                SF('PAW_Temp58', FieldByName('PAW_Temp58').AsString),
+                SF('PAW_Temp59', FieldByName('PAW_Temp59').AsString),
+
+                SF('PAW_Temp60', FieldByName('PAW_Temp60').AsString),
+                SF('PAW_Temp61', FieldByName('PAW_Temp61').AsString),
+                SF('PAW_Temp62', FieldByName('PAW_Temp62').AsString),
+                SF('PAW_Temp63', FieldByName('PAW_Temp63').AsString),
+                SF('PAW_Temp64', FieldByName('PAW_Temp64').AsString),
+                SF('PAW_Temp65', FieldByName('PAW_Temp65').AsString),
+                SF('PAW_Temp66', FieldByName('PAW_Temp66').AsString),
+                SF('PAW_Temp67', FieldByName('PAW_Temp67').AsString),
+                SF('PAW_Temp68', FieldByName('PAW_Temp68').AsString),
+                SF('PAW_Temp69', FieldByName('PAW_Temp69').AsString),
+
+                SF('PAW_Temp70', FieldByName('PAW_Temp70').AsString),
+                SF('PAW_Temp71', FieldByName('PAW_Temp71').AsString),
+                SF('PAW_Temp72', FieldByName('PAW_Temp72').AsString),
+                SF('PAW_Temp73', FieldByName('PAW_Temp73').AsString),
+                SF('PAW_Temp74', FieldByName('PAW_Temp74').AsString),
+                SF('PAW_Temp75', FieldByName('PAW_Temp75').AsString),
+                SF('PAW_Temp76', FieldByName('PAW_Temp76').AsString),
+                SF('PAW_Temp77', FieldByName('PAW_Temp77').AsString),
+                SF('PAW_Temp78', FieldByName('PAW_Temp78').AsString),
+                SF('PAW_Temp79', FieldByName('PAW_Temp79').AsString),
+
+                SF('PAW_Temp80', FieldByName('PAW_Temp80').AsString),
+                SF('PAW_Temp81', FieldByName('PAW_Temp81').AsString),
+                SF('PAW_Temp82', FieldByName('PAW_Temp82').AsString),
+                SF('PAW_Temp83', FieldByName('PAW_Temp83').AsString),
+                SF('PAW_Temp84', FieldByName('PAW_Temp84').AsString),
+                SF('PAW_Temp85', FieldByName('PAW_Temp85').AsString),
+                SF('PAW_Temp86', FieldByName('PAW_Temp86').AsString),
+                SF('PAW_Temp87', FieldByName('PAW_Temp87').AsString),
+                SF('PAW_Temp88', FieldByName('PAW_Temp88').AsString),
+                SF('PAW_Temp89', FieldByName('PAW_Temp89').AsString),
+
+                SF('PAW_Temp90', FieldByName('PAW_Temp90').AsString),
+                SF('PAW_Temp91', FieldByName('PAW_Temp91').AsString),
+                SF('PAW_Temp92', FieldByName('PAW_Temp92').AsString),
+                SF('PAW_Temp93', FieldByName('PAW_Temp93').AsString),
+                SF('PAW_Temp94', FieldByName('PAW_Temp94').AsString),
+                SF('PAW_Temp95', FieldByName('PAW_Temp95').AsString),
+                SF('PAW_Temp96', FieldByName('PAW_Temp96').AsString),
+                SF('PAW_Temp97', FieldByName('PAW_Temp97').AsString),
+                SF('PAW_Temp98', FieldByName('PAW_Temp98').AsString),
+                SF('PAW_Temp99', FieldByName('PAW_Temp99').AsString),
+
+                SF('PAW_Temp100', FieldByName('PAW_Temp100').AsString),
+                SF('PAW_Temp101', FieldByName('PAW_Temp101').AsString),
+                SF('PAW_Temp102', FieldByName('PAW_Temp102').AsString),
+                SF('PAW_Temp103', FieldByName('PAW_Temp103').AsString),
+                SF('PAW_Temp104', FieldByName('PAW_Temp104').AsString),
+                SF('PAW_Temp105', FieldByName('PAW_Temp105').AsString),
+                SF('PAW_Temp106', FieldByName('PAW_Temp106').AsString),
+                SF('PAW_Temp107', FieldByName('PAW_Temp107').AsString),
+                SF('PAW_Temp108', FieldByName('PAW_Temp108').AsString),
+                SF('PAW_Temp109', FieldByName('PAW_Temp109').AsString),
+
+                SF('PAW_Temp110', FieldByName('PAW_Temp110').AsString),
+                SF('PAW_Temp111', FieldByName('PAW_Temp111').AsString),
+                SF('PAW_Temp112', FieldByName('PAW_Temp112').AsString),
+                SF('PAW_Temp113', FieldByName('PAW_Temp113').AsString),
+                SF('PAW_Temp114', FieldByName('PAW_Temp114').AsString),
+                SF('PAW_Temp115', FieldByName('PAW_Temp115').AsString),
+                SF('PAW_Temp116', FieldByName('PAW_Temp116').AsString),
+                SF('PAW_Temp117', FieldByName('PAW_Temp117').AsString),
+                SF('PAW_Temp118', FieldByName('PAW_Temp118').AsString),
+                SF('PAW_Temp119', FieldByName('PAW_Temp119').AsString),
+
+                SF('PAW_Temp120', FieldByName('PAW_Temp20').AsString),
+                SF('PAW_Temp121', FieldByName('PAW_Temp21').AsString),
+                SF('PAW_Temp122', FieldByName('PAW_Temp22').AsString),
+                SF('PAW_Temp123', FieldByName('PAW_Temp23').AsString),
+                SF('PAW_Temp124', FieldByName('PAW_Temp24').AsString),
+                SF('PAW_Temp125', FieldByName('PAW_Temp25').AsString),
+                SF('PAW_Temp126', FieldByName('PAW_Temp26').AsString),
+                SF('PAW_Temp127', FieldByName('PAW_Temp27').AsString),
+                SF('PAW_Temp128', FieldByName('PAW_Temp28').AsString),
+                SF('PAW_Temp129', FieldByName('PAW_Temp29').AsString),
+
+                SF('PAW_Temp130', FieldByName('PAW_Temp130').AsString),
+                SF('PAW_Temp131', FieldByName('PAW_Temp131').AsString),
+                SF('PAW_Temp132', FieldByName('PAW_Temp132').AsString),
+                SF('PAW_Temp133', FieldByName('PAW_Temp133').AsString),
+                SF('PAW_Temp134', FieldByName('PAW_Temp134').AsString),
+                SF('PAW_Temp135', FieldByName('PAW_Temp135').AsString),
+                SF('PAW_Temp136', FieldByName('PAW_Temp136').AsString),
+                SF('PAW_Temp137', FieldByName('PAW_Temp137').AsString),
+                SF('PAW_Temp138', FieldByName('PAW_Temp138').AsString),
+                SF('PAW_Temp139', FieldByName('PAW_Temp139').AsString),
+                SF('PAW_Temp141', FieldByName('PAW_Temp141').AsString),
+                SF('PAW_Temp143', FieldByName('PAW_Temp143').AsString),
+                SF('PAW_Temp145', FieldByName('PAW_Temp145').AsString)
+                ],sTable_YT_Batchcode, '', True);
+        //插入信息
+
+        nIdx := FListA.Count - 1;
+        FListB.Values['Index_' + IntToStr(nIdx)] := PackerEncodeStr(nStr);
+        //更新失败则插入信息
+      finally
+        Next;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
+
+  if FListA.Count > 0 then
+  try
+    FDBConn.FConn.BeginTrans;
+
+    for nIdx:=0 to FListA.Count - 1 do
+    if gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]) < 1 then
+      gDBConnManager.WorkerExec(FDBConn, PackerDecodeStr(FListB.Values['Index_' + IntToStr(nIdx)]));
+    FDBConn.FConn.CommitTrans;
+
+    Result := True;
+  except
+    if FDBConn.FConn.InTransaction then
+      FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
 end;
 
 
