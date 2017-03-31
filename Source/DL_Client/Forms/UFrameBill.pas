@@ -50,6 +50,7 @@ type
     CheckDelete: TcxCheckBox;
     dxlytmLayout1Item11: TdxLayoutItem;
     EditYTCard: TcxButtonEdit;
+    N10: TMenuItem;
     procedure EditIDPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnDelClick(Sender: TObject);
@@ -63,6 +64,7 @@ type
     procedure N7Click(Sender: TObject);
     procedure PMenu1Popup(Sender: TObject);
     procedure CheckDeleteClick(Sender: TObject);
+    procedure N10Click(Sender: TObject);
   protected
     FStart,FEnd: TDate;
     //时间区间
@@ -453,6 +455,19 @@ begin
     begin
       ShowMsg(nData,sHint);
     end;
+  end;
+end;
+
+procedure TfFrameBill.N10Click(Sender: TObject);
+var nOutFact: string;
+begin
+  inherited;
+
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nOutFact := FormatDateTime('yyyy年mm月dd日',SQLQuery.FieldByName('L_OutFact').AsDateTime);
+    PrintHuaYanReport(SQLQuery.FieldByName('L_HYDan').AsString,
+      SQLQuery.FieldByName('L_StockName').AsString, nOutFact, True);
   end;
 end;
 

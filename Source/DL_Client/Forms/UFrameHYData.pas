@@ -207,7 +207,7 @@ begin
   if cxView1.DataController.GetSelectedCount > 0 then
   begin
     nStr := SQLQuery.FieldByName('H_ID').AsString;
-    PrintHuaYanReport(nStr, False);
+    //PrintHuaYanReport(nStr, False);
   end;
 end;
 

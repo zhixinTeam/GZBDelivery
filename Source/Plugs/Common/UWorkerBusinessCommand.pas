@@ -4205,7 +4205,18 @@ begin
 
   nDBWorker := nil;
   try
-    nStr := 'Select * From v_notify_print Where CNO_Del=''0'' ';
+    //nStr := 'Select * From v_notify_print Where CNO_Del=''0'' ';
+    nStr := 'select  cf_notify_outwork.*,pf_analy_outwork.*, ' +
+            'hf_analy_outwork.*,pcd_name,pf_analy_native.*,' +
+            'PCM_ID,pcm_molding ' +
+            'from cf_notify_outwork ' +
+            'left join  pf_analy_outwork on trim(cno_cementcode) = trim(paw_analy) ' +
+            'left join hf_analy_outwork on cno_cementcode=haw_analy ' +
+            'left join pb_code_material mater1 on mater1.pcm_id=paw_cement ' +
+            'left join pb_code_detail a on a.pcd_code=CNO_Cement ' +
+            '          and a.pcd_type=''701'' and a.pcd_del=''0'' ' +
+            'left join pf_analy_native on PAW_Cement=PAN_Intensity ' +
+            'where paw_del=''0'' ';
     //已删除的批次号不同步
 
     if FIn.FData <> '' then

@@ -262,7 +262,8 @@ function PrintOrderReport(const nOrder: string;  const nAsk: Boolean): Boolean;
 //打印采购单
 function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
 //打印榜单
-function PrintHuaYanReport(const nHID: string; const nAsk: Boolean): Boolean;
+function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
+  const nAsk: Boolean): Boolean;
 function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 //化验单,合格证
 
@@ -2305,8 +2306,10 @@ begin
 end;
 
 //Desc: 打印标识为nHID的化验单
-function PrintHuaYanReport(const nHID: string; const nAsk: Boolean): Boolean;
+function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
+  const nAsk: Boolean): Boolean;
 var nStr,nSR: string;
+    nOut: TWorkerBusinessCommand;
 begin
   if nAsk then
   begin
@@ -2315,19 +2318,10 @@ begin
     if not QueryDlg(nStr, sAsk) then Exit;
   end else Result := False;
 
-  nSR := 'Select * From %s sr ' +
-         ' Left Join %s sp on sp.P_ID=sr.R_PID';
-  nSR := Format(nSR, [sTable_StockRecord, sTable_StockParam]);
+  if not CallBusinessCommand(cBC_SyncYTBatchCodeInfo, nHID, '', @nOut) then Exit;
 
-  nStr := 'Select hy.*,sr.*,C_Name From $HY hy ' +
-          ' Left Join $Cus cus on cus.C_ID=hy.H_Custom' +
-          ' Left Join ($SR) sr on sr.R_SerialNo=H_SerialNo ' +
-          'Where H_ID in ($ID)';
-  //xxxxx
-
-  nStr := MacroValue(nStr, [MI('$HY', sTable_StockHuaYan),
-          MI('$Cus', sTable_Customer), MI('$SR', nSR), MI('$ID', nHID)]);
-  //xxxxx
+  nStr := 'Select OutFact=''%s'',* From %s Where Paw_Analy=''%s''';
+  nStr := Format(nStr, [nOutFact,sTable_YT_Batchcode, nHID]);
 
   if FDM.QueryTemp(nStr).RecordCount < 1 then
   begin
@@ -2336,8 +2330,7 @@ begin
     ShowMsg(nStr, sHint); Exit;
   end;
 
-  nStr := FDM.SqlTemp.FieldByName('P_Stock').AsString;
-  nStr := GetReportFileByStock(nStr);
+  nStr := GetReportFileByStock(nStockName);
 
   if not FDR.LoadReportFile(nStr) then
   begin
