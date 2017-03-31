@@ -1050,6 +1050,7 @@ begin
         FEnable     := True;
         FTruck      := FieldByName('T_Truck').AsString;
         FStockNo    := FieldByName('T_StockNo').AsString;
+        FStockName  := FieldByName('T_Stock').AsString;
         FStockGroup := GetStockMatchGroup(FStockNo);
 
         FLine       := FieldByName('T_Line').AsString;

@@ -1951,15 +1951,15 @@ end;
 
 //获取订单列表，用于网上下单
 function TWorkerBusinessCommander.GetOrderList(var nData:string):Boolean;
-var
-  nCusId,nStr:string;
-  nWorker: PDBWorker;
-  nFactRemain:Double;
-  i:Integer;
+var nWorker: PDBWorker;
+    nFactRemain:Double;
+    nTmp,nStr:string;
+    nIdx:Integer;
 begin
   Result := False;
-  nCusId := Trim(fin.FData);
-  if nCusId='' then Exit;
+  nTmp := Trim(FIn.FData);
+  if nTmp='' then Exit;
+
   nStr := 'select XCB_ID,' +                      //内部编号
         '  XCB_CardId,' +                       //销售卡片编号
         '  XCB_Origin,' +                       //卡片来源
@@ -2009,28 +2009,28 @@ begin
         //未删除、可用数量大于0、卡片启用并且处于已审核状态
         ' where xcb.xcb_del=''0'''
               +' and xcb.XCB_Status=''1'''
-              +' and xcb.XCB_RemainNum>0.001'
-              +' and xcb.XCB_AuditState=''201'''
+              +' and xcb.XCB_RemainNum>0'
+              +' and ((xcb.XCB_AuditState=''201'') or (xcb.XCB_IsOnly=''1''))'
               +' and xcb.XCB_Client = ''%s''';
-  nStr := Format(nStr,[nCusId]);
+  nStr := Format(nStr,[nTmp]);
 
   nWorker := nil;
-
   try
     with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
     begin
       if RecordCount < 1 then
       begin
-        nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nCusId]);
+        nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nTmp]);
         Exit;
       end;
 
       FListA.Clear;
       FListB.Clear;
+      FListC.Clear;
       First;
 
       while not Eof do
-      begin
+      try
         FListB.Values['XCB_ID']         := FieldByName('XCB_ID').AsString;
         FListB.Values['XCB_CardId']     := FieldByName('XCB_CardId').AsString;
         FListB.Values['XCB_Origin']     := FieldByName('XCB_Origin').AsString;
@@ -2069,40 +2069,48 @@ begin
         FListB.Values['XCB_TransName']  := FieldByName('XCB_TransName').AsString;
 
         FListA.Add(PackerEncodeStr(FListB.Text));
+        FListC.Add(FieldByName('XCB_ID').AsString);
+      finally
         Next;
       end;
     end;
+
+    nTmp := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
+    nStr := 'Select XCB_FactRemain, XCB_ID From V_CARD_BASE Where XCB_ID In (%s) ' +
+            'And XCB_FactRemain>0';
+    nStr := Format(nStr, [nTmp]);
+    with gDBConnManager.WorkerQuery(nWorker, nStr) do
+    if RecordCount > 0 then
+    begin
+      First;
+
+      while not Eof do
+      try
+        nTmp := FieldByName('XCB_ID').AsString;
+        if FloatRelation(Fields[0].AsFloat, 0, rtLE, 1000) then Continue;
+        //余量小于0;
+
+        nIdx := FListC.IndexOf(nTmp);
+        if nIdx < 0 then Continue;
+        //编号无效
+
+        FListB.Text := PackerDecodeStr(FListA[nIdx]);
+        FListB.Values['XCB_RemainNum'] := FieldByName('XCB_FactRemain').AsString;
+        FListA[nIdx] := PackerEncodeStr(FListB.Text);
+        //更新剩余量
+      finally
+        Next;
+      end;
+
+    end else FListA.Clear;
+
   finally
     gDBConnManager.ReleaseConnection(nWorker);
   end;
 
-  //begin查询补货//查询剩余量
-  for i := FListA.Count-1 downto 0 do
-  begin
-    FListB.Text := PackerDecodeStr(FListA.Strings[i]);
-    nStr := 'select XCB_FactRemain from V_CARD_BASE t where XCB_ID=''%s'' and XCB_FactRemain>0.001';
-    nStr := Format(nStr,[FListB.Values['XCB_ID']]);
-    nWorker := nil;
-    try
-      with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
-      begin
-        if RecordCount < 1 then
-        begin
-          FListA.Delete(i);
-          Continue;
-        end;
-        FListB.Values['XCB_RemainNum'] := FieldByName('XCB_FactRemain').AsString;
-        FListA.Strings[i] := PackerEncodeStr(FListB.Text);
-      end;
-    finally
-      gDBConnManager.ReleaseConnection(nWorker);
-    end;
-  end;
-  //end查询补货//查询剩余量
-
   if FListA.Count < 1 then
   begin
-    nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nCusId]);
+    nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nTmp]);
     Exit;
   end;
 

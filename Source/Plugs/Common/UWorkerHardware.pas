@@ -395,6 +395,7 @@ begin
         FListB.Values['Truck'] := nTruck.FTruck;
         FListB.Values['Line'] := nLine.FLineID;
         FListB.Values['Bill'] := nTruck.FBill;
+        FListB.Values['StockName'] := nTruck.FStockName;
         FListB.Values['Value'] := FloatToStr(nTruck.FValue);
 
         if nLine.FPeerWeight > 0 then

@@ -1212,8 +1212,8 @@ begin
     end;
 
     nPTruck := nPLine.FTrucks[nIdx];
-    nPTruck.FStockName := nPLine.FName;
-    //同步物料名
+//    nPTruck.FStockName := nPLine.FName;
+//    //同步物料名
     Result := True;
   finally
     SyncLock.Leave;
