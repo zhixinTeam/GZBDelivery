@@ -1,6 +1,6 @@
 inherited fFormTodo: TfFormTodo
-  Left = 530
-  Top = 295
+  Left = 496
+  Top = 168
   Width = 448
   Height = 514
   BorderStyle = bsSizeable

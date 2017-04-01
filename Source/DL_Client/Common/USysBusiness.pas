@@ -10,7 +10,7 @@ uses
   Windows, DB, Classes, Controls, SysUtils, UBusinessPacker, UBusinessWorker,
   UBusinessConst, ULibFun, UAdjustForm, UFormCtrl, UDataModule, UDataReport,
   UFormBase, cxMCListBox, UMgrPoundTunnels, UMgrCamera, USysConst, HKVNetSDK,
-  USysDB, USysLoger;
+  USysDB, USysLoger, UFormInputbox;
 
 type
   TLadingStockItem = record
@@ -289,11 +289,14 @@ function VerifyPoundWarning(var nHint: string; var nWarnVal: Double): Boolean;
 //车辆皮重预警设置
 function AddManualEventRecord(nEID, nKey, nEvent:string;
     nFrom: string = '磅房'; nSolution: string=sFlag_Solution_YN;
-    nDepartmen: string=sFlag_DepDaTing): Boolean;
+    nDepartmen: string=sFlag_DepDaTing; nReset: Boolean = False;
+    nMemo: string=''): Boolean;
 //添加待处理事项记录
 function VerifyManualEventRecord(const nEID: string; var nHint: string;
     const nWant: string = 'Y'): Boolean;
 //检查事件是否通过处理
+function DealManualEvent(const nEID: string): Boolean;
+//事件处理
 
 function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;
 //读取栈台分组信息
@@ -2308,7 +2311,7 @@ end;
 //Desc: 打印标识为nHID的化验单
 function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
   const nAsk: Boolean): Boolean;
-var nStr,nSR: string;
+var nStr: string;
     nOut: TWorkerBusinessCommand;
 begin
   if nAsk then
@@ -2554,8 +2557,10 @@ end;
 //Parm: 参数描述
 //Desc: 添加异常事件处理
 function AddManualEventRecord(nEID, nKey, nEvent:string;
-    nFrom: string; nSolution: string; nDepartmen: string): Boolean;
+    nFrom: string; nSolution: string; nDepartmen: string;
+    nReset: Boolean; nMemo: string): Boolean;
 var nSQL, nStr: string;
+    nUpdate: Boolean;
 begin
   Result := False;
   //init
@@ -2574,18 +2579,25 @@ begin
     nStr := '事件记录:[ %s ]已存在';
     nStr := Format(nStr, [nEID]);
     WriteLog(nStr);
-    Exit;
-  end;
 
+    if not nReset then Exit;
+
+    nUpdate := True;
+  end else nUpdate := False;
+
+  nStr := SF('E_ID', nEID);
   nSQL := MakeSQLByStr([
           SF('E_ID', nEID),
           SF('E_Key', nKey),
+          SF('E_Result', ''),
           SF('E_From', nFrom),
-          SF('E_Event', nEvent),
+          SF('E_Memo', nMemo),
+          
+          SF('E_Event', nEvent), 
           SF('E_Solution', nSolution),
           SF('E_Departmen', nDepartmen),
           SF('E_Date', sField_SQLServer_Now, sfVal)
-          ], sTable_ManualEvent, '', True);
+          ], sTable_ManualEvent, nStr, nUpdate);
   FDM.ExecuteSQL(nSQL);
 end;
 
@@ -2618,9 +2630,53 @@ begin
       Exit;
     end;
 
+    nHint  := FieldByName('E_ParamB').AsString;
     Result := True;
   end;
 end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/4/1
+//Parm: 待处理事件ID;处理结果
+//Desc: 处理三合一读卡器信息
+function DealManualEvent(const nEID: string): Boolean;
+var nStr,nSQL: string;
+    nList: TStrings;
+    nBills: TLadingBillItems;
+begin
+  Result := True;
+
+  if Copy(nEID, Length(nEID), 1) = sFlag_ManualD then
+  begin //散装超发,并且当即处理
+    nStr := '';
+    Result := False;
+    //默认处理失败
+
+    nSQL := 'Select E_Memo,E_Result From %s Where E_ID=''%s''';
+    nSQL := ''
+
+    nList := TStringList.Create;
+    try
+      SplitStr()
+    finally
+      FreeAndNil(nList);
+    end;
+
+    while True do
+    begin
+      if not ShowInputBox('请输入新的提货单号:', '散装并单业务', nStr) then Exit;
+      nStr := Trim(nStr);
+
+      if (nStr = '') or  (CompareText(nStr, FInnerData.FProject) = 0) then
+      begin
+        ShowMsg('请重新输入', sHint);
+        Continue;
+      end;
+    end;
+
+
+  end;
+end;  
 
 //Desc: 读取栈台分组列表到nList中,包含附加数据
 function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;

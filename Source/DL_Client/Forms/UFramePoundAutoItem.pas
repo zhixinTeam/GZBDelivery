@@ -578,7 +578,7 @@ end;
 //Parm: 净重[in];超发量[out]
 //Desc: 计算净重比订单超发了多少,没超发为0.
 function TfFrameAutoPoundItem.VerifySanValue(var nValue: Double): Boolean;
-var nStr: string;
+var nStr, nHint: string;
     f,m: Double;
 begin
   Result := False;
@@ -587,6 +587,7 @@ begin
   if not (YT_ReadCardInfo(nStr) and
      YT_VerifyCardInfo(nStr, sFlag_AllowZeroNum)) then
   begin
+    PlayVoice('读取订单失败,请联系管理员处理');
     WriteSysLog(nStr);
     Exit;
   end;
@@ -614,39 +615,36 @@ begin
 
   if m > 0 then
   begin
-    nStr := '散装订单超发,请通知管理员处理';
-    PlayVoice(nStr);
-
-    nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+    nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
              '※.订单编号: %s' + #13#10 +
              '※.提货净重: %.2f吨' + #13#10 +
              '※.需 补 交: %.2f吨' + #13#10+#13#10 +
-             '请到开票室办理补单手续,然后再次称重.若有可用提货单,请点击"是"按钮继续.';
+             '请到开票室办理补单手续,然后再次称重.';
     //xxxxx
     
-    nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
+    nHint := Format(nHint, [FInnerData.FCusID, FInnerData.FCusName,
             FInnerData.FProject, nValue, m]);
-    WriteSysLog(nStr);
-    if not QueryDlg(nStr, sHint) then Exit;
 
-    nStr := '';
-    while true do
-    begin
-      if not ShowInputBox('请输入新的提货单号:', '并单业务', nStr) then Exit;
-      nStr := Trim(nStr);
+    if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
+    begin //开票员忽略后，认为司机卸货后再次过磅。
+      nStr := 'Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+      nStr := Format(nStr, [FUIData.FPData.FValue, FUIData.FMData.FValue,
+              FUIData.FCard]);
 
-      if (nStr = '') or  (CompareText(nStr, FInnerData.FProject) = 0) then
-      begin
-        ShowMsg('请输入有效单据', sHint);
-        Continue;
-      end;
+      AddManualEventRecord(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+        sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nStr);
 
-      FUIData.FMemo := nStr;
-      FUIData.FKZValue := m;
-
-      nValue := m;
-      Result := True; Break;
+      nStr := '散装订单超发%.2f吨,请联系开票员处理';
+      nStr := Format(nStr, [m]);
+      PlayVoice(nStr);
+      Exit;
     end;
+
+    FUIData.FMemo := nStr;
+    FUIData.FKZValue := m;
+
+    nValue := m;
+    Result := True;
   end else
   begin
     nValue := 0;
@@ -709,7 +707,7 @@ begin
   begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
     begin
-      WriteLog('皮重应小于毛重');
+      PlayVoice('皮重应小于毛重,请联系管理员处理');
       Exit;
     end;
 
@@ -740,15 +738,15 @@ begin
                 '请确认是否可以过磅';
         nHint := Format(nHint, [FTruck, FInnerData.FValue, nNet, nVal]);
 
-
         if not VerifyManualEventRecord(FID + sFlag_ManualC, nHint) then
         begin
           AddManualEventRecord(FID + sFlag_ManualC, FTruck, nHint,
             sFlag_DepBangFang, sFlag_Solution_YN, sFlag_DepJianZhuang);
           WriteSysLog(nHint);
 
-          nHint := '车辆[n1]%s净重与开票量误差较大,请去包装点包';
-          nHint := Format(nHint, [FTruck]);
+          nHint := '车辆[n1]%s净重[n2]%.2f吨,开票量[n2]%.2f吨,'+
+                   '误差量[n2]%.2f公斤,请去包装点包';
+          nHint := Format(nHint, [FTruck,nNet,FInnerData.FValue,nVal]);
           PlayVoice(nHint);
           Exit;
         end;

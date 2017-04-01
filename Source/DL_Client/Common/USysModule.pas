@@ -38,7 +38,7 @@ uses
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
   UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
-  UFrameImportOrderDetail, UFormTodo, UFormTodoSend,
+  UFrameImportOrderDetail, UFormTodo, UFormTodoSend, UFrameManualEvent,
   {$IFDEF MicroMsg}
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,

@@ -734,19 +734,21 @@ begin
     for nIdx:=0 to Lines.Count - 1 do
     begin
       nLine := Lines[nIdx];
+      if nLine.FIsValid then Continue;
+      //通道无效
 
       nFind := False;
       for nInt:=Low(nQueues) to High(nQueues) do
       begin
         with nQueues[nInt] do
-          if FStockNo = nLine.FStockNo then
-          begin
-            Inc(FLineCount);
-            FTruckCount := FTruckCount + nLine.FRealCount;
+        if FStockNo = nLine.FStockNo then
+        begin
+          Inc(FLineCount);
+          FTruckCount := FTruckCount + nLine.FRealCount;
 
-            nFind := True;
-            Break;
-          end;
+          nFind := True;
+          Break;
+        end;
       end;
 
       if not nFind then

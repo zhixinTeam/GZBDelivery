@@ -10,17 +10,17 @@ inherited fFormTodoSend: TfFormTodoSend
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
-    Width = 462
-    Height = 271
+    Width = 454
+    Height = 260
     inherited BtnOK: TButton
-      Left = 316
-      Top = 238
+      Left = 308
+      Top = 227
       Caption = #21457#36865
       TabOrder = 2
     end
     inherited BtnExit: TButton
-      Left = 386
-      Top = 238
+      Left = 378
+      Top = 227
       Caption = #20851#38381
       ModalResult = 2
       TabOrder = 3

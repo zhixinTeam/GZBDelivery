@@ -91,6 +91,8 @@ const
   cFI_FrameMaterailTunnels = $0120;                     //原材料验收
   cFI_FramePurchaseContract = $0121;                     //采购合同
 
+  cFI_FrameManualEvent  = $0131;                     //待处理事件日志
+
   cFI_FormMemo          = $1000;                     //备注窗口
   cFI_FormBackup        = $1001;                     //数据备份
   cFI_FormRestore       = $1002;                     //数据恢复
@@ -326,6 +328,7 @@ begin
   AddMenuModuleItem('MAIN_A07', cFI_FrameAuthorize);
   AddMenuModuleItem('MAIN_A08', cFI_FormTodo, mtForm);
   AddMenuModuleItem('MAIN_A09', cFI_FormTodoSend, mtForm);
+  AddMenuModuleItem('MAIN_A10', cFI_FrameManualEvent);
 
   AddMenuModuleItem('MAIN_B01', cFI_FormBaseInfo, mtForm);
   AddMenuModuleItem('MAIN_B02', cFI_FrameCustomer);

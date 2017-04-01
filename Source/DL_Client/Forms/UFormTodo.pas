@@ -59,7 +59,7 @@ implementation
 
 uses
   IniFiles, ULibFun, UMgrControl, UFormBase, UFormCtrl, USysDB, USysConst,
-  USysGrid, UMgrSndPlay;
+  USysGrid, UMgrSndPlay, USysBusiness;
 
 const
   cRefreshInterval = 10; //刷新间隔
@@ -107,7 +107,7 @@ begin
   with Params do
   begin
     WndParent := GetDesktopWindow;
-    ExStyle := ExStyle or WS_EX_APPWINDOW or WS_EX_TOPMOST;
+    ExStyle := ExStyle or WS_EX_APPWINDOW;// or WS_EX_TOPMOST;  //放在最前会卡死
   end;
 end;
 
@@ -177,7 +177,8 @@ begin
 
   with ADOQuery1 do
   try                            
-    nStr := 'Select * from %s Where (E_Date>=%s-1 and E_Result Is Null ' +
+    nStr := 'Select * from %s Where (E_Date>=%s-1 and ' +
+            '((E_Result Is Null) or (E_Result='''')) ' +
             'and E_Departmen=''%s'') or (E_Date>=dateadd(hour,-1,%s) and ' +
             'E_Departmen=''%s'') Order By R_ID ASC';
     nStr := Format(nStr, [sTable_ManualEvent, sField_SQLServer_Now,
@@ -375,6 +376,8 @@ begin
     if not QueryDlg(nStr, sAsk, Handle) then Exit;
 
     nStr := GetSolution(nItem.FSolution, cxRadio1.ItemIndex);
+    if not DealManualEvent(nStr) then Exit;
+
     nStr := MakeSQLByStr([SF('E_Result', nStr),
             SF('E_ManDeal', gSysParam.FUserID),
             SF('E_DateDeal', sField_SQLServer_Now, sfVal)

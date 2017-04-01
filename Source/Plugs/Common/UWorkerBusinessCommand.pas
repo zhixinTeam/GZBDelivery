@@ -166,7 +166,7 @@ type
 
   TWorkerBusinessOrders = class(TMITDBWorker)
   private
-    FListA,FListB,FListC: TStrings;
+    FListA,FListB,FListC,FListD: TStrings;
     //list
     FIn: TWorkerBusinessCommand;
     FOut: TWorkerBusinessCommand;
@@ -1764,19 +1764,21 @@ begin
     for nIdx:=0 to Lines.Count - 1 do
     begin
       nLine := Lines[nIdx];
+      if nLine.FIsValid then Continue;
+      //通道无效
 
       nFind := False;
       for nInt:=Low(nQueues) to High(nQueues) do
       begin
         with nQueues[nInt] do
-          if FStockNo = nLine.FStockNo then
-          begin
-            Inc(FLineCount);
-            FTruckCount := FTruckCount + nLine.FRealCount;
+        if FStockNo = nLine.FStockNo then
+        begin
+          Inc(FLineCount);
+          FTruckCount := FTruckCount + nLine.FRealCount;
 
-            nFind := True;
-            Break;
-          end;
+          nFind := True;
+          Break;
+        end;
       end;
 
       if not nFind then
@@ -1952,7 +1954,6 @@ end;
 //获取订单列表，用于网上下单
 function TWorkerBusinessCommander.GetOrderList(var nData:string):Boolean;
 var nWorker: PDBWorker;
-    nFactRemain:Double;
     nTmp,nStr:string;
     nIdx:Integer;
 begin
@@ -2076,8 +2077,7 @@ begin
     end;
 
     nTmp := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
-    nStr := 'Select XCB_FactRemain, XCB_ID From V_CARD_BASE Where XCB_ID In (%s) ' +
-            'And XCB_FactRemain>0';
+    nStr := 'Select XCB_FactRemain, XCB_ID From V_CARD_BASE Where XCB_ID In (%s)';
     nStr := Format(nStr, [nTmp]);
     with gDBConnManager.WorkerQuery(nWorker, nStr) do
     if RecordCount > 0 then
@@ -2087,12 +2087,17 @@ begin
       while not Eof do
       try
         nTmp := FieldByName('XCB_ID').AsString;
-        if FloatRelation(Fields[0].AsFloat, 0, rtLE, 1000) then Continue;
-        //余量小于0;
-
         nIdx := FListC.IndexOf(nTmp);
         if nIdx < 0 then Continue;
-        //编号无效
+        //无信息
+
+        if FloatRelation(Fields[0].AsFloat, 0, rtLE, 1000) then
+        begin
+          FListC.Delete(nIdx);
+          FListA.Delete(nIdx);
+          Continue;
+        end;  
+        //余量小于0;
 
         FListB.Text := PackerDecodeStr(FListA[nIdx]);
         FListB.Values['XCB_RemainNum'] := FieldByName('XCB_FactRemain').AsString;
@@ -2120,50 +2125,44 @@ end;
 
 //获取采购合同列表，用于网上下单
 function TWorkerBusinessCommander.GetPurchaseContractList(var nData:string):Boolean;
-var
-  nProvId:string;
-  nWorker:PDBWorker;
-  nStr:string;
+var nStr:string;
 begin
   Result := False;
-  nProvId := Trim(fin.FData);
-  if nProvId='' then Exit;
   nStr := 'select * from %s where provider_code=''%s'' and con_status>0 and con_quantity-con_finished_quantity>0.00001';
-  nStr := format(nStr,[sTable_PurchaseContract,nProvId]);
+  nStr := format(nStr,[sTable_PurchaseContract,Trim(FIn.FData)]);
 
-  nWorker := nil;
-  try
-    with gDBConnManager.SQLQuery(nStr, nWorker) do
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount < 1 then
     begin
-      if RecordCount < 1 then
-      begin
-        nData := Format('未查询到供应商[ %s ]对应的订单信息.', [nProvId]);
-        Exit;
-      end;
-
-      FListA.Clear;
-      FListB.Clear;
-      First;
-      while not Eof do
-      begin
-        FListB.Values['pcId'] := FieldByName('pcId').AsString;
-        FListB.Values['provider_code'] := FieldByName('provider_code').AsString;
-        FListB.Values['provider_name'] := FieldByName('provider_name').AsString;
-        FListB.Values['con_code'] := FieldByName('con_code').AsString;
-        FListB.Values['con_materiel_Code'] := FieldByName('con_materiel_Code').AsString;
-        FListB.Values['con_materiel_name'] := FieldByName('con_materiel_name').AsString;
-        FListB.Values['con_price'] := FieldByName('con_price').AsString;
-        FListB.Values['con_quantity'] := FieldByName('con_quantity').AsString;
-        FListB.Values['con_finished_quantity'] := FieldByName('con_finished_quantity').AsString;
-        FListB.Values['con_date'] := FieldByName('con_date').AsString;
-        FListB.Values['con_remark'] := FieldByName('con_remark').AsString;
-        FListA.Add(PackerEncodeStr(FListB.Text));
-        Next;
-      end;
+      nData := Format('未查询到供应商[ %s ]对应的订单信息.', [FIn.FData]);
+      Exit;
     end;
-  finally
-    gDBConnManager.ReleaseConnection(nWorker);
-  end;
+
+    FListA.Clear;
+    FListB.Clear;
+    First;
+    while not Eof do
+    try
+
+      FListB.Values['pcId'] := FieldByName('pcId').AsString;
+      FListB.Values['provider_code'] := FieldByName('provider_code').AsString;
+      FListB.Values['provider_name'] := FieldByName('provider_name').AsString;
+      FListB.Values['con_code'] := FieldByName('con_code').AsString;
+      FListB.Values['con_materiel_Code'] := FieldByName('con_materiel_Code').AsString;
+      FListB.Values['con_materiel_name'] := FieldByName('con_materiel_name').AsString;
+      FListB.Values['con_price'] := FieldByName('con_price').AsString;
+      FListB.Values['con_quantity'] := FieldByName('con_quantity').AsString;
+      FListB.Values['con_finished_quantity'] := FieldByName('con_finished_quantity').AsString;
+      FListB.Values['con_date'] := FieldByName('con_date').AsString;
+      FListB.Values['con_remark'] := FieldByName('con_remark').AsString;
+      FListA.Add(PackerEncodeStr(FListB.Text));
+
+    finally
+      Next;
+    end;
+  end;  
+
   FOut.FData := PackerEncodeStr(FListA.Text);
   Result := True;
 end;
@@ -3599,6 +3598,7 @@ begin
                   SF('XLB_InvoNum', '0.00', sfVal),
                   SF('XLB_Area', gSysParam.FSaleArea),
 
+                  SF('XLB_SELLS', FieldByName('XCB_OperMan').AsString),         //业务员
                   SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
                   SF('XLB_CarCode', nBills[nIdx].FTruck),
                   SF('XLB_Quantity', '0', sfVal),
@@ -4726,6 +4726,7 @@ begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
   FListC := TStringList.Create;
+  FListD := TStringList.Create;
   inherited;
 end;
 
@@ -4734,6 +4735,7 @@ begin
   FreeAndNil(FListA);
   FreeAndNil(FListB);
   FreeAndNil(FListC);
+  FreeAndNil(FListD);
   inherited;
 end;
 
@@ -4849,7 +4851,7 @@ begin
     if Copy(FOut.FData, nIdx, 1) = ',' then
       System.Delete(FOut.FData, nIdx, 1);
     //xxxxx
-    
+
     FDBConn.FConn.CommitTrans;
     Result := True;
   except
@@ -4859,7 +4861,7 @@ begin
 end;
 //------------------------------------------------------------------------------
 //Date: 2015/9/19
-//Parm: 
+//Parm:
 //Desc: 删除采购申请单
 function TWorkerBusinessOrders.DeleteOrderBase(var nData: string): Boolean;
 var nStr,nP: string;
@@ -4927,223 +4929,217 @@ function TWorkerBusinessOrders.SavePurchaseContract(var nData: string):Boolean;
 var nStr: string;
     nIdx: Integer;
     nOut: TWorkerBusinessCommand;
-    nPcid:string;
-    nQuotaList,nTempList:TStrings;
-    nName,nCondition,nValue:string;
-    npunishcondition:string;
-    npunishBasis,punish_standard:double;
-    npunishmode:integer;
+    nName,nCondition,nValue, nPunishcondition:string;
+    nPunishBasis,nPunishStandard:double;
+    nPunishMode:integer;
     ndValue:Double;
 begin
   FListA.Text := PackerDecodeStr(FIn.FData);
-  nQuotaList := TStringList.Create;
-  nTempList := TStringList.Create;
-  try
-    //unpack Order
-    FDBConn.FConn.BeginTrans;
-    try
-      FOut.FData := '';
-      //bill list
+  //init
 
-      FListC.Values['Group'] :=sFlag_BusGroup;
-      FListC.Values['Object'] := sFlag_PurchaseContract;
-      //to get serial no
+  FListC.Clear;
+  FListC.Values['Group'] :=sFlag_BusGroup;
+  FListC.Values['Object'] := sFlag_PurchaseContract;
+  //to get serial no
 
-      if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
-            FListC.Text, sFlag_Yes, @nOut) then
-        raise Exception.Create(nOut.FData);
-      //xxxxx
+  if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+        FListC.Text, sFlag_Yes, @nOut) then
+    raise Exception.Create(nOut.FData);
+  //xxxxx
 
-      nPcid := nOut.FData;
-      FOut.FData := nOut.FData;
-      //combine Order
-      //bill list
+  FOut.FData := nOut.FData;
+  //PurchaseContract ID
 
-      nStr := MakeSQLByStr([SF('pcid', nPcid),
-              SF('provider_code', FListA.Values['ProviderCode']),
-              SF('provider_name', FListA.Values['ProviderName']),
-              SF('con_code', FListA.Values['ContractNo']),
-              SF('con_materiel_Code', FListA.Values['MeterailCode']),
-              SF('con_materiel_name',FListA.Values['MeterailName']),
-              SF('con_price',  StrToFloatDef(FListA.Values['Price'],0),sfVal),
-              SF('con_quantity', StrToFloatDef(FListA.Values['quantity'],0),sfVal),
-              SF('con_finished_quantity', 0,sfVal),
-              SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
-              SF('con_Man', FIn.FBase.FFrom.FUser),
-              SF('con_remark', FListA.Values['Remark'])
+  FListB.Clear;
+  //SQL List
+
+  with FListA do
+  nStr := MakeSQLByStr([SF('pcid', FOut.FData),
+          SF('provider_code', Values['ProviderCode']),
+          SF('provider_name', Values['ProviderName']),
+          SF('con_materiel_Code', Values['MeterailCode']),
+          SF('con_materiel_name',Values['MeterailName']),
+          SF('con_code', Values['ContractNo']),
+          SF('con_finished_quantity', 0,sfVal),
+
+          SF('con_price',  StrToFloatDef(Values['Price'],0),sfVal),
+          SF('con_quantity', StrToFloatDef(Values['quantity'],0),sfVal),
+          SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
+          SF('con_Man', FIn.FBase.FFrom.FUser),
+          SF('con_remark', Values['Remark'])
           ], sTable_PurchaseContract, '', True);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
+  FListB.Add(nStr);
 
-      nStr :=  PackerDecodeStr(FListA.Values['QuotaList']);
-      nQuotaList.Text := nStr;
-      for nIdx := 0 to nQuotaList.Count-1 do
+  FListC.Text :=  PackerDecodeStr(FListA.Values['QuotaList']);
+  for nIdx := 0 to FListC.Count - 1 do
+  begin
+    FListD.Clear;
+    FListD.Text := FListC[nIdx];
+
+    nName := FListD[0];
+    nCondition := FListD[2];
+    nValue:= StringReplace(FListD[1], '%', '', [rfReplaceAll]);
+    ndValue := StrToFloatDef(nValue, 0) / 100;
+
+    nPunishcondition :='';
+    nPunishStandard := 0;
+    nPunishBasis := 0;
+    nPunishMode := 0;
+
+    if FListD.Count > 4 then
+    begin
+      nPunishcondition := FListD[3];
+      nPunishBasis := StrToFloatDef(FListD[4],0)/100;
+      nPunishStandard := StrToFloatDef(FListD[5],0);
+      if FListD[6]='单价' then
       begin
-        nStr := nQuotaList.Strings[nIdx];
-        nTempList.CommaText := nStr;
-        npunishcondition :='';
-        npunishBasis := 0;
-        punish_standard := 0;
-        npunishmode := 0;
-        nName := nTempList.Strings[0];
-        nValue := nTempList.Strings[1];
-        nValue :=  StringReplace(nValue, '%', '', [rfReplaceAll, rfIgnoreCase]);
-        ndValue := StrToFloatDef(nValue,0)/100;
-        nCondition := nTempList.Strings[2];
-        if nTempList.Count>4 then
-        begin
-          npunishcondition := nTempList.Strings[3];
-          npunishBasis := StrToFloatDef(nTempList.Strings[4],0)/100;
-          punish_standard := StrToFloatDef(nTempList.Strings[5],0);
-          if nTempList.Strings[6]='单价' then
-          begin
-            npunishmode := 1;
-          end;
-        end;
-        nStr := MakeSQLByStr([SF('pcid', nPcid),
-                SF('quota_name', nName),
-                SF('quota_condition', nCondition),
-                SF('quota_value', ndValue,sfval),
-                SF('punish_condition', npunishcondition),
-                SF('punish_Basis', npunishBasis,sfVal),
-                SF('punish_standard', punish_standard,sfVal),
-                SF('punish_mode', npunishmode,sfVal),
-                SF('remark', '')
-          ], sTable_PurchaseContractDetail, '', True);
-        gDBConnManager.WorkerExec(FDBConn, nStr);
+        nPunishMode := 1;
       end;
-  
-      FDBConn.FConn.CommitTrans;
-      Result := True;
-    except
-      FDBConn.FConn.RollbackTrans;
-      raise;
     end;
-  finally
-    nTempList.Free;
-    nQuotaList.Free;
+
+    nStr := MakeSQLByStr([SF('pcid', FOut.FData),
+            SF('quota_name', nName),
+            SF('quota_condition', nCondition),
+            SF('quota_value', ndValue,sfVal),
+            SF('punish_condition', nPunishcondition),
+            SF('punish_Basis', nPunishBasis,sfVal),
+            SF('punish_standard', nPunishStandard,sfVal),
+            SF('punish_mode', nPunishMode,sfVal),
+            SF('remark', '')
+            ], sTable_PurchaseContractDetail, '', True);
+    FListB.Add(nStr);
+  end;
+
+  FDBConn.FConn.BeginTrans;
+  try
+    for nIdx := 0 to FListB.Count - 1 do
+      gDBConnManager.WorkerExec(FDBConn, FListB[nIdx]);
+    //执行
+
+    FDBConn.FConn.CommitTrans;
+    Result := True;
+  except
+    FDBConn.FConn.RollbackTrans;
+    raise;
   end;
 end;
 
 //------------------------------------------------------------------------------
 //Date: 2017/3/16
-//Parm: 
+//Parm:
 //Desc: 修改采购合同
 function TWorkerBusinessOrders.ModifyPurchaseContract(var nData: string):Boolean;
 var nStr: string;
     nIdx: Integer;
-    nOut: TWorkerBusinessCommand;
-    nPcid:string;
-    nQuotaList,nTempList:TStrings;
     nName,nCondition,nValue:string;
-    npunishcondition:string;
-    npunishBasis,punish_standard:double;
-    npunishmode:integer;
+    nPunishcondition:string;
+    nPunishBasis,nPunishStandard:double;
+    nPunishMode:integer;
     ndValue:Double;
 begin
   FListA.Text := PackerDecodeStr(FIn.FData);
-  nQuotaList := TStringList.Create;
-  nTempList := TStringList.Create;
-  try
-    FDBConn.FConn.BeginTrans;
-    try
-      nPcid := FListA.Values['fid'];
-      FOut.FData := nPcid;
 
-      nStr := MakeSQLByStr([SF('provider_code', FListA.Values['ProviderCode']),
-              SF('provider_name', FListA.Values['ProviderName']),
-              SF('con_code', FListA.Values['ContractNo']),
-              SF('con_materiel_Code', FListA.Values['MeterailCode']),
-              SF('con_materiel_name',FListA.Values['MeterailName']),
-              SF('con_price',  StrToFloatDef(FListA.Values['Price'],0),sfVal),
-              SF('con_quantity', StrToFloatDef(FListA.Values['quantity'],0),sfVal),
-              SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
-              SF('con_MdyMan', FIn.FBase.FFrom.FUser),
-              SF('con_MdyDate', sField_SQLServer_Now,sfVal),
-              SF('con_remark', FListA.Values['Remark'])
-          ], sTable_PurchaseContract, 'pcId=''%s''', False);
-      nStr := Format(nStr,[nPcid]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
+  FOut.FData := FListA.Values['FID'];
 
-      //保存历史合同明细到备份表
-      nStr := 'insert into %s(pcId,quota_name,quota_condition,quota_value,'
-        +'punish_condition,punish_Basis,punish_standard,punish_mode,Del_man,Del_Date,remark) '
-        +'select pcId,quota_name,quota_condition,quota_value,punish_condition,'
-        +'punish_Basis,punish_standard,punish_mode,''%s'',%s,remark from %s where pcid=''%s''';
-      nStr := Format(nStr,[sTable_PurchaseContractDetail_bak,
-        FIn.FBase.FFrom.FUser,
-        sField_SQLServer_Now,
-        sTable_PurchaseContractDetail,
-        nPcid]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
+  FListD.Clear;
+  //SQL List
 
-      //更新合同明细
-      nStr := 'delete from %s where pcid=''%s''';
-      nStr := Format(nStr,[sTable_PurchaseContractDetail,nPcid]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-      
-      nStr :=  PackerDecodeStr(FListA.Values['QuotaList']);
-      nQuotaList.Text := nStr;
-      for nIdx := 0 to nQuotaList.Count-1 do
+  with FListA do
+  begin
+    nStr := MakeSQLByStr([SF('provider_code', Values['ProviderCode']),
+            SF('provider_name', Values['ProviderName']),
+            SF('con_code', Values['ContractNo']),
+            SF('con_materiel_Code', Values['MeterailCode']),
+            SF('con_materiel_name',Values['MeterailName']),
+            SF('con_price',  StrToFloatDef(Values['Price'],0),sfVal),
+            SF('con_quantity', StrToFloatDef(Values['quantity'],0),sfVal),
+            SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
+            SF('con_MdyMan', FIn.FBase.FFrom.FUser),
+            SF('con_MdyDate', sField_SQLServer_Now,sfVal),
+            SF('con_remark', Values['Remark'])
+            ], sTable_PurchaseContract, SF('PCID', Values['FID']), False);
+    FListD.Add(nStr);
+
+    nStr := 'insert into %s(pcId,quota_name,quota_condition,quota_value,'  +
+            'punish_condition,punish_Basis,punish_standard,punish_mode,Del_man,Del_Date,remark) '  +
+            'select pcId,quota_name,quota_condition,quota_value,punish_condition,' +
+            'punish_Basis,punish_standard,punish_mode,''%s'',%s,remark From %s ' +
+            'where pcid=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseContractDetail_bak,
+            FIn.FBase.FFrom.FUser, sField_SQLServer_Now,
+            sTable_PurchaseContractDetail,
+            Values['FID']]);
+    FListD.Add(nStr);
+    //保存历史合同明细到备份表
+
+    nStr := 'delete from %s where pcid=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseContractDetail,Values['FID']]);
+    FListD.Add(nStr);
+    //删除明细
+
+    FListB.Text := PackerDecodeStr(Values['QuotaList']);
+    for nIdx := 0 to FListB.Count - 1 do
+    begin
+      FListC.Text := FListB[nIdx];
+
+      nPunishcondition :='';
+      nPunishStandard := 0;
+      nPunishBasis := 0;
+      nPunishMode := 0;
+
+      nName := FListC[0];
+      nCondition := FListC[2];
+      nValue :=  StringReplace(FListC[1], '%', '', [rfReplaceAll]);
+      ndValue := StrToFloatDef(nValue,0)/100;
+
+      if FListC.Count > 4 then
       begin
-        nStr := nQuotaList.Strings[nIdx];
-        nTempList.CommaText := nStr;
-        npunishcondition :='';
-        npunishBasis := 0;
-        punish_standard := 0;
-        npunishmode := 0;
-        nName := nTempList.Strings[0];
-        nValue := nTempList.Strings[1];
-        nValue :=  StringReplace(nValue, '%', '', [rfReplaceAll, rfIgnoreCase]);
-        ndValue := StrToFloatDef(nValue,0)/100;
-        nCondition := nTempList.Strings[2];
-        if nTempList.Count>4 then
+        nPunishcondition := FListC[3];
+        nPunishBasis := StrToFloatDef(FListC[4],0)/100;
+        nPunishStandard := StrToFloatDef(FListC[5],0);
+        if FListC[6]='单价' then
         begin
-          npunishcondition := nTempList.Strings[3];
-          npunishBasis := StrToFloatDef(nTempList.Strings[4],0)/100;
-          punish_standard := StrToFloatDef(nTempList.Strings[5],0);
-          if nTempList.Strings[6]='单价' then
-          begin
-            npunishmode := 1;
-          end;
+          nPunishMode := 1;
         end;
-        nStr := MakeSQLByStr([SF('pcid', nPcid),
-                SF('quota_name', nName),
-                SF('quota_condition', nCondition),
-                SF('quota_value', ndValue,sfval),
-                SF('punish_condition', npunishcondition),
-                SF('punish_Basis', npunishBasis,sfVal),
-                SF('punish_standard', punish_standard,sfVal),
-                SF('punish_mode', npunishmode,sfVal),
-                SF('remark', '')
-          ], sTable_PurchaseContractDetail, '', True);
-        gDBConnManager.WorkerExec(FDBConn, nStr);
       end;
-  
-      FDBConn.FConn.CommitTrans;
-      Result := True;
-    except
-      FDBConn.FConn.RollbackTrans;
-      raise;
+
+      nStr := MakeSQLByStr([SF('pcid', Values['FID']),
+              SF('quota_name', nName),
+              SF('quota_condition', nCondition),
+              SF('quota_value', ndValue,sfval),
+              SF('punish_condition', nPunishcondition),
+              SF('punish_Basis', nPunishBasis,sfVal),
+              SF('punish_standard', nPunishStandard,sfVal),
+              SF('punish_mode', nPunishMode,sfVal),
+              SF('remark', '')
+              ], sTable_PurchaseContractDetail, '', True);
+      FListD.Add(nStr);
     end;
-  finally
-    nTempList.Free;
-    nQuotaList.Free;
+  end;
+
+  FDBConn.FConn.BeginTrans;
+  try
+    for nIdx := 0 to FListD.Count - 1 do
+      gDBConnManager.WorkerExec(FDBConn, FListD[nIdx]);
+
+    FDBConn.FConn.CommitTrans;
+    Result := True;
+  except
+    FDBConn.FConn.RollbackTrans;
+    raise;
   end;
 end;
 
 //------------------------------------------------------------------------------
 //Date: 2017/3/16
-//Parm: 
+//Parm:
 //Desc: 删除采购合同
 function TWorkerBusinessOrders.DeletePurchaseContract(var nData: string):Boolean;
-var
-  nStr:string;
-  nPcid:string;
+var nStr:string;
 begin
   Result := False;
-  nPcid := FIn.FData;
   nStr := 'Select Count(*) From %s Where PCID=''%s''';
-  nStr := Format(nStr, [sTable_Order, FIn.FData]);
+  nStr := Format(nStr, [sTable_Order, Trim(FIn.FData)]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
@@ -5155,28 +5151,20 @@ begin
     end;
   end;
 
-  FDBConn.FConn.BeginTrans;
-  try
-    nStr := 'update %s set con_DelMan=''%s'',con_DelDate=%s,con_status=%d where pcid=''%s''';
-    nStr := Format(nStr,[sTable_PurchaseContract,
-      FIn.FBase.FFrom.FUser,
-      sField_SQLServer_Now,
-      StrToInt(sFlag_PurchaseContract_deleted),
-      nPcid]);
+  nStr := 'Update %s Set con_DelMan=''%s'',con_DelDate=%s,con_Status=%d ' +
+          'Where PCID=''%s''';
+  nStr := Format(nStr,[sTable_PurchaseContract, FIn.FBase.FFrom.FUser,
+          sField_SQLServer_Now, StrToInt(sFlag_PurchaseContract_deleted),
+          FIn.FData]);
+  //删除状态
 
-    gDBConnManager.WorkerExec(FDBConn, nStr);
-
-    FDBConn.FConn.CommitTrans;
-    Result := True;
-  except
-    FDBConn.FConn.RollbackTrans;
-    raise;
-  end;
+  gDBConnManager.WorkerExec(FDBConn, nStr);
+  Result := True;
 end;
 
 //------------------------------------------------------------------------------
 //Date: 2015/9/20
-//Parm: 
+//Parm:
 //Desc: 获取供应可收货量
 function TWorkerBusinessOrders.GetGYOrderValue(var nData: string): Boolean;
 var nSQL: string;
@@ -5208,7 +5196,7 @@ begin
     nFreeze := FieldByName('B_FreezeValue').AsFloat;
 
     nMax := nVal - nSent - nFreeze;
-  end;  
+  end;
 
   with FListB do
   begin
@@ -5226,7 +5214,7 @@ begin
 
   FOut.FData := PackerEncodeStr(FListB.Text);
   Result := True;
-end;  
+end;
 
 
 //Date: 2015-8-5
@@ -5299,7 +5287,7 @@ begin
     if Copy(FOut.FData, nIdx, 1) = ',' then
       System.Delete(FOut.FData, nIdx, 1);
     //xxxxx
-    
+
     FDBConn.FConn.CommitTrans;
     Result := True;
   except

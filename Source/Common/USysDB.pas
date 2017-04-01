@@ -170,7 +170,8 @@ ResourceString
   sFlag_ManualA       = 'A';                         //皮重预警(错误事件类型)
   sFlag_ManualB       = 'B';                         //皮重超出范围
   sFlag_ManualC       = 'C';                         //净重超出误差范围
-  sFlag_ManualD       = 'D';                         //
+  sFlag_ManualD       = 'D';                         //散装超出大票量
+
 
   sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
   sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量
@@ -462,7 +463,8 @@ const
   sSQL_NewManualEvent = 'Create Table $Table(R_ID $Inc, E_ID varChar(32),' +
        'E_From varChar(32), E_Key varChar(32), E_Event varChar(200), ' +
        'E_Solution varChar(100), E_Result varChar(12),E_Departmen varChar(32),' +
-       'E_Date DateTime, E_ManDeal varChar(32), E_DateDeal DateTime)';
+       'E_Date DateTime, E_ManDeal varChar(32), E_DateDeal DateTime, ' +
+       'E_ParamA Integer, E_ParamB varChar(128), E_Memo varChar(512))';
   {-----------------------------------------------------------------------------
    人工干预事件: ManualEvent
    *.R_ID: 编号
@@ -475,6 +477,9 @@ const
    *.E_Departmen: 处理部门
    *.E_Date: 发生时间
    *.E_ManDeal,E_DateDeal: 处理人
+   *.E_ParamA: 附加参数, 整型
+   *.E_ParamB: 附加参数, 字符串
+   *.E_Memo: 备注信息
   -----------------------------------------------------------------------------}
 
   sSQL_NewSyncItem = 'Create Table $Table(R_ID $Inc, S_Table varChar(100),' +

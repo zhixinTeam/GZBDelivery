@@ -56,14 +56,18 @@ begin
 end;
 
 procedure TfFormTodoSend.FormCreate(Sender: TObject);
+var nStr: string;
 begin
-  with EditPart.Properties do
+  EditPart.Clear;
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_Departments]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
   begin
-    Items.Clear;
-    Items.Add('È«²¿');
-    Items.Add(sFlag_DepDaTing); 
-    Items.Add(sFlag_DepBangFang);
-    Items.Add(sFlag_DepJianZhuang);
+    nStr := Fields[0].AsString;
+    nStr := StringReplace(nStr, ';', #13, [rfReplaceAll]);
+    EditPart.Properties.Items.Text := nStr;
   end;
 
   LoadFormConfig(Self);
