@@ -55,7 +55,7 @@ type
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
 
-    function AddMallUser(const nBindcustomerid,nCus_num,nCus_name:string):Boolean;
+    function AddMallUser(const nBindcustomerid,nCus_num,nCus_name:string;nUpdate:Boolean=false):Boolean;
 //    function DelMallUser(const nPhone,nCus_id:string):boolean;    
   public
     { Public declarations }
@@ -252,7 +252,9 @@ var
   nBindcustomerid:string;
   nWechartAccount:string;
   nStr:string;
+  nUpdate:Boolean;
 begin
+  nUpdate := False;
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
     ShowMsg('请选择要开通的记录', sHint);
@@ -262,6 +264,7 @@ begin
   if nWechartAccount<>'' then
   begin
     if not QueryDlg('商城账户['+nWechartAccount+']已存在，是否重新关联?',sHint) then Exit;
+    nUpdate := True;
   end;
 
   nParam.FCommand := cCmd_AddData;
@@ -273,7 +276,7 @@ begin
     nWechartAccount := PackerDecodeStr(nParam.FParamC);
     nCus_ID := SQLQuery.FieldByName('C_ID').AsString;
     nCusName := SQLQuery.FieldByName('C_Name').AsString;
-    if not AddMallUser(nBindcustomerid,nCus_ID,nCusName) then Exit;
+    if not AddMallUser(nBindcustomerid,nCus_ID,nCusName,nUpdate) then Exit;
 
     nStr := 'update %s set C_WechartAccount=''%s'' where C_ID=''%s''';
     nStr := Format(nStr,[sTable_Customer,nWechartAccount,nCus_ID]);
@@ -290,19 +293,25 @@ begin
   end;
 end;
 
-function TfFrameCustomer.AddMallUser(const nBindcustomerid,nCus_num,nCus_name:string): Boolean;
+function TfFrameCustomer.AddMallUser(const nBindcustomerid,nCus_num,nCus_name:string;nUpdate:Boolean): Boolean;
 var
   nXmlStr:string;
   nData:string;
+  ntype:string;
 begin
   Result := False;
+  ntype := 'add';
+  if nUpdate then
+  begin
+    ntype := 'update';
+  end;
   //发送绑定请求开户请求
   nXmlStr := '<?xml version="1.0" encoding="UTF-8" ?>'
             +'<DATA>'
             +'<head>'
             +'<Factory>%s</Factory>'
             +'<Customer>%s</Customer>'
-            +'<type>add</type>'
+            +'<type>%s</type>'
             +'</head>'
             +'<Items>'
             +'<Item>'
@@ -313,7 +322,7 @@ begin
             +'</Items>'
             +'<remark />'
             +'</DATA>';
-  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nBindcustomerid,nCus_name,nCus_num]);
+  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nBindcustomerid,ntype,nCus_name,nCus_num]);
   nXmlStr := PackerEncodeStr(nXmlStr);
 //  nXmlStr := PackerEncodeStr(UTF8Encode(nXmlStr));
 

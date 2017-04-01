@@ -829,6 +829,8 @@ begin
     raise;
   end;
 
+  //修改商城订单状态
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
   //发送微信消息
   FDBConn.FConn.BeginTrans;
   try

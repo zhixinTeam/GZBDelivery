@@ -38,7 +38,7 @@ type
     procedure N2Click(Sender: TObject);
   private
     { Private declarations }
-    function AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string):Boolean;
+    function AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string;nUpdate:Boolean=false):Boolean;
   protected
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
@@ -151,7 +151,9 @@ var
   nPID,nPName:string;
   nBindcustomerid:string;
   nStr:string;
+  nUpdate:Boolean;
 begin
+  nUpdate := False;
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
     ShowMsg('请选择要开通的记录', sHint);
@@ -161,6 +163,7 @@ begin
   if nWechartAccount<>'' then
   begin
     if not QueryDlg('商城账户['+nWechartAccount+']已存在，是否重新关联?', sHint) then Exit;
+    nUpdate := True;
   end;
   nParam.FCommand := cCmd_AddData;
   CreateBaseFormItem(cFI_FormGetWechartAccount, PopedomItem, @nParam);
@@ -170,7 +173,7 @@ begin
     nWechartAccount := PackerDecodeStr(nParam.FParamC);
     nPID := SQLQuery.FieldByName('P_ID').AsString;
     nPName := SQLQuery.FieldByName('P_Name').AsString;
-    if not AddMallUser(nBindcustomerid,nPID,nPName) then Exit;
+    if not AddMallUser(nBindcustomerid,nPID,nPName,nUpdate) then Exit;
 
     nStr := 'update %s set P_WechartAccount=''%s'' where P_ID=''%s''';
     nStr := Format(nStr,[sTable_Provider,nWechartAccount,nPID]);
@@ -187,19 +190,25 @@ begin
   end;  
 end;
 
-function TfFrameProvider.AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string): Boolean;
+function TfFrameProvider.AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string;nUpdate:Boolean=false): Boolean;
 var
   nXmlStr:string;
   nData:string;
+  ntype:string;
 begin
   Result := False;
+  ntype := 'add';
+  if nUpdate then
+  begin
+    ntype := 'update';
+  end;  
   //发送绑定请求开户请求
   nXmlStr := '<?xml version="1.0" encoding="UTF-8" ?>'
             +'<DATA>'
             +'<head>'
             +'<Factory>%s</Factory>'
             +'<Provider>%s</Provider>'
-            +'<type>add</type>'
+            +'<type>%s</type>'
             +'</head>'
             +'<Items>'
             +'<Item>'
@@ -210,7 +219,7 @@ begin
             +'</Items>'
             +'<remark />'
             +'</DATA>';
-  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nBindcustomerid,nprov_name,nprov_num]);
+  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nBindcustomerid,ntype,nprov_name,nprov_num]);
   nXmlStr := PackerEncodeStr(nXmlStr);
   nData := edit_shopclients(nXmlStr);
   gSysLoger.AddLog(TfFrameProvider,'AddMallUser',nData);

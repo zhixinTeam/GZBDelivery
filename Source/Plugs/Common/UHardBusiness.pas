@@ -12,7 +12,7 @@ uses
   UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue,
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
-  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100;
+  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100,umitconst;
 
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
@@ -35,7 +35,7 @@ procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
 function Do_send_event_msg(const nXmlStr: string): string;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string);
+procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer=c_WeChatStatusFinished);
 
 //修改网上订单状态
 function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
@@ -43,7 +43,7 @@ function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
 implementation
 
 uses
-  ULibFun, USysDB, USysLoger, UTaskMonitor,UMITConst,UWorkerBusinessCommand;
+  ULibFun, USysDB, USysLoger, UTaskMonitor,UWorkerBusinessCommand;
 
 const
   sPost_In   = 'in';
@@ -643,7 +643,7 @@ begin
 end;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string);
+procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer);
 var
   nXmlStr,nData,nSql:string;
   nDBConn: PDBWorker;
@@ -686,10 +686,10 @@ begin
   nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
             +'<DATA>'
             +'<head><ordernumber>%s</ordernumber>'
-            +'<status>1</status>'
+            +'<status>%d</status>'
             +'</head>'
             +'</DATA>';
-  nXmlStr := Format(nXmlStr,[nWebOrderId]);
+  nXmlStr := Format(nXmlStr,[nWebOrderId,nStatus]);
   nXmlStr := PackerEncodeStr(nXmlStr);
 
   nData := Do_ModifyWebOrderStatus(nXmlStr);
