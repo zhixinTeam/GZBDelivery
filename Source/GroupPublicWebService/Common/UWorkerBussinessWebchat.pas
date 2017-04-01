@@ -639,7 +639,7 @@ var
   end;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_CustomerInfo.Create;
   nService := GetReviceWS(True);
   try
@@ -700,7 +700,7 @@ var
   end;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_get_shoporders.Create;
   nService := GetReviceWS(True);
   try
@@ -761,7 +761,7 @@ var
   end;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_get_shoporders.Create;
   nService := GetReviceWS(True);
   try
@@ -795,7 +795,7 @@ var
   nObj:TWebResponse_Bindfunc;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_Bindfunc.Create;
   nService := GetReviceWS(True);
   try
@@ -827,7 +827,7 @@ var
   nObj:TWebResponse_send_event_msg;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_send_event_msg.Create;
   nService := GetReviceWS(True);
   try
@@ -860,7 +860,7 @@ var
 begin
   Result := False;
   try
-    nXmlStr := PackerDecodeStr(fin.FData);
+    nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
     nObj := TWebResponse_edit_shopclients.Create;
     nService := GetReviceWS(True);
     try
@@ -898,7 +898,7 @@ var
   nObj:TWebResponse_edit_shopgoods;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_edit_shopgoods.Create;
   nService := GetReviceWS(True);
   try
@@ -930,7 +930,7 @@ var
   nObj:TWebResponse_complete_shoporders;
 begin
   Result := False;
-  nXmlStr := PackerDecodeStr(fin.FData);
+  nXmlStr := utf8decode(PackerDecodeStr(fin.FData));
   nObj := TWebResponse_complete_shoporders.Create;
   nService := GetReviceWS(True);
   try
