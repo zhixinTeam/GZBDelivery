@@ -24,6 +24,7 @@ inherited fFormGetWechartAccount: TfFormGetWechartAccount
       Left = 165
       Top = 36
       ParentFont = False
+      Properties.OnChange = edtinputPropertiesChange
       Style.BorderColor = clWindowFrame
       Style.BorderStyle = ebsSingle
       Style.HotTrack = False
