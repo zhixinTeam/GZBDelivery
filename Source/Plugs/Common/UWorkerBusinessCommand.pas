@@ -1764,7 +1764,7 @@ begin
     for nIdx:=0 to Lines.Count - 1 do
     begin
       nLine := Lines[nIdx];
-      if nLine.FIsValid then Continue;
+      if not nLine.FIsValid then Continue;
       //通道无效
 
       nFind := False;
@@ -5992,7 +5992,7 @@ begin
 
     //计算合同已完成量
     nSum:=0;
-    nSQL := 'select * from %s where P_Order where O_ID=%s';
+    nSQL := 'select * from %s where O_ID=''%s''';
     nSQL := Format(nSQL,[sTable_Order,nPound[0].FZhiKa]);
     with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
     if RecordCount > 0 then
@@ -6004,14 +6004,15 @@ begin
       nSQL := 'select isnull(sum((D_MValue-D_PValue-D_KZValue)),0) as D_NetWeight'
         +' from %s where D_OID in (select O_ID from %s'
         +' where pcid=''%s'')';
-      nStr := Format(nStr,[sTable_OrderDtl,sTable_Order,npcid]);
+      nSQL := Format(nSQL,[sTable_OrderDtl,sTable_Order,npcid]);
       with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
       if RecordCount > 0 then
       begin
-        nSum := FieldByName('D_NetWeight').AsFloat;
+        nSum := FieldByName('D_NetWeight').AsFloat + nVal;
+        //历史总量 + 本次净重
       end;
       nSQL := 'update %s set con_finished_quantity=%f where pcid=''%s''';
-      nSQL := Format(nStr,[sTable_PurchaseContract,nSum,npcid]);
+      nSQL := Format(nSQL,[sTable_PurchaseContract,nSum,npcid]);
       gDBConnManager.WorkerQuery(FDBConn, nSQL);
     end;
   end else

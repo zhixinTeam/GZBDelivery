@@ -311,6 +311,7 @@ begin
             +'<head>'
             +'<Factory>%s</Factory>'
             +'<Customer>%s</Customer>'
+            +'<Provider />'
             +'<type>%s</type>'
             +'</head>'
             +'<Items>'

@@ -126,7 +126,8 @@ function ChangeLadingTruckNo(const nBill,nTruck: string): Boolean;
 //更改提货车辆
 function BillSaleAdjust(const nBill, nNewZK: string): Boolean;
 //交货单调拨
-function SetBillCard(const nBill,nTruck: string; nVerify: Boolean): Boolean;
+function SetBillCard(const nBill,nTruck: string; nVerify: Boolean;
+  nType: string = 'S'): Boolean;
 //为交货单办理磁卡
 function SaveBillCard(const nBill, nCard: string): Boolean;
 //保存交货单磁卡
@@ -295,7 +296,7 @@ function AddManualEventRecord(nEID, nKey, nEvent:string;
 function VerifyManualEventRecord(const nEID: string; var nHint: string;
     const nWant: string = 'Y'): Boolean;
 //检查事件是否通过处理
-function DealManualEvent(const nEID: string): Boolean;
+function DealManualEvent(const nEID, nResult: string): Boolean;
 //事件处理
 
 function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;
@@ -1450,7 +1451,8 @@ end;
 //Date: 2014-09-17
 //Parm: 交货单;车牌号;校验制卡开关
 //Desc: 为nBill交货单制卡
-function SetBillCard(const nBill,nTruck: string; nVerify: Boolean): Boolean;
+function SetBillCard(const nBill,nTruck: string; nVerify: Boolean;
+  nType: string): Boolean;
 var nStr: string;
     nP: TFormCommandParam;
 begin
@@ -1467,7 +1469,7 @@ begin
 
   nP.FParamA := nBill;
   nP.FParamB := nTruck;
-  nP.FParamC := sFlag_Sale;
+  nP.FParamC := nType;
   CreateBaseFormItem(cFI_FormMakeCard, '', @nP);
   Result := (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK);
 end;
@@ -2639,44 +2641,71 @@ end;
 //Date: 2017/4/1
 //Parm: 待处理事件ID;处理结果
 //Desc: 处理三合一读卡器信息
-function DealManualEvent(const nEID: string): Boolean;
+function DealManualEvent(const nEID, nResult: string): Boolean;
 var nStr,nSQL: string;
     nList: TStrings;
     nBills: TLadingBillItems;
 begin
   Result := True;
 
-  if Copy(nEID, Length(nEID), 1) = sFlag_ManualD then
+  if (Copy(nEID, Length(nEID), 1) = sFlag_ManualD) or (nResult = sFLag_Yes) then
   begin //散装超发,并且当即处理
     nStr := '';
     Result := False;
     //默认处理失败
 
-    nSQL := 'Select E_Memo,E_Result From %s Where E_ID=''%s''';
-    nSQL := ''
+    nSQL := 'Select E_Memo From %s Where E_ID=''%s''';
+    nSQL := Format(nSQL, [sTable_ManualEvent, nEID]);
 
-    nList := TStringList.Create;
-    try
-      SplitStr()
-    finally
-      FreeAndNil(nList);
-    end;
-
-    while True do
+    with FDM.QueryTemp(nSQL) do
+    if RecordCount > 0 then
     begin
-      if not ShowInputBox('请输入新的提货单号:', '散装并单业务', nStr) then Exit;
-      nStr := Trim(nStr);
+      nList := TStringList.Create;
+      try
+        SplitStr(FieldByName('E_Memo').AsString, nList, 0, ';', False);
 
-      if (nStr = '') or  (CompareText(nStr, FInnerData.FProject) = 0) then
-      begin
-        ShowMsg('请重新输入', sHint);
-        Continue;
+        if not GetLadingBills(nList.Values['Pound_Card'], sFlag_TruckBFM,
+          nBills) then
+          Exit;
+
+        while True do
+        begin
+          if not ShowInputBox('请输入新的提货单号:', '散装并单业务', nStr) then Exit;
+          nStr := Trim(nStr);
+
+          if (nStr = '') or  (CompareText(nStr, nBills[0].FProject) = 0) then
+          begin
+            ShowMsg('请重新输入', sHint);
+            Continue;
+          end;
+
+          Break;
+        end;
+
+        with nBills[0] do
+        begin
+          with FMData do
+          begin
+            FStation := nList.Values['MStation'];
+            FValue := StrToFloat(nList.Values['Pound_MValue']);
+            FOperator := gSysParam.FUserID;
+          end;
+
+          FMemo := nStr;
+          FKZValue := StrToFloatDef(nList.Values['m'], 0);
+          //散装并单信息
+
+          FPoundID := sFlag_Yes;
+          //标记该项有称重数据
+          Result := SaveLadingBills(sFlag_TruckBFM, nBills);
+          //保存称重
+        end;
+      finally
+        FreeAndNil(nList);
       end;
     end;
-
-
   end;
-end;  
+end;
 
 //Desc: 读取栈台分组列表到nList中,包含附加数据
 function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;

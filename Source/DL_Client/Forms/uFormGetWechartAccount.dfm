@@ -71,15 +71,13 @@ inherited fFormGetWechartAccount: TfFormGetWechartAccount
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
-        CaptionOptions.Text = #26597#35810#26465#20214
+        Caption = #26597#35810#26465#20214
         object dxLayout1Item3: TdxLayoutItem
-          CaptionOptions.Text = #35831#36755#20837#30331#24405#36134#21495'/'#25163#26426#21495#30721
+          Caption = #35831#36755#20837#30331#24405#36134#21495'/'#25163#26426#21495#30721
           Control = edtinput
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item4: TdxLayoutItem
-          CaptionOptions.Text = 'cxLabel1'
-          CaptionOptions.Visible = False
           Control = cxLabel1
           ControlOptions.ShowBorder = False
         end

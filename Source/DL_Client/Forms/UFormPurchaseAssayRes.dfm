@@ -91,20 +91,18 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
-        CaptionOptions.Text = #21270#39564#32467#26524
+        Caption = #21270#39564#32467#26524
         object dxLayout1Item5: TdxLayoutItem
-          CaptionOptions.Text = #20379' '#24212' '#21830':'
+          Caption = #20379' '#24212' '#21830':'
           Control = EditProvider
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem
-          CaptionOptions.Text = #21407' '#26448' '#26009':'
+          Caption = #21407' '#26448' '#26009':'
           Control = EditMate
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item7: TdxLayoutItem
-          CaptionOptions.Text = 'cxLabel1'
-          CaptionOptions.Visible = False
           Control = cxLabel1
           ControlOptions.ShowBorder = False
         end
@@ -112,15 +110,13 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
           Control = SGRes
         end
         object dxLayout1Item6: TdxLayoutItem
-          CaptionOptions.Text = #33258#21160#25187#37325
+          Caption = #33258#21160#25187#37325
           Control = EditpunishRes
           ControlOptions.ShowBorder = False
         end
       end
       inherited dxLayout1Group1: TdxLayoutGroup
         object dxLayout1Item8: TdxLayoutItem [0]
-          CaptionOptions.Text = 'Button1'
-          CaptionOptions.Visible = False
           Control = Btnpunish
           ControlOptions.ShowBorder = False
         end

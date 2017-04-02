@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameTransfer;
 
+{$I Link.Inc} 
 interface
 
 uses
@@ -206,12 +207,19 @@ begin
   inherited;
   if cxView1.DataController.GetSelectedCount > 0 then
   begin
+    {$IFDEF TransferRFID}
     nP.FParamA := Trim(SQLQuery.FieldByName('B_Truck').AsString);
     CreateBaseFormItem(cFI_FormMakeRFIDCard, '', @nP);
     if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
 
     if SaveDDCard(SQLQuery.FieldByName('B_ID').AsString, 'H' + nP.FParamB) then
       ShowMsg('办理磁卡成功', sHint);
+    {$ELSE}
+    if SetBillCard(SQLQuery.FieldByName('B_ID').AsString,
+      SQLQuery.FieldByName('B_Truck').AsString, True, sFlag_DuanDao) then
+      ShowMsg('办理磁卡成功', sHint);
+    //办理磁卡
+    {$ENDIF}
   end;
 end;
 

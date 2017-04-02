@@ -478,7 +478,7 @@ begin
         FID       := FieldByName('B_ID').AsString;
 
       FZhiKa      := FieldByName('B_ID').AsString;
-      FCusName    := FieldByName('B_SrcAddr').AsString + '-->' +
+      FCusName    := FieldByName('B_SrcAddr').AsString +
                      FieldByName('B_DestAddr').AsString;
       FTruck      := FieldByName('B_Truck').AsString;
 
@@ -520,7 +520,9 @@ end;
 //Parm: 交货单[FIn.FData];岗位[FIn.FExtParam]
 //Desc: 保存指定岗位提交的交货单列表
 function TWorkerBusinessDuanDao.SavePostDDItems(var nData: string): Boolean;
-var nSQL,nS,nN: string;
+var nVal: Double;
+    nNeedP: Boolean;
+    nSQL,nS,nN: string;
     nInt, nIdx: Integer;
     nPound: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
@@ -558,7 +560,7 @@ begin
     nS := Fields[0].AsString;
     nN := Fields[1].AsString;
     //申请单当前状态和下一状态
-  end;  
+  end;
 
   FListA.Clear;
   //用于存储SQL列表
@@ -573,6 +575,13 @@ begin
     end;
     //入厂记录未配对完成
 
+    nNeedP := False;
+    nSQL := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+    nSQL := Format(nSQL, [sTable_SysDict, sFlag_SysParam, sFlag_TransferPound]);
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+      nNeedP := Fields[0].AsString = sFlag_Yes;
+
     FListC.Clear;
     FListC.Values['Group'] := sFlag_BusGroup;
     FListC.Values['Object'] := sFlag_Transfer;
@@ -586,6 +595,12 @@ begin
     //返回生成的信息编号
     with nPound[0] do
     begin
+      FStatus := sFlag_TruckIn;
+      FNextStatus := sFlag_TruckOut;
+
+      if nNeedP then FNextStatus := sFlag_TruckBFP;
+      //需要过磅
+
       nSQL := MakeSQLByStr([
               SF('T_ID', nOut.FData),
               SF('T_Card', FCard),
@@ -597,8 +612,8 @@ begin
 
               SF('T_StockNo', FStockNo),
               SF('T_StockName', FStockName),
-              SF('T_Status', sFlag_TruckIn),
-              SF('T_NextStatus', sFlag_TruckOut),
+              SF('T_Status', FStatus),
+              SF('T_NextStatus', FNextStatus),
               SF('T_InTime', sField_SQLServer_Now, sfVal),
               SF('T_InMan', FIn.FBase.FFrom.FUser)
               ], sTable_Transfer, '', True);
@@ -607,11 +622,160 @@ begin
       nSQL := MakeSQLByStr([
               SF('B_TID', nOut.FData),
               SF('B_IsUsed', sFlag_Yes),
-              SF('B_Status', sFlag_TruckIn),
-              SF('B_NextStatus', sFlag_TruckOut)
+              SF('B_Status', FStatus),
+              SF('B_NextStatus', FNextStatus)
               ], sTable_TransBase, SF('B_ID', FZhiKa), False);
       FListA.Add(nSQL);
     end;  
+
+  end else
+
+  //----------------------------------------------------------------------------
+  if FIn.FExtParam = sFlag_TruckBFP then //称量皮重
+  begin
+    FListC.Clear;
+    FListC.Values['Group'] := sFlag_BusGroup;
+    FListC.Values['Object'] := sFlag_PoundID;
+
+    if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+            FListC.Text, sFlag_Yes, @nOut) then
+      raise Exception.Create(nOut.FData);
+    //xxxxx
+
+    FOut.FData := nOut.FData;
+    //返回榜单号,用于拍照绑定
+    with nPound[0] do
+    begin
+      FStatus := sFlag_TruckBFP;
+      FNextStatus := sFlag_TruckBFM;
+
+      nSQL := MakeSQLByStr([
+            SF('P_ID', nOut.FData),
+            SF('P_Type', sFlag_DuanDao),
+            SF('P_Order', FID),
+            SF('P_Truck', FTruck),
+            SF('P_CusID', FCusID),
+            SF('P_CusName', FCusName),
+            SF('P_MID', FStockNo),
+            SF('P_MName', FStockName),
+            SF('P_MType', FType),
+            SF('P_LimValue', 0),
+            SF('P_PValue', FPData.FValue, sfVal),
+            SF('P_PDate', sField_SQLServer_Now, sfVal),
+            SF('P_PMan', FIn.FBase.FFrom.FUser),
+            SF('P_FactID', FFactory),
+            SF('P_PStation', FPData.FStation),
+            SF('P_Direction', '碎石'),
+            SF('P_PModel', FPModel),
+            SF('P_Status', sFlag_TruckBFP),
+            SF('P_Valid', sFlag_Yes),
+            SF('P_PrintNum', 1, sfVal)
+            ], sTable_PoundLog, '', True);
+      FListA.Add(nSQL);
+
+      nSQL := MakeSQLByStr([
+              SF('T_Status', FStatus),
+              SF('T_NextStatus', FNextStatus),
+              SF('T_PValue', FPData.FValue, sfVal),
+              SF('T_PDate', sField_SQLServer_Now, sfVal),
+              SF('T_PMan', FIn.FBase.FFrom.FUser)
+              ], sTable_Transfer, '', True);
+      FListA.Add(nSQL);
+
+      nSQL := MakeSQLByStr([
+              SF('B_Status', FStatus),
+              SF('B_NextStatus', FNextStatus),
+              SF('B_PValue', FPData.FValue, sfVal),
+              SF('B_PDate', sField_SQLServer_Now, sfVal),
+              SF('B_PMan', FIn.FBase.FFrom.FUser)
+              ], sTable_TransBase, SF('B_ID', FZhiKa), False);
+      FListA.Add(nSQL);
+    end;
+
+  end else
+
+  //----------------------------------------------------------------------------
+  if FIn.FExtParam = sFlag_TruckBFM then //称量毛重
+  begin
+    with nPound[0] do
+    begin
+      nSQL := SF('P_Order', FID);
+      //where
+
+      nVal := FMData.FValue - FPData.FValue;
+      if FNextStatus = sFlag_TruckBFP then
+      begin
+        nSQL := MakeSQLByStr([
+                SF('P_PValue', FPData.FValue, sfVal),
+                SF('P_PDate', sField_SQLServer_Now, sfVal),
+                SF('P_PMan', FIn.FBase.FFrom.FUser),
+                SF('P_PStation', FPData.FStation),
+                SF('P_MValue', FMData.FValue, sfVal),
+                SF('P_MDate', DateTime2Str(FMData.FDate)),
+                SF('P_MMan', FMData.FOperator),
+                SF('P_MStation', FMData.FStation)
+                ], sTable_PoundLog, nSQL, False);
+        //称重时,由于皮重大,交换皮毛重数据
+        FListA.Add(nSQL);
+
+        nSQL := MakeSQLByStr([
+                SF('T_Status', sFlag_TruckBFM),
+                SF('T_NextStatus', sFlag_TruckOut),
+                SF('T_PValue', FPData.FValue, sfVal),
+                SF('T_PDate', sField_SQLServer_Now, sfVal),
+                SF('T_PMan', FIn.FBase.FFrom.FUser),
+                SF('T_MValue', FMData.FValue, sfVal),
+                SF('T_MDate', DateTime2Str(FMData.FDate)),
+                SF('T_MMan', FMData.FOperator),
+                SF('T_Value', nVal, sfVal)
+                ], sTable_Transfer, SF('T_ID', FID), False);
+        FListA.Add(nSQL);
+
+        nSQL := MakeSQLByStr([
+                SF('B_Status', sFlag_TruckBFM),
+                SF('B_NextStatus', sFlag_TruckOut),
+                SF('B_PValue', FPData.FValue, sfVal),
+                SF('B_PDate', sField_SQLServer_Now, sfVal),
+                SF('B_PMan', FIn.FBase.FFrom.FUser),
+                SF('B_MValue', FMData.FValue, sfVal),
+                SF('B_MDate', DateTime2Str(FMData.FDate)),
+                SF('B_MMan', FMData.FOperator),
+                SF('B_Value', nVal, sfVal)
+                ], sTable_TransBase, SF('B_ID', FZhiKa), False);
+        FListA.Add(nSQL);
+
+      end else
+      begin
+        nSQL := MakeSQLByStr([
+                SF('P_MValue', FMData.FValue, sfVal),
+                SF('P_MDate', sField_SQLServer_Now, sfVal),
+                SF('P_MMan', FIn.FBase.FFrom.FUser),
+                SF('P_MStation', FMData.FStation)
+                ], sTable_PoundLog, nSQL, False);
+        //xxxxx
+        FListA.Add(nSQL);
+
+        nSQL := MakeSQLByStr([
+                SF('T_Status', sFlag_TruckBFM),
+                SF('T_NextStatus', sFlag_TruckOut),
+                SF('T_MValue', FMData.FValue, sfVal),
+                SF('T_MDate', sField_SQLServer_Now, sfVal),
+                SF('T_MMan', FMData.FOperator),
+                SF('T_Value', nVal, sfVal)
+                ], sTable_Transfer, SF('T_ID', FID), False);
+        FListA.Add(nSQL);
+
+        nSQL := MakeSQLByStr([
+                SF('B_Status', sFlag_TruckBFM),
+                SF('B_NextStatus', sFlag_TruckOut),
+                SF('B_MValue', FMData.FValue, sfVal),
+                SF('B_MDate', sField_SQLServer_Now, sfVal),
+                SF('B_MMan', FMData.FOperator),
+                SF('B_Value', nVal, sfVal)
+                ], sTable_Transfer, SF('B_ID', FZhiKa), False);
+        FListA.Add(nSQL);
+      end;
+    end;
 
   end else
 

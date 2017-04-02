@@ -207,6 +207,7 @@ begin
             +'<DATA>'
             +'<head>'
             +'<Factory>%s</Factory>'
+            +'<Customer />'
             +'<Provider>%s</Provider>'
             +'<type>%s</type>'
             +'</head>'

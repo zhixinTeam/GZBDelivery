@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormTransfer;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -92,10 +93,6 @@ var nStr: string;
 begin
   nIdx := Integer(EditMID.Properties.Items.Objects[EditMID.ItemIndex]);
 
-  nP.FParamA := Trim(EditTruck.Text);
-  CreateBaseFormItem(cFI_FormMakeRFIDCard, '', @nP);
-  if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
-
   nList := TStringList.Create;
   try
     with nList do
@@ -111,8 +108,17 @@ begin
     //call mit bus
     if nStr = '' then Exit;
 
+    {$IFDEF TransferRFID}
+    nP.FParamA := Trim(EditTruck.Text);
+    CreateBaseFormItem(cFI_FormMakeRFIDCard, '', @nP);
+    if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
+
     SaveDDCard(nStr, 'H' + nP.FParamB);
     //电子标签前加一个H，用于远距离读卡控制
+    {$ELSE}
+    SetBillCard(nStr, EditTruck.Text, True, sFlag_DuanDao);
+    //办理磁卡
+    {$ENDIF}
 
     ModalResult := mrOk;
   finally

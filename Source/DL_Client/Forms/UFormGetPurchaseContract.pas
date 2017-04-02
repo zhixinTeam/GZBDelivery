@@ -157,9 +157,10 @@ begin
   nStr := Format(nStr,[sTable_PurchaseContract,'%'+nQuery+'%','%'+nQuery+'%']);
 
   with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
   begin
     SetLength(FContractItems, RecordCount);
-     nIdx := Low(FContractItems);
+    nIdx := Low(FContractItems);
      
     while not Eof do
     begin

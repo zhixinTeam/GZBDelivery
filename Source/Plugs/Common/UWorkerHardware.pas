@@ -734,7 +734,7 @@ begin
     for nIdx:=0 to Lines.Count - 1 do
     begin
       nLine := Lines[nIdx];
-      if nLine.FIsValid then Continue;
+      if not nLine.FIsValid then Continue;
       //通道无效
 
       nFind := False;

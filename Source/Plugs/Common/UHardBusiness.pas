@@ -552,16 +552,9 @@ begin
 end;
 
 procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
-var
-  nSql:string;
-  nDs:TDataSet;
-
-  nBills: TLadingBillItems;
-  nXmlStr,nData:string;
-  i,nIdx:Integer;
-  nItem:TLadingBillItem;
-  nMobileNo,nCustomerid:string;
-  nDBConn: PDBWorker;
+var nBills: TLadingBillItems;
+    nXmlStr,nData:string;
+    nIdx:Integer;
 begin
   //加载提货单信息
   if not GetLadingBills(nLid, sFlag_BillDone, nBills) then
@@ -569,66 +562,46 @@ begin
     Exit;
   end;
 
-  nDBConn := nil;
-  with gParamManager.ActiveParam^ do
+  for nIdx := Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
   begin
-    try
-      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
-      if not Assigned(nDBConn) then
-      begin
-        Exit;
-      end;
-      if not nDBConn.FConn.Connected then
-      nDBConn.FConn.Connected := True;
-      
-      //调用web接口发送消息
-      for i := Low(nBills) to High(nBills) do
-      begin
-        nItem := nBills[i];
+    nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+        +'<DATA>'
+        +'<head>'
+        +'<Factory>%s</Factory>'
+        +'<ToUser>%s</ToUser>'
+        +'<MsgType>%d</MsgType>'
+        +'</head>'
+        +'<Items>'
+        +'	  <Item>'
+        +'	      <BillID>%s</BillID>'
+        +'	      <Card>%s</Card>'
+        +'	      <Truck>%s</Truck>'
+        +'	      <StockNo>%s</StockNo>'
+        +'	      <StockName>%s</StockName>'
+        +'	      <CusID>%s</CusID>'
+        +'	      <CusName>%s</CusName>'
+        +'	      <CusAccount>0</CusAccount>'
+        +'	      <MakeDate></MakeDate>'
+        +'	      <MakeMan></MakeMan>'
+        +'	      <TransID></TransID>'
+        +'	      <TransName></TransName>'
+        +'	      <Searial></Searial>'
+        +'	      <OutFact></OutFact>'
+        +'	      <OutMan></OutMan>'
+        +'	  </Item>	'
+        +'</Items>'
+        +'   <remark/>'
+        +'</DATA>';
+    nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName]);
+    nXmlStr := PackerEncodeStr(nXmlStr);
+    nData := Do_send_event_msg(nXmlStr);
+    gSysLoger.AddLog(nData);
 
-        nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
-            +'<DATA>'
-            +'<head>'
-            +'<Factory>%s</Factory>'
-            +'<ToUser>%s</ToUser>'
-            +'<MsgType>%d</MsgType>'
-            +'</head>'
-            +'<Items>'
-            +'	  <Item>'
-            +'	      <BillID>%s</BillID>'
-            +'	      <Card>%s</Card>'
-            +'	      <Truck>%s</Truck>'
-            +'	      <StockNo>%s</StockNo>'
-            +'	      <StockName>%s</StockName>'
-            +'	      <CusID>%s</CusID>'
-            +'	      <CusName>%s</CusName>'
-            +'	      <CusAccount>0</CusAccount>'
-            +'	      <MakeDate></MakeDate>'
-            +'	      <MakeMan></MakeMan>'
-            +'	      <TransID></TransID>'
-            +'	      <TransName></TransName>'
-            +'	      <Searial></Searial>'
-            +'	      <OutFact></OutFact>'
-            +'	      <OutMan></OutMan>'
-            +'	  </Item>	'
-            +'</Items>'
-            +'   <remark/>'
-            +'</DATA>';
-        nXmlStr := Format(nXmlStr,[gSysParam.FFactory, nItem.FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-              nItem.FID,nItem.FCard,nitem.FTruck,
-              nItem.FStockNo,nItem.FStockName,nItem.FCusID,
-              nItem.FCusName]);
-        nXmlStr := PackerEncodeStr(nXmlStr);
-        nData := Do_send_event_msg(nXmlStr);
-        gSysLoger.AddLog(nData);
-
-        if ndata<>'' then
-        begin
-          WriteHardHelperLog(nData, sPost_Out);
-        end;
-      end;
-    finally
-      gDBConnManager.ReleaseConnection(nDBConn);
+    if ndata<>'' then
+    begin
+      WriteHardHelperLog(nData, sPost_Out);
     end;
   end;
 end;

@@ -69,6 +69,8 @@ type
   TEventItem = record
     FEnable: Boolean;
     FRecord: string;
+
+    FEID: string;
     FFrom: string;
     FEvent: string;
     FSolution: string;
@@ -213,6 +215,8 @@ begin
 
           nItem.FEnable := True;
           nItem.FRecord := nStr;
+
+          nItem.FEID  := FieldByName('E_ID').AsString;
           nItem.FFrom := FieldByName('E_From').AsString;
           nItem.FEvent := FieldByName('E_Event').AsString;
           nItem.FSolution := FieldByName('E_Solution').AsString;
@@ -376,7 +380,7 @@ begin
     if not QueryDlg(nStr, sAsk, Handle) then Exit;
 
     nStr := GetSolution(nItem.FSolution, cxRadio1.ItemIndex);
-    if not DealManualEvent(nStr) then Exit;
+    if not DealManualEvent(nItem.FEID, nStr) then Exit;
 
     nStr := MakeSQLByStr([SF('E_Result', nStr),
             SF('E_ManDeal', gSysParam.FUserID),

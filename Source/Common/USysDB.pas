@@ -187,6 +187,7 @@ ResourceString
   sFlag_HYValue       = 'HYMaxValue';                //化验批次量
   sFlag_SaleManDept   = 'SaleManDept';               //工厂销售点
   sFlag_HYPackers     = 'HYPackers';                 //可用批次条件
+  sFlag_TransferPound = 'TransferPound';             //短倒是否过磅
 
   sFlag_PDaiWuChaZ    = 'PoundDaiWuChaZ';            //袋装正误差
   sFlag_PDaiWuChaF    = 'PoundDaiWuChaF';            //袋装负误差

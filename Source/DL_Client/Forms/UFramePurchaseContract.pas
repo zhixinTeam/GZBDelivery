@@ -14,7 +14,7 @@ uses
   cxButtonEdit, cxTextEdit, ADODB, cxContainer, cxLabel, UBitmapPanel,
   cxSplitter, cxGridLevel, cxClasses, cxControls, cxGridCustomView,
   cxGridCustomTableView, cxGridTableView, cxGridDBTableView, cxGrid,
-  cxCheckBox;
+  cxCheckBox, cxLookAndFeels, cxLookAndFeelPainters, ComCtrls, ToolWin;
 
 type
   TfFramePurchaseContract = class(TfFrameNormal)
@@ -145,7 +145,7 @@ begin
   begin
     InitFormData(FWhere);
     ShowMsg('提货单已删除', sHint);
-  end;  
+  end;
 end;
 
 //Desc: 查询

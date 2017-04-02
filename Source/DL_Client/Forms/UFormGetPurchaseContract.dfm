@@ -104,27 +104,25 @@ inherited fFormGetPurchaseContract: TfFormGetPurchaseContract
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
-        CaptionOptions.Text = #26597#35810#26465#20214
+        Caption = #26597#35810#26465#20214
         object dxLayout1Item5: TdxLayoutItem
-          CaptionOptions.Text = #20379' '#24212' '#21830':'
+          Caption = #20379' '#24212' '#21830':'
           Control = EditProvider
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem
-          CaptionOptions.Text = #21407' '#26448' '#26009':'
+          Caption = #21407' '#26448' '#26009':'
           Control = EditMate
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item7: TdxLayoutItem
-          CaptionOptions.Text = 'cxLabel1'
-          CaptionOptions.Visible = False
+          Visible = False
           Control = cxLabel1
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item6: TdxLayoutItem
+          AutoAligns = [aaHorizontal]
           AlignVert = avClient
-          CaptionOptions.Text = #26597#35810#32467#26524':'
-          CaptionOptions.Visible = False
           Control = ListQuery
           ControlOptions.ShowBorder = False
         end

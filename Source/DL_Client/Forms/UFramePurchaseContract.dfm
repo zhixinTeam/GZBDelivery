@@ -118,7 +118,7 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
       Width = 176
     end
     object CheckDelete: TcxCheckBox [8]
-      Left = 806
+      Left = 876
       Top = 36
       Caption = #26597#35810#24050#21024#38500
       ParentFont = False
@@ -130,50 +130,49 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
     inherited dxGroup1: TdxLayoutGroup
       inherited GroupSearch1: TdxLayoutGroup
         object dxLayout1Item2: TdxLayoutItem
-          CaptionOptions.Text = #21512#21516#32534#21495
+          Caption = #21512#21516#32534#21495
           Control = editcontactNo
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item6: TdxLayoutItem
-          CaptionOptions.Text = #20379#24212#21830#32534#30721
+          Caption = #20379#24212#21830#32534#30721
           Control = editProviderCode
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item7: TdxLayoutItem
-          CaptionOptions.Text = #29289#26009#32534#30721
+          Caption = #29289#26009#32534#30721
           Control = editMaterielCode
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item8: TdxLayoutItem
-          CaptionOptions.Text = #26085#26399#31579#36873
+          Caption = #26085#26399#31579#36873
           Control = EditDate
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item9: TdxLayoutItem
-          CaptionOptions.Text = 'cxCheckBox1'
-          CaptionOptions.Visible = False
+          Caption = 'cxCheckBox1'
           Control = CheckDelete
           ControlOptions.ShowBorder = False
         end
       end
       inherited GroupDetail1: TdxLayoutGroup
         object dxLayout1Item1: TdxLayoutItem
-          CaptionOptions.Text = #21512#21516#32534#21495':'
+          Caption = #21512#21516#32534#21495':'
           Control = cxTextEdit1
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem
-          CaptionOptions.Text = #20379#24212#21830#21517#31216
+          Caption = #20379#24212#21830#21517#31216
           Control = cxTextEdit3
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item4: TdxLayoutItem
-          CaptionOptions.Text = #29289#26009#21517#31216
+          Caption = #29289#26009#21517#31216
           Control = cxTextEdit2
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item5: TdxLayoutItem
-          CaptionOptions.Text = #25968#37327
+          Caption = #25968#37327
           Control = cxTextEdit4
           ControlOptions.ShowBorder = False
         end

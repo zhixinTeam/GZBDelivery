@@ -627,9 +627,9 @@ begin
 
     if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
     begin //开票员忽略后，认为司机卸货后再次过磅。
-      nStr := 'Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
-      nStr := Format(nStr, [FUIData.FPData.FValue, FUIData.FMData.FValue,
-              FUIData.FCard]);
+      nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+      nStr := Format(nStr, [FPoundTunnel.FID,m,
+              FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
 
       AddManualEventRecord(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
         sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nStr);
