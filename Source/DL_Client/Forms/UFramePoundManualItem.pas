@@ -354,6 +354,7 @@ begin
     else nStr := '销售';
 
     if FCardUsed=sFlag_Provide then nStr := '供应';
+    if FCardUsed=sFlag_DuanDao then nStr := '临时';
 
     if FUIData.FNextStatus = sFlag_TruckBFP then
     begin
@@ -380,7 +381,8 @@ end;
 //Parm: 磁卡或交货单号
 //Desc: 读取nCard对应的交货单
 procedure TfFrameManualPoundItem.LoadBillItems(const nCard: string);
-var nStr,nHint: string;
+var nRet: Boolean;
+    nStr,nHint: string;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
 begin
@@ -392,12 +394,14 @@ begin
   end;
 
   FCardUsed := GetCardUsed(nCard);
-  if ((FCardUsed=sFlag_Provide)
-      and (not GetPurchaseOrders(nCard, sFlag_TruckBFP, nBills)))
-    or
-    ((FCardUsed <> sFlag_Provide)
-      and (not GetLadingBills(nCard, sFlag_TruckBFP, nBills)))
-  then
+  if FCardUsed = sFlag_Provide then
+     nRet := GetPurchaseOrders(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_DuanDao then
+     nRet := GetDuanDaoItems(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_Sale then
+     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else nRet := False;
+
+  if (not nRet) or (Length(nBills) < 1) then
   begin
     SetUIData(True);
     Exit;
@@ -717,7 +721,7 @@ begin
     Exit;
   end;
 
-  if (Length(FBillItems) > 0) and (FCardUsed <> sFlag_Provide) then
+  if (Length(FBillItems) > 0) and (FCardUsed = sFlag_Sale) then
   begin
     if FBillItems[0].FNextStatus = sFlag_TruckBFP then
          FUIData.FPData.FValue := nVal
@@ -887,7 +891,7 @@ begin
     end;
   end;
 
-  if (Length(FBillItems)>0) and (FCardUsed = sFlag_Provide) then
+  if (Length(FBillItems)>0) then
     nNextStatus := FBillItems[0].FNextStatus;
 
   SetLength(FBillItems, 1);
@@ -929,7 +933,12 @@ begin
     if nLimite and
       (nMax-(FBillItems[0].FMData.FValue-FBillItems[0].FPData.FValue)<nWarn)
     then ShowDlg('订单即将发完，请及时更换', sHint);
-  end else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
+  end  else
+
+  if FCardUsed = sFlag_DuanDao then
+       Result := SaveDuanDaoItems(nNextStatus, FBillItems,FPoundTunnel)
+       
+  else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
   //保存称重
 end;
 
@@ -1048,7 +1057,8 @@ begin
     end;
   end;
 
-  if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) then
+  if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) and
+     (FUIData.FYSValid <> sFlag_Yes) then
   begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
     begin

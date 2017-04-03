@@ -349,6 +349,7 @@ begin
     else nStr := '销售';
 
     if FCardUsed = sFlag_Provide then nStr := '供应';
+    if FCardUsed = sFlag_DuanDao then nStr := '临时';
 
     if FUIData.FNextStatus = sFlag_TruckBFP then
     begin
@@ -359,15 +360,6 @@ begin
       RadioCC.Enabled := True;
       EditMemo.Text := nStr + '称毛重';
     end;
-  end else
-  begin
-    if RadioLS.Checked then
-      EditMemo.Text := '车辆临时称重';
-    //xxxxx
-
-    if RadioPD.Checked then
-      EditMemo.Text := '车辆配对称重';
-    //xxxxx
   end;
 end;
 
@@ -384,9 +376,12 @@ begin
   WriteLog(nStr);
 
   FCardUsed := GetCardUsed(nCard);
-  if FCardUsed=sFlag_Provide then
-       nRet := GetPurchaseOrders(nCard, sFlag_TruckBFP, nBills)
-  else nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills);
+  if FCardUsed = sFlag_Provide then
+     nRet := GetPurchaseOrders(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_DuanDao then
+     nRet := GetDuanDaoItems(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_Sale then
+     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else nRet := False;
 
   if (not nRet) or (Length(nBills) < 1)
   then
@@ -703,7 +698,8 @@ begin
     end;
   end;
 
-  if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) then
+  if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) and
+     (FUIData.FYSValid <> sFlag_Yes) then //非空车出厂
   begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
     begin
@@ -808,8 +804,8 @@ begin
     end;
   end;
 
-  if (Length(FBillItems)>0) and (FCardUsed = sFlag_Provide) then
-    nNextStatus := FBillItems[0].FNextStatus;
+  nNextStatus := FBillItems[0].FNextStatus;
+  //暂存下一状态
 
   SetLength(FBillItems, 1);
   FBillItems[0] := FUIData;
@@ -827,7 +823,7 @@ begin
 
   if FCardUsed = sFlag_Provide then
        Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel)
-  else Result := SaveTruckPoundItem(FPoundTunnel, FBillItems);
+  else Result := SaveDuanDaoItems(nNextStatus, FBillItems, FPoundTunnel);
   //保存称重
 end;
 
@@ -905,7 +901,7 @@ begin
   if Length(FBillItems) < 1 then Exit;
   //无称重数据
 
-  if FCardUsed = sFlag_Provide then
+  if (FCardUsed = sFlag_Provide) or (FCardUsed = sFlag_DuanDao) then
   begin
     if FInnerData.FPData.FValue > 0 then
     begin
@@ -951,9 +947,9 @@ begin
   end;
 
   FIsSaving := True;
-  if FCardUsed = sFlag_Provide then
-       nRet := SavePoundData
-  else nRet := SavePoundSale;
+  if FCardUsed = sFlag_Sale then
+       nRet := SavePoundSale
+  else nRet := SavePoundData;
 
   if nRet then
        TimerDelay.Enabled := True

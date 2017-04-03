@@ -110,7 +110,8 @@ const
   cBC_WeChat_edit_shopgoods   = $0099;   //微信平台接口：添加商品
   cBC_WeChat_get_shoporders   = $0100;   //微信平台接口：获取订单信息
   cBC_WeChat_complete_shoporders   = $0101;   //微信平台接口：修改订单状态
-  cBC_WeChat_get_shoporderbyNO   = $0102;   //微信平台接口：根据订单号获取订单信息  
+  cBC_WeChat_get_shoporderbyNO   = $0102;   //微信平台接口：根据订单号获取订单信息
+  cBC_WeChat_get_shopPurchasebyNO   = $0104;   //微信平台接口：根据订单号获取订单信息
 
   cBC_SavePurchaseContract           = $0104;   //保存采购合同
   cBC_DeletePurchaseContract         = $0105;   //删除采购合同

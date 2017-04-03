@@ -146,6 +146,9 @@ type
     //根据订单号获取订单信息
     function get_shoporderbyno(var nData:string):Boolean;
 
+    //根据订单号获取订单信息
+    function get_shopPurchasebyNO(var nData:string):Boolean;
+
     //修改订单状态
     function complete_shoporders(var nData:string):Boolean;
 
@@ -493,7 +496,8 @@ begin
    cBC_WeChat_edit_shopgoods  : Result := edit_shopgoods(nData);   //微信平台接口：添加商品
    cBC_WeChat_get_shoporders  : Result := get_shoporders(nData);   //微信平台接口：获取订单信息
    cBC_WeChat_complete_shoporders  : Result := complete_shoporders(nData);   //微信平台接口：修改订单状态
-   cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);   //微信平台接口：根据订单号获取订单信息   
+   cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);   //微信平台接口：根据订单号获取订单信息
+   cBC_WeChat_get_shopPurchasebyNO : Result := get_shopPurchasebyNO(nData);
    else
     begin
       Result := False;
@@ -516,7 +520,11 @@ begin
 
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
-    if RecordCount<1 then Exit;
+    if RecordCount<1 then
+    begin
+      nData := '无匹配的磁卡信息';
+      Exit;
+    end;
 
     FOut.FData := Fields[0].AsString;
     Result := True;
@@ -2274,6 +2282,22 @@ begin
   end;
 end;
 
+//根据订单号获取订单信息
+function TWorkerBusinessCommander.get_shopPurchasebyNO(var nData:string):Boolean;
+var
+  frmCall:TFrmCallWechatWebService;
+begin
+  Result := False;
+  frmCall := TFrmCallWechatWebService.Create(nil);
+  try
+    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shopPurchasebyNO,fin.FData);
+    nData := fin.FData;
+    FOut.FData := fin.FData;
+  finally
+    frmCall.Free;
+  end;
+end;
+
 //修改订单状态
 function TWorkerBusinessCommander.complete_shoporders(var nData:string):Boolean;
 var
@@ -3053,10 +3077,10 @@ end;
 function TWorkerBusinessCommander.SyncYT_Provide(var nData: string): Boolean;
 var nStr,nSQL,nRID: string;
     nIdx,nErrNum: Integer;
-    nDateMin: TDateTime;
     nWorker: PDBWorker;
     nBills: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
+    nDateIn, nDateOut, nDateMin: TDateTime;
 begin
   Result := False;
   FListA.Text := FIn.FData;
@@ -3184,6 +3208,17 @@ begin
 
     for nIdx:=Low(nBills) to High(nBills) do
     begin
+      if nBills[nIdx].FPData.FDate < nBills[nIdx].FMData.FDate then
+      begin
+        nDateIn := nBills[nIdx].FPData.FDate;
+        nDateOut := nBills[nIdx].FMData.FDate;
+      end else
+
+      begin
+        nDateIn := nBills[nIdx].FMData.FDate;
+        nDateOut := nBills[nIdx].FPData.FDate;
+      end;    
+
       nRID := YT_NewID('DB_TURN_MATERIN', nWorker);
       //记录编号
 
@@ -3220,9 +3255,9 @@ begin
 
               SF('DTM_Vehicle', nBills[nIdx].FTruck),
 
-              SF('DTM_InDate', Date2StrOracle(nBills[nIdx].FMData.FDate), sfVal),
-              SF('DTM_CDate', DateTime2StrOracle(nBills[nIdx].FPData.FDate),sfVal),
-              SF('DTM_TDate', DateTime2StrOracle(nBills[nIdx].FMData.FDate),sfVal),
+              SF('DTM_InDate', Date2StrOracle(nDateIn), sfVal),
+              SF('DTM_CDate', DateTime2StrOracle(nDateIn),sfVal),
+              SF('DTM_TDate', DateTime2StrOracle(nDateOut),sfVal),
               SF('DTM_Material', nBills[nIdx].FStockNo),
               SF('DTM_Company', nBills[nIdx].FCusID),
               SF('DTM_FIRM', gSysParam.FProvFirm),
@@ -5229,6 +5264,10 @@ begin
   nVal := StrToFloat(FListA.Values['Value']);
   //unpack Order
 
+  TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, FListA.Values['Truck'],
+    '', @nOut);
+  //保存车牌号
+
   //----------------------------------------------------------------------------
   FDBConn.FConn.BeginTrans;
   try
@@ -6013,7 +6052,7 @@ begin
       end;
       nSQL := 'update %s set con_finished_quantity=%f where pcid=''%s''';
       nSQL := Format(nSQL,[sTable_PurchaseContract,nSum,npcid]);
-      gDBConnManager.WorkerQuery(FDBConn, nSQL);
+      FListA.Add(nSQL);
     end;
   end else
 

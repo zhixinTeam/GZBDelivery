@@ -102,5 +102,6 @@
   {$DEFINE MITTruckProber}
   //服务器操作车间控制柜
   {$DEFINE MultiReplay}
+  //JSQ应答模式
 {$ENDIF}
 

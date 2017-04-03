@@ -1698,7 +1698,7 @@ begin
 
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
-          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord '+
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,L_IsEmpty '+
           'From $Bill b ';
   //xxxxx
 
@@ -1764,6 +1764,8 @@ begin
 
       FPData.FValue := FieldByName('L_PValue').AsFloat;
       FMData.FValue := FieldByName('L_MValue').AsFloat;
+
+      FYSValid  := FieldByName('L_IsEmpty').AsString;
       FSelected := True;
 
       Inc(nIdx);
