@@ -597,7 +597,6 @@ begin
                FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
-    gSysLoger.AddLog(nData);
 
     if ndata<>'' then
     begin
@@ -1384,9 +1383,7 @@ var nStr,nCardType: string;
       end;
     end;
 begin
-  {.$IFDEF DEBUG}
   WriteNearReaderLog('MakeTruckLadingDai进入.');
-  {.$ENDIF}
 
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
@@ -1528,7 +1525,13 @@ begin
     if (FStatus = sFlag_TruckZT) or (FNextStatus = sFlag_TruckZT) then
     begin
       FSelected := Pos(FID, nPTruck.FHKBills) > 0;
-      if FSelected then Inc(nInt); //刷卡通道对应的交货单
+      if FSelected then
+      begin
+        FLineGroup := nPLine.FLineGroup;
+        Inc(nInt);
+      end;
+      //刷卡通道对应的交货单
+
       Continue;
     end;
 
@@ -1691,6 +1694,7 @@ begin
     Exit;
   end;
 
+  nTrucks[0].FLineGroup := nPLine.FLineGroup;
   if not SaveLadingBills(sFlag_TruckFH, nTrucks) then
   begin
     nStr := '车辆[ %s ]放灰处提货失败.';

@@ -172,6 +172,8 @@ type
 
     FSeal       : string;          //编号ID
     FHYDan      : string;          //水泥编号
+    FLineGroup  : string;          //生产线
+
     FYSValid    : string;          //验收结果，Y验收成功；N拒收；
     FKZValue    : Double;          //供应扣除
     FYTID       : string;          //云天系统XLB_ID
@@ -339,6 +341,8 @@ begin
 
         FSeal   := Values['Seal'];
         FHYDan  := Values['HYDan'];
+        FLineGroup := Values['LineGroup'];
+
         FMemo   := Values['Memo']; 
         FYSValid:= Values['YSValid'];
         FHKRecord:= Values['HKRecord'];
@@ -419,8 +423,9 @@ begin
 
         Values['Seal']       := FSeal;
         Values['HYDan']      := FHYDan;
+        Values['LineGroup']  := FLineGroup;
+
         Values['KZValue']    := FloatToStr(FKZValue);
-        
         Values['YSValid']    := FYSValid;
         Values['Memo']       := FMemo;
         Values['HKRecord']   := FHKRecord;

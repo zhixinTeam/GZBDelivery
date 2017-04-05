@@ -1282,7 +1282,8 @@ const
 
   sSQL_NewMaterails = 'Create Table $Table(R_ID $Inc, M_ID varChar(32),' +
        'M_Name varChar(80),M_PY varChar(80),M_Unit varChar(20),M_Price $Float,' +
-       'M_PrePValue Char(1), M_PrePTime Integer, M_IsSale Char(1), M_Memo varChar(50))';
+       'M_PrePValue Char(1), M_PrePTime Integer, M_IsSale Char(1), ' +
+       'M_Index Integer, M_Memo varChar(50))';
   {-----------------------------------------------------------------------------
    ŒÔ¡œ±Ì: Materails
    *.M_ID: ±‡∫≈

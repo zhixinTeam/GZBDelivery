@@ -263,6 +263,8 @@ function PrintOrderReport(const nOrder: string;  const nAsk: Boolean): Boolean;
 //打印采购单
 function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
 //打印榜单
+function PrintDuanDaoReport(const nID: string; nAsk: Boolean): Boolean;
+//打印短倒单
 function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
   const nAsk: Boolean): Boolean;
 function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
@@ -2288,6 +2290,52 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2017/4/4
+//Parm: 短倒ID;是否打印
+//Desc: 打印短倒明细
+function PrintDuanDaoReport(const nID: string; nAsk: Boolean): Boolean;
+var nStr: string;
+    nParam: TReportParamItem;
+begin
+  Result := False;
+
+  if nAsk then
+  begin
+    nStr := '是否要打印短倒单?';
+    if not QueryDlg(nStr, sAsk) then Exit;
+  end;
+
+  nStr := 'Select * From %s Where T_ID=''%s''';
+  nStr := Format(nStr, [sTable_Transfer, nID]);
+
+  if FDM.QueryTemp(nStr).RecordCount < 1 then
+  begin
+    nStr := '短倒记录[ %s ] 已无效!!';
+    nStr := Format(nStr, [nID]);
+    ShowMsg(nStr, sHint); Exit;
+  end;
+
+  nStr := gPath + sReportDir + 'DuanDao.fr3';
+  if not FDR.LoadReportFile(nStr) then
+  begin
+    nStr := '无法正确加载报表文件';
+    ShowMsg(nStr, sHint); Exit;
+  end;
+
+  nParam.FName := 'UserName';
+  nParam.FValue := gSysParam.FUserID;
+  FDR.AddParamItem(nParam);
+
+  nParam.FName := 'Company';
+  nParam.FValue := gSysParam.FHintText;
+  FDR.AddParamItem(nParam);
+
+  FDR.Dataset1.DataSet := FDM.SqlTemp;
+  FDR.ShowReport;
+  Result := FDR.PrintSuccess;
+end;
+
 //Desc: 获取nStock品种的报表文件
 function GetReportFileByStock(const nStock: string): string;
 begin
@@ -2599,7 +2647,7 @@ begin
           SF('E_Solution', nSolution),
           SF('E_Departmen', nDepartmen),
           SF('E_Date', sField_SQLServer_Now, sfVal)
-          ], sTable_ManualEvent, nStr, nUpdate);
+          ], sTable_ManualEvent, nStr, (not nUpdate));
   FDM.ExecuteSQL(nSQL);
 end;
 
@@ -2613,7 +2661,7 @@ begin
   Result := False;
   //init
 
-  nSQL := 'Select E_Result, E_Event From %s Where E_ID=''%s''';
+  nSQL := 'Select E_Result, E_Event, E_ParamB  From %s Where E_ID=''%s''';
   nSQL := Format(nSQL, [sTable_ManualEvent, nEID]);
 
   with FDM.QuerySQL(nSQL) do
@@ -2648,7 +2696,7 @@ var nStr,nSQL: string;
 begin
   Result := True;
 
-  if (Copy(nEID, Length(nEID), 1) = sFlag_ManualD) or (nResult = sFLag_Yes) then
+  if (Copy(nEID, Length(nEID), 1) = sFlag_ManualD) and (nResult = sFLag_Yes) then
   begin //散装超发,并且当即处理
     nStr := '';
     Result := False;

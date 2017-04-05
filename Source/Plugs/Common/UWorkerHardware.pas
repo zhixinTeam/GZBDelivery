@@ -505,6 +505,22 @@ begin
       nCode:= nCode + Copy(nStr, Length(nStr)-5, 6);
       //车牌号后六位
       {$ENDIF}
+
+      {$IFDEF CODEBATCODE}
+      nStr := FieldByName('L_ID').AsString;
+      System.Delete(nStr, 1, nPrefixLen + 2);
+      nCode := nStr;
+      //日期(MMDD) + 流水(XXX)
+
+      nCode := nCode + FieldByName('L_HYDan').AsString;
+      //批次号：工厂编号(XX) + 检验日期(YYMMDD) + '#' + 流水(XX)
+
+      nStr := UpperCase(GetPinYinOfStr(FieldByName('L_Area').AsString));
+      nCode:= nCode + Copy(nStr, 1, 2);
+      //销售片区前两位
+
+      nCode := Dbc2Sbc(nCode);
+      {$ENDIF}
     end;
   end;
 

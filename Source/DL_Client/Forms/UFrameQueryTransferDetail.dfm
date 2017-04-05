@@ -178,5 +178,9 @@ inherited fFrameTransferDetailQuery: TfFrameTransferDetailQuery
       Caption = #26597#35810#26410#20986#21378
       OnClick = N2Click
     end
+    object N1: TMenuItem
+      Caption = #25171#21360#30701#20498#21333
+      OnClick = N1Click
+    end
   end
 end

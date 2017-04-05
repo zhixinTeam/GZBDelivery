@@ -344,6 +344,76 @@ begin
   Result := FDR.PrintSuccess;
 end;
 
+function PrintDDReport(const nID: string; var nHint: string;
+ const nPrinter: string = ''; const nMoney: string = '0'): Boolean;
+var nStr: string;
+    nDS: TDataSet;
+begin
+  Result := False;
+  nStr := 'Select * From %s Where T_ID=''%s''';
+  nStr := Format(nStr, [sTable_Transfer, nID]);
+
+  nDS := FDM.SQLQuery(nStr, FDM.SQLQuery1);
+  if not Assigned(nDS) then Exit;
+
+  if nDS.RecordCount < 1 then
+  begin
+    nHint := '倒料单[ %s ] 已无效!!';
+    nHint := Format(nHint, [nID]);
+    Exit;
+  end;
+
+  nStr := gPath + 'Report\DuanDao.fr3';
+  if not FDR.LoadReportFile(nStr) then
+  begin
+    nHint := '无法正确加载报表文件';
+    Exit;
+  end;
+
+  if nPrinter = '' then
+       FDR.Report1.PrintOptions.Printer := 'My_Default_Printer'
+  else FDR.Report1.PrintOptions.Printer := nPrinter;
+
+  FDR.Dataset1.DataSet := FDM.SQLQuery1;
+  FDR.PrintReport;
+  Result := FDR.PrintSuccess;
+end;
+
+function PrintPoundReport(const nID: string; var nHint: string;
+ const nPrinter: string = ''; const nMoney: string = '0'): Boolean;
+var nStr: string;
+    nDS: TDataSet;
+begin
+  Result := False;
+  nStr := 'Select * From %s Where P_ID=''%s''';
+  nStr := Format(nStr, [sTable_PoundLog, nID]);
+
+  nDS := FDM.SQLQuery(nStr, FDM.SQLQuery1);
+  if not Assigned(nDS) then Exit;
+
+  if nDS.RecordCount < 1 then
+  begin
+    nHint := '过磅单[ %s ] 已无效!!';
+    nHint := Format(nHint, [nID]);
+    Exit;
+  end;
+
+  nStr := gPath + 'Report\Pound.fr3';
+  if not FDR.LoadReportFile(nStr) then
+  begin
+    nHint := '无法正确加载报表文件';
+    Exit;
+  end;
+
+  if nPrinter = '' then
+       FDR.Report1.PrintOptions.Printer := 'My_Default_Printer'
+  else FDR.Report1.PrintOptions.Printer := nPrinter;
+
+  FDR.Dataset1.DataSet := FDM.SQLQuery1;
+  FDR.PrintReport;
+  Result := FDR.PrintSuccess;
+end;
+
 //Desc: 打印单据
 procedure TfFormMain.PrintBill(var nBase: TRPDataBase; var nBuf: TIdBytes;
   nCtx: TIdContext);
@@ -409,8 +479,12 @@ begin
 
     WriteLog('开始打印: ' + nBill);
     if nType = 'P' then
-         PrintOrderReport(nBill, nHint, nPrinter)
-    else PrintBillReport(nBill, nHint, nPrinter, nMoney);
+         PrintOrderReport(nBill, nHint, nPrinter) else
+    if nType = 'S' then
+         PrintBillReport(nBill, nHint, nPrinter, nMoney) else
+    if nType = 'D' then
+         PrintDDReport(nBill, nHint, nPrinter)
+    else PrintPoundReport(nBill, nHint, nPrinter);
     WriteLog('打印结束.' + nHint);
   end;
 end;

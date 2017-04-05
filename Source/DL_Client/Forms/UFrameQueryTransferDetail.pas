@@ -31,6 +31,7 @@ type
     EditBill: TcxButtonEdit;
     dxLayout1Item7: TdxLayoutItem;
     N2: TMenuItem;
+    N1: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
@@ -38,6 +39,7 @@ type
     procedure mniN1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
     procedure BtnDelClick(Sender: TObject);
+    procedure N1Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -183,6 +185,17 @@ begin
     InitFormData(FWhere);
     ShowMsg('短倒明细已删除', sHint);
   end;
+end;
+
+procedure TfFrameTransferDetailQuery.N1Click(Sender: TObject);
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要打印的记录', sHint); Exit;
+  end;
+
+  PrintDuanDaoReport(SQLQuery.FieldByName('T_ID').AsString, False);
 end;
 
 initialization

@@ -95,13 +95,13 @@
   //远程同步
   {$DEFINE AppAtTaskBar}
   //状态栏显示
-  {$DEFINE MicroMsg}
-  //微信支持
-  {$DEFINE CODEAREA}
-  //喷码打印销售区域
+  {$DEFINE CODEBATCODE}
+  //喷码打印批次号
   {$DEFINE MITTruckProber}
-  //服务器操作车间控制柜
+  //服务器操作车检
   {$DEFINE MultiReplay}
   //JSQ应答模式
+  {$DEFINE BATAFTERLINE}
+  //刷卡获取批次
 {$ENDIF}
 

@@ -679,7 +679,7 @@ begin
               SF('T_PValue', FPData.FValue, sfVal),
               SF('T_PDate', sField_SQLServer_Now, sfVal),
               SF('T_PMan', FIn.FBase.FFrom.FUser)
-              ], sTable_Transfer, '', True);
+              ], sTable_Transfer, SF('T_ID', FID), False);
       FListA.Add(nSQL);
 
       nSQL := MakeSQLByStr([
@@ -760,7 +760,7 @@ begin
                 SF('T_NextStatus', sFlag_TruckOut),
                 SF('T_MValue', FMData.FValue, sfVal),
                 SF('T_MDate', sField_SQLServer_Now, sfVal),
-                SF('T_MMan', FMData.FOperator),
+                SF('T_MMan', FIn.FBase.FFrom.FUser),
                 SF('T_Value', nVal, sfVal)
                 ], sTable_Transfer, SF('T_ID', FID), False);
         FListA.Add(nSQL);
@@ -770,11 +770,21 @@ begin
                 SF('B_NextStatus', sFlag_TruckOut),
                 SF('B_MValue', FMData.FValue, sfVal),
                 SF('B_MDate', sField_SQLServer_Now, sfVal),
-                SF('B_MMan', FMData.FOperator),
+                SF('B_MMan', FIn.FBase.FFrom.FUser),
                 SF('B_Value', nVal, sfVal)
-                ], sTable_Transfer, SF('B_ID', FZhiKa), False);
+                ], sTable_TransBase, SF('B_ID', FZhiKa), False);
         FListA.Add(nSQL);
       end;
+    end;
+
+    nSQL := 'Select P_ID From %s Where P_Order=''%s'' And P_MValue Is Null';
+    nSQL := Format(nSQL, [sTable_PoundLog, nPound[0].FID]);
+    //Î´³ÆÃ«ÖØ¼ÇÂ¼
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      FOut.FData := Fields[0].AsString;
     end;
 
   end else
@@ -800,6 +810,10 @@ begin
               SF('B_NextStatus', sFlag_TruckNone)
               ], sTable_TransBase, SF('B_ID', FZhiKa), False);
       FListA.Add(nSQL);
+
+//      nSQL := 'Update %s Set C_Status=''%s'' Where C_Card=''%s''';
+//      nSQL := Format(nSQL, [sTable_Card, sFlag_CardIdle, FCard]);
+//      FListA.Add(nSQL); //¸üÐÂ´Å¿¨×´Ì¬
     end;
   end;
 
