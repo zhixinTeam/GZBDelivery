@@ -40,6 +40,7 @@ const
   cBC_WeChat_get_shoporders   = $0100;   //微信平台接口：获取订单信息
   cBC_WeChat_complete_shoporders   = $0101;   //微信平台接口：修改订单状态
   cBC_WeChat_get_shoporderbyno   = $0102;   //微信平台接口：根据订单号获取订单信息
+  cBC_WeChat_get_shopPurchasebyNO   = $0108;   //微信平台接口：根据订单号获取订单信息
 
 type
   PWorkerWebChatData = ^TWorkerWebChatData;

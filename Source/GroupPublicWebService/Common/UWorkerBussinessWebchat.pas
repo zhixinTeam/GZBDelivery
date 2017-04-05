@@ -274,6 +274,7 @@ begin
     cBC_WeChat_get_shoporders :Result := get_shoporders(nData);  //微信平台接口：获取订单信息
     cBC_WeChat_complete_shoporders : Result := complete_shoporders(nData); //微信平台接口：订单完成
     cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);  //微信平台接口：根据订单号获取订单信息
+    cBC_WeChat_get_shopPurchasebyNO : Result := get_shoporderbyno(nData);
    else
     begin
       Result := False;
