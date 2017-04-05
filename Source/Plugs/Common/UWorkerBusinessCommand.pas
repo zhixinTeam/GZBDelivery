@@ -146,7 +146,7 @@ type
     //根据订单号获取订单信息
     function get_shoporderbyno(var nData:string):Boolean;
 
-    //根据订单号获取订单信息
+    //根据货单号获取货单信息-原材料
     function get_shopPurchasebyNO(var nData:string):Boolean;
 
     //修改订单状态
@@ -2282,7 +2282,7 @@ begin
   end;
 end;
 
-//根据订单号获取订单信息
+//根据货单号获取货单信息-原材料
 function TWorkerBusinessCommander.get_shopPurchasebyNO(var nData:string):Boolean;
 var
   frmCall:TFrmCallWechatWebService;
@@ -5009,7 +5009,7 @@ begin
   for nIdx := 0 to FListC.Count - 1 do
   begin
     FListD.Clear;
-    FListD.Text := FListC[nIdx];
+    FListD.CommaText := FListC[nIdx];
 
     nName := FListD[0];
     nCondition := FListD[2];
@@ -5115,7 +5115,7 @@ begin
     FListB.Text := PackerDecodeStr(Values['QuotaList']);
     for nIdx := 0 to FListB.Count - 1 do
     begin
-      FListC.Text := FListB[nIdx];
+      FListC.CommaText := FListB[nIdx];
 
       nPunishcondition :='';
       nPunishStandard := 0;
