@@ -217,7 +217,7 @@ type
 
 implementation
 uses
-  UMgrQueue,uFormCallWechatWebService;
+  UMgrQueue,uFormCallWechatWebService,UHardBusiness;
 class function TBusWorkerQueryField.FunctionName: string;
 begin
   Result := sBus_GetQueryField;
@@ -5264,6 +5264,23 @@ begin
   nVal := StrToFloat(FListA.Values['Value']);
   //unpack Order
 
+  //begin判断该车牌号是否有未完成业务
+  nStr := 'select O_ID from %s where O_Truck=''%s'' and O_Card<>'''' ';
+  nStr := Format(nStr,[sTable_Order, FListA.Values['Truck']]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      Result := False;
+      FOut.FBase.FResult := False;
+      nStr := '车辆[ %s ]在未完成[ %s ]采购单之前禁止开单.';
+      nData := Format(nStr, [FListA.Values['Truck'], FieldByName('O_ID').AsString]);
+      Fout.FBase.FErrDesc := nData;
+      Exit;
+    end;
+  end;
+  //end判断该车牌号是否有未完成业务
+  
   TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, FListA.Values['Truck'],
     '', @nOut);
   //保存车牌号
@@ -5333,6 +5350,18 @@ begin
     FDBConn.FConn.RollbackTrans;
     raise;
   end;
+
+  //修改商城订单状态
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
+  //发送微信消息
+  FDBConn.FConn.BeginTrans;
+  try
+    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Provide);
+    FDBConn.FConn.CommitTrans;
+  except
+     FDBConn.FConn.RollbackTrans;
+    raise;
+  end;  
 end;
 
 //Date: 2015-8-5

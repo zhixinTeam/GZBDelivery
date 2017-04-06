@@ -834,7 +834,7 @@ begin
   //发送微信消息
   FDBConn.FConn.BeginTrans;
   try
-    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill);
+    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
     FDBConn.FConn.CommitTrans;
   except
      FDBConn.FConn.RollbackTrans;

@@ -29,7 +29,7 @@ procedure WhenSaveJS(const nTunnel: PMultiJSTunnel);
 //保存计数结果
 
 //推送消息到微信平台
-procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillType:string);
 
 //发送消息
 function Do_send_event_msg(const nXmlStr: string): string;
@@ -551,14 +551,28 @@ begin
   end;
 end;
 
-procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer);
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillType:string);
 var nBills: TLadingBillItems;
     nXmlStr,nData:string;
     nIdx:Integer;
 begin
-  //加载提货单信息
-  if not GetLadingBills(nLid, sFlag_BillDone, nBills) then
+  if nBillType=sFlag_Sale then
   begin
+    //加载提货单信息
+    if not GetLadingBills(nLid, sFlag_BillDone, nBills) then
+    begin
+      Exit;
+    end;
+  end
+  else if nBillType=sFlag_Provide then
+  begin
+    //加载采购订单信息
+    if not GetLadingOrders(nLid, sFlag_BillDone, nBills) then
+    begin
+      Exit;
+    end;  
+  end
+  else begin
     Exit;
   end;
 
@@ -758,7 +772,7 @@ begin
   BlueOpenDoor(nReader);
   //抬杆
   //发送微信商城
-  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory);
+  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
   with nTrucks[0] do
   begin
@@ -864,7 +878,7 @@ begin
   BlueOpenDoor(nReader);
   //抬杆
   //发送微信商城
-  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory);
+  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
   with nTrucks[0] do
   begin
