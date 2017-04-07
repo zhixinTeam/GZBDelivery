@@ -120,7 +120,9 @@ begin
     ActiveControl := EditTruck;
 
     FCardData.Text := PackerDecodeStr(nStr);
+    {$IFNDEF BATAFTERLINE}
     FComentData.Text := YT_GetBatchCode(FCardData);
+    {$ENDIF}
     InitFormData;
 
     if nPopedom = 'MAIN_D04' then //ฒนตฅ

@@ -171,7 +171,7 @@ ResourceString
   sFlag_ManualB       = 'B';                         //皮重超出范围
   sFlag_ManualC       = 'C';                         //净重超出误差范围
   sFlag_ManualD       = 'D';                         //散装超出大票量
-
+  sFlag_ManualE       = 'E';                         //批次号获取失败 
 
   sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
   sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量

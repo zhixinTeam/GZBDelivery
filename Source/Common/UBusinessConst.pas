@@ -95,6 +95,7 @@ const
   cBC_SaveLadingSealInfo      = $0089;   //更新批次信息
   cBC_SyncYTBatchCodeInfo     = $0090;   //获取化验单信息
   cBC_SyncProvidePound        = $0192;   //同步供应磅单到远程
+  cBC_GetBatcodeAfterLine     = $0193;   //现场刷卡后获取批次号
 
   cBC_VerifPrintCode          = $0091;   //验证喷码信息
   cBC_WaitingForloading       = $0092;   //工厂待装查询

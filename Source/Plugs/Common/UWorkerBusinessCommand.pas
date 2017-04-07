@@ -100,6 +100,8 @@ type
     //获取云天发货单批次号
     function SyncYT_BatchCodeInfo(var nData: string): Boolean;
     //获取云天系统化验单信息
+    function GetBatcodeAfterLine(var nData: string): Boolean;
+    //现场刷卡后获取批次号
 
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
@@ -476,6 +478,7 @@ begin
    cBC_GetYTBatchCode      : Result := GetYTBatchCode(nData);
    cBC_SaveLadingSealInfo  : Result := SaveLadingSealInfo(nData);
    cBC_SyncYTBatchCodeInfo : Result := SyncYT_BatchCodeInfo(nData);
+   cBC_GetBatcodeAfterLine : Result := GetBatcodeAfterLine(nData);
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -3973,6 +3976,10 @@ begin
   end;   
 end;
 
+//------------------------------------------------------------------------------
+//Date: 2017/4/5
+//Parm: 物料编号等
+//Desc: 获取云天批次号信息
 function TWorkerBusinessCommander.GetYTBatchCode(var nData: string): Boolean;
 var nStr: string;
     nVal: Double;
@@ -4007,10 +4014,11 @@ begin
     if (FListB.Count > 0) and (FListB.IndexOf(Values['XCB_Cement']) >= 0) then
     begin
       FOut.FData := PackerEncodeStr(FListA.Text);
+      FOut.FExtParam := sFlag_Yes;
       Result := True;
       Exit;
     end;
-    //无需批次号的物料
+    //无需批次号的物料,业务执行完毕
 
     if Values['XCB_OutASH'] = '' then
     begin
@@ -4094,6 +4102,7 @@ begin
         end;
 
         FOut.FData := PackerEncodeStr(FListA.Text);
+        FOut.FExtParam := sFlag_Yes;
         Result := True;
       end else                            //重选批次号
 
@@ -4216,7 +4225,7 @@ begin
           begin
             nData := '※.水泥编号: %s' + #13#10 +
                      '※.水泥名称: %s' + #13#10 +
-                     '※.错误描述: 无可用水泥编号,无法开票.';
+                     '※.错误描述: 无可用水泥编号,无法开票(1).';
             nData := Format(nData, [Values['XCB_Cement'],
                      Values['XCB_CementName']]);
             Exit;
@@ -4226,12 +4235,128 @@ begin
         end;
 
         FOut.FData := PackerEncodeStr(FListA.Text);
+        FOut.FExtParam := sFlag_No;
         Result := True;
       end;
     finally
       gDBConnManager.ReleaseConnection(nDBWorker);
     end;
   end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/4/5
+//Parm: 物料编号;车间编号
+//Desc: 现场刷卡后获取物料批次号
+function TWorkerBusinessCommander.GetBatcodeAfterLine(var nData: string): Boolean;
+var nSQL, nStr: string;
+    nUpdate: Boolean;
+    nIdx: Integer;
+    nVal: Double;
+    nOut: TWorkerBusinessCommand;
+begin
+  Result := False;
+  FListA.Text := PackerDecodeStr(FIn.FData);
+  //解析数据
+
+  nSQL := 'Select D_ParamB From %s Where D_Name=''%s'' And D_Value=''%s''';
+  nSQL := Format(nSQL, [sTable_SysDict, sFlag_ZTLineGroup,
+          FListA.Values['LineGroup']]);
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  if RecordCount > 0 then
+    FListA.Values['XCB_OutASH'] := Fields[0].AsString;
+  //获取生产线对应的仓库编号
+
+  if not CallMe(cBC_GetYTBatchCode, PackerEncodeStr(FListA.Text), '', @nOut) then
+  begin
+    nData := nOut.FData;
+    nSQL := 'Select * From %s Where E_ID=''%s''';
+    nSQL := Format(nSQL, [sTable_ManualEvent, FListA.Values['ID']]);
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      nStr := '事件记录:[ %s ]已存在';
+      nStr := Format(nStr, [FListA.Values['ID']]);
+
+      WriteLog(nStr);
+      nUpdate := True;
+    end else nUpdate := False;
+
+    nStr := SF('E_ID', FListA.Values['ID']);
+    nSQL := MakeSQLByStr([
+            SF('E_ID', FListA.Values['ID']),
+            SF('E_Key', ''),
+            SF('E_Result', ''),
+            SF('E_From', sFlag_DepJianZhuang),
+
+            SF('E_Event', nData),
+            SF('E_Solution', sFlag_Solution_YN),
+            SF('E_Departmen', sFlag_DepJianZhuang),
+            SF('E_Date', sField_SQLServer_Now, sfVal)
+            ], sTable_ManualEvent, nStr, (not nUpdate));
+    gDBConnManager.WorkerExec(FDBConn, nSQL);
+    Exit;
+  end;
+
+  Result := nOut.FExtParam = sFlag_Yes;
+
+  if not Result then
+  begin
+    FListB.Text := PackerDecodeStr(nOut.FData);
+    FListC.Text := PackerDecodeStr(FListB.Values['XCB_CementRecords']);
+    //获取批次号剩余量明细
+
+    for nIdx := 0 to FListC.Count - 1 do
+    begin
+      FListD.Text := PackerDecodeStr(FListC[nIdx]);
+      nVal := StrToFloat(FListD.Values['XCB_CementValue']);
+
+      if FloatRelation(nVal, StrToFloat(FListA.Values['Value']), rtGreater) then
+      begin
+        FListA.Values['XCB_CementCodeID'] := FListD.Values['XCB_CementCodeID'];
+        FListA.Values['XCB_CementCode']   := FListD.Values['XCB_CementCode'];
+
+        FOut.FData := PackerEncodeStr(FListA.Text);
+        Result := True;
+        Exit;
+      end;
+    end;
+
+    nData := '※.水泥编号: %s ' +
+             '※.水泥名称: %s ' +
+             '※.错误描述: 无可用水泥编号,无法开票(2).';
+    nData := Format(nData, [FListA.Values['XCB_Cement'],
+             FListA.Values['XCB_CementName']]);
+    //xxxxx
+
+    nSQL := 'Select * From %s Where E_ID=''%s''';
+    nSQL := Format(nSQL, [sTable_ManualEvent, FListA.Values['ID']]);
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      nStr := '事件记录:[ %s ]已存在';
+      nStr := Format(nStr, [FListA.Values['ID']]);
+
+      WriteLog(nStr);
+      nUpdate := True;
+    end else nUpdate := False;
+
+    nStr := SF('E_ID', FListA.Values['ID']);
+    nSQL := MakeSQLByStr([
+            SF('E_ID', FListA.Values['ID']),
+            SF('E_Key', ''),
+            SF('E_Result', ''),
+            SF('E_From', sFlag_DepJianZhuang),
+          
+            SF('E_Event', nData),
+            SF('E_Solution', sFlag_Solution_YN),
+            SF('E_Departmen', sFlag_DepJianZhuang),
+            SF('E_Date', sField_SQLServer_Now, sfVal)
+            ], sTable_ManualEvent, nStr, (not nUpdate));
+    gDBConnManager.WorkerExec(FDBConn, nSQL);
+  end;  
 end;
 
 //Date: 2017/03/30

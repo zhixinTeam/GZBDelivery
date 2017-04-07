@@ -564,6 +564,7 @@ begin
     Exit;
   end;
 
+  {$IFNDEF BATAFTERLINE}
   if not TWorkerBusinessCommander.CallMe(cBC_GetYTBatchCode,
      PackerEncodeStr(FListC.Text), '', @nOut) then
   begin
@@ -574,6 +575,14 @@ begin
   FListB.Text := PackerDecodeStr(nOut.FData);
   FListA.Values['Seal'] := FListB.Values['XCB_CementCodeID'];
   FListA.Values['HYDan'] := FListB.Values['XCB_CementCode'];
+  {$ELSE}
+  if FListA.Values['BuDan'] <> sFlag_Yes then
+  begin
+    FListA.Values['Seal'] := '';
+    FListA.Values['HYDan'] := '';
+  end;
+  //销售补单需要选择批次号
+  {$ENDIF}
 
   Result := True;
   //verify done
@@ -752,26 +761,6 @@ begin
 
       if FListA.Values['BuDan'] = sFlag_Yes then //补单
       begin
-        { //订单冻结量在云天完成
-        nStr := 'Update %s Set C_HasDone=C_HasDone+%.2f Where C_ID=''%s''';
-        nStr := Format(nStr, [sTable_YT_CardInfo,
-                StrToFloat(FListC.Values['Value']),
-                FListA.Values['Record']]);
-        nInt := gDBConnManager.WorkerExec(FDBConn, nStr);
-
-        if nInt < 1 then
-        begin
-          nSQL := MakeSQLByStr([
-            SF('C_ID', FListA.Values['Record']),
-            SF('C_Card', FListA.Values['Project']),
-            SF('C_Stock', FListC.Values['StockNO']),
-            SF('C_Freeze', '0', sfVal),
-            SF('C_HasDone', FListC.Values['Value'], sfVal)
-            ], sTable_YT_CardInfo, '', True);
-          gDBConnManager.WorkerExec(FDBConn, nSQL);
-        end;    
-        }
-
         if FListA.Values['Seal'] <> '' then
         begin
           nStr := 'Update %s Set C_HasDone=C_HasDone+%.2f Where C_ID=''%s''';
@@ -1976,8 +1965,61 @@ begin
            nStr := sFlag_Yes
       else nStr := sFlag_No;
 
+      {$IFDEF BATAFTERLINE}
+      with FListC do
+      begin
+        Clear;
+        Values['ID']        := FID + sFlag_ManualE;
+        Values['LineGroup'] := FLineGroup;
+
+        Values['XCB_Cement']:= FStockNo;
+        Values['XCB_CementName'] := FStockName;
+        Values['Value']     := FloatToStr(FValue); 
+      end;
+
+      if not TWorkerBusinessCommander.CallMe(cBC_GetBatcodeAfterLine,
+         PackerEncodeStr(FListC.Text), sFlag_Yes, @nOut) then
+      begin
+        nData := nOut.FData;
+        Exit;
+      end; //验证批次号有效性和可提量
+
+      FListC.Text := PackerDecodeStr(nOut.FData);
+      nSQL := MakeSQLByStr([
+              SF('L_Seal', FListC.Values['XCB_CementCodeID']),
+              SF('L_HYDan', FListC.Values['XCB_CementCode'])
+              ], sTable_Bill, SF('L_ID', FID), False);
+      FListA.Add(nSQL);
+
+      nStr := 'Select Count(*) From %s Where C_ID=''%s''';
+      nStr := Format(nStr, [sTable_YT_CodeInfo,
+              FListC.Values['XCB_CementCodeID']]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if Fields[0].AsInteger > 0 then
+        begin
+          nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+          nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                  FValue, FListC.Values['XCB_CementCodeID']]);
+          FListA.Add(nSQL);
+        end else
+        begin
+          nSQL := MakeSQLByStr([
+            SF('C_ID', FListC.Values['XCB_CementCodeID']),
+            SF('C_Code', FListC.Values['XCB_CementCode']),
+            SF('C_Stock', FListC.Values['XCB_Cement']),
+            SF('C_Freeze', FValue, sfVal),
+            SF('C_HasDone', '0', sfVal)
+            ], sTable_YT_CodeInfo, '', True);
+          FListA.Add(nSQL);
+        end;
+      end;
+      {$ENDIF}
+
       nSQL := MakeSQLByStr([SF('L_Status', FStatus),
               SF('L_NextStatus', FNextStatus),
+              SF('L_LineGroup', FLineGroup),
               SF('L_IsEmpty', nStr),
 
               SF('L_LadeTime', sField_SQLServer_Now, sfVal),
@@ -2003,6 +2045,7 @@ begin
 
       nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckFH),
               SF('L_NextStatus', sFlag_TruckBFM),
+              SF('L_LineGroup', FLineGroup),
               SF('L_IsEmpty', nStr),
 
               SF('L_LadeTime', sField_SQLServer_Now, sfVal),
@@ -2061,6 +2104,7 @@ begin
         nUpdateID := FID + ',' + nUpdateID;
         //云天系统更新冻结量
 
+        {$IFNDEF BATAFTERLINE}
         if FSeal <> '' then
         begin
           nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
@@ -2068,6 +2112,7 @@ begin
           nSQL := Format(nSQL, [sTable_YT_CodeInfo, f, FSeal]);
           FListA.Add(nSQL); //水泥编号
         end;
+        {$ENDIF}
       end else //发超量
       begin
         FValue := FValue - FKZValue;
@@ -2092,6 +2137,7 @@ begin
         nUpdateID := FID + ',' + nUpdateID;
         //云天系统更新冻结量
 
+        {$IFNDEF BATAFTERLINE}
         if FSeal <> '' then
         begin
           nSQL := 'Update %s Set C_Freeze=C_Freeze+(%.2f) ' +
@@ -2099,6 +2145,7 @@ begin
           nSQL := Format(nSQL, [sTable_YT_CodeInfo, f, FSeal]);
           FListA.Add(nSQL); //冻结量
         end;
+        {$ENDIF}
 
         if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard, FMemo, '',
            @nOut) then
@@ -2156,6 +2203,7 @@ begin
           Exit;
         end;
 
+        {$IFNDEF BATAFTERLINE}
         if not TWorkerBusinessCommander.CallMe(cBC_GetYTBatchCode,
            PackerEncodeStr(FListB.Text), '', @nOut) then
         begin
@@ -2163,6 +2211,7 @@ begin
           Exit;
         end; //验证批次号有效性和可提量 
         FListB.Text := PackerDecodeStr(nOut.FData);
+        {$ENDIF}
         
         //----------------------------------------------------------------------
         FListC.Values['Group'] :=sFlag_BusGroup;
@@ -2209,8 +2258,10 @@ begin
                                     
                 SF('L_Lading', sFlag_TiHuo),
                 SF('L_IsVIP', sFlag_TypeCommon),
+                {$IFNDEF BATAFTERLINE}
                 SF('L_Seal', FListB.Values['XCB_CementCodeID']),
                 SF('L_HYDan', FListB.Values['XCB_CementCode']),
+                {$ENDIF}
                 SF('L_TransID', FListB.Values['XCB_TransID']),
                 SF('L_TransName', FListB.Values['XCB_TransName']),
                 SF('L_Man', FIn.FBase.FFrom.FUser),
@@ -2260,6 +2311,7 @@ begin
         nMVal:= nMVal - FKZValue;
         //减去补单毛重
 
+        {$IFNDEF BATAFTERLINE}
         if FListB.Values['XCB_CementCodeID'] <> '' then
         begin
           nStr := 'Select Count(*) From %s Where C_ID=''%s''';
@@ -2285,8 +2337,68 @@ begin
               FListA.Add(nSQL);
             end;
           end;
-        end; //更新水泥编号冻结量        
+        end; //更新水泥编号冻结量
+        {$ENDIF}
       end;
+
+      {$IFDEF BATAFTERLINE}
+      nVal := Float2Float(FMData.FValue - FPData.FValue, 100, True);
+      with FListC do
+      begin
+        Clear;
+        Values['ID']        := FID + sFlag_ManualE;
+        Values['LineGroup'] := FLineGroup;
+
+        Values['XCB_Cement']:= FStockNo;
+        Values['XCB_CementName'] := FStockName;
+        Values['Value'] := FloatToStr(nVal);
+      end;
+
+      if not TWorkerBusinessCommander.CallMe(cBC_GetBatcodeAfterLine,
+         PackerEncodeStr(FListC.Text), sFlag_Yes, @nOut) then
+      begin
+        nData := nOut.FData;
+        Exit;
+      end; //验证批次号有效性和可提量
+
+      FListC.Text := PackerDecodeStr(nOut.FData);
+      nSQL := MakeSQLByStr([
+              SF('L_Seal', FListC.Values['XCB_CementCodeID']),
+              SF('L_HYDan', FListC.Values['XCB_CementCode'])
+              ], sTable_Bill, SF('L_ID', FID), False);
+      FListA.Add(nSQL);
+
+      nSQL := MakeSQLByStr([
+              SF('L_Seal', FListC.Values['XCB_CementCodeID']),
+              SF('L_HYDan', FListC.Values['XCB_CementCode'])
+              ], sTable_Bill, SF('L_ID', nTmp), False);
+      FListA.Add(nSQL);
+
+      nStr := 'Select Count(*) From %s Where C_ID=''%s''';
+      nStr := Format(nStr, [sTable_YT_CodeInfo,
+              FListC.Values['XCB_CementCodeID']]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if Fields[0].AsInteger > 0 then
+        begin
+          nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+          nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                  nVal, FListC.Values['XCB_CementCodeID']]);
+          FListA.Add(nSQL);
+        end else
+        begin
+          nSQL := MakeSQLByStr([
+            SF('C_ID', FListC.Values['XCB_CementCodeID']),
+            SF('C_Code', FListC.Values['XCB_CementCode']),
+            SF('C_Stock', FListC.Values['XCB_Cement']),
+            SF('C_Freeze', nVal, sfVal),
+            SF('C_HasDone', '0', sfVal)
+            ], sTable_YT_CodeInfo, '', True);
+          FListA.Add(nSQL);
+        end;
+      end;
+      {$ENDIF}
     end;
 
     //--------------------------------------------------------------------------
