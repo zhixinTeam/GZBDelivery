@@ -818,18 +818,6 @@ begin
     raise;
   end;
 
-  //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
-  //发送微信消息
-  FDBConn.FConn.BeginTrans;
-  try
-    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
-    FDBConn.FConn.CommitTrans;
-  except
-     FDBConn.FConn.RollbackTrans;
-    raise;
-  end;
-
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
@@ -961,6 +949,18 @@ begin
 
   gWXPlatFormHelper.WXSendMsg(nStr, FListC.Text);
   {$ENDIF}
+
+  //修改商城订单状态
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
+  //发送微信消息
+  FDBConn.FConn.BeginTrans;
+  try
+    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
+    FDBConn.FConn.CommitTrans;
+  except
+     FDBConn.FConn.RollbackTrans;
+    raise;
+  end;  
 end;
 
 //------------------------------------------------------------------------------

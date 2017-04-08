@@ -28,12 +28,12 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
     Height = 135
     object cxTextEdit1: TcxTextEdit [0]
       Left = 81
-      Top = 94
+      Top = 119
       Hint = 'T.con_code'
       ParentFont = False
       Style.BorderColor = clWindowFrame
       Style.BorderStyle = ebsSingle
-      TabOrder = 5
+      TabOrder = 6
       Width = 125
     end
     object editcontactNo: TcxButtonEdit [1]
@@ -52,26 +52,26 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
     end
     object cxTextEdit2: TcxTextEdit [2]
       Left = 492
-      Top = 94
+      Top = 119
       Hint = 'T.con_materiel_name'
       ParentFont = False
-      TabOrder = 7
+      TabOrder = 8
       Width = 149
     end
     object cxTextEdit3: TcxTextEdit [3]
       Left = 275
-      Top = 94
+      Top = 119
       Hint = 'T.provider_name'
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 7
       Width = 160
     end
     object cxTextEdit4: TcxTextEdit [4]
       Left = 674
-      Top = 94
+      Top = 119
       Hint = 'T.con_quantity'
       ParentFont = False
-      TabOrder = 8
+      TabOrder = 9
       Width = 121
     end
     object editProviderCode: TcxButtonEdit [5]
@@ -90,7 +90,44 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
       Width = 121
     end
     object editMaterielCode: TcxButtonEdit [6]
-      Left = 447
+      Left = 75
+      Top = 61
+      ParentFont = False
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      Properties.OnButtonClick = EditNamePropertiesButtonClick
+      TabOrder = 3
+      OnKeyPress = OnCtrlKeyPress
+      Width = 121
+    end
+    object EditDate: TcxButtonEdit [7]
+      Left = 253
+      Top = 61
+      ParentFont = False
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      Properties.OnButtonClick = EditDatePropertiesButtonClick
+      TabOrder = 4
+      Width = 176
+    end
+    object CheckDelete: TcxCheckBox [8]
+      Left = 434
+      Top = 61
+      Caption = #26597#35810#24050#21024#38500
+      ParentFont = False
+      TabOrder = 5
+      Transparent = True
+      OnClick = CheckDeleteClick
+      Width = 91
+    end
+    object editProviderName: TcxButtonEdit [9]
+      Left = 459
       Top = 36
       ParentFont = False
       Properties.Buttons = <
@@ -104,75 +141,74 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
       OnKeyPress = OnCtrlKeyPress
       Width = 121
     end
-    object EditDate: TcxButtonEdit [7]
-      Left = 625
-      Top = 36
-      ParentFont = False
-      Properties.Buttons = <
-        item
-          Default = True
-          Kind = bkEllipsis
-        end>
-      Properties.OnButtonClick = EditDatePropertiesButtonClick
-      TabOrder = 3
-      Width = 176
-    end
-    object CheckDelete: TcxCheckBox [8]
-      Left = 876
-      Top = 36
-      Caption = #26597#35810#24050#21024#38500
-      ParentFont = False
-      TabOrder = 4
-      Transparent = True
-      OnClick = CheckDeleteClick
-      Width = 91
-    end
     inherited dxGroup1: TdxLayoutGroup
       inherited GroupSearch1: TdxLayoutGroup
-        object dxLayout1Item2: TdxLayoutItem
-          Caption = #21512#21516#32534#21495
-          Control = editcontactNo
-          ControlOptions.ShowBorder = False
+        LayoutDirection = ldVertical
+        object dxLayout1Group3: TdxLayoutGroup
+          ButtonOptions.Buttons = <>
+          Hidden = True
+          LayoutDirection = ldHorizontal
+          ShowBorder = False
+          object dxLayout1Item2: TdxLayoutItem
+            AlignHorz = ahLeft
+            CaptionOptions.Text = #21512#21516#32534#21495
+            Control = editcontactNo
+            ControlOptions.ShowBorder = False
+          end
+          object dxLayout1Item6: TdxLayoutItem
+            AlignHorz = ahLeft
+            CaptionOptions.Text = #20379#24212#21830#32534#30721
+            Control = editProviderCode
+            ControlOptions.ShowBorder = False
+          end
+          object dxLayout1Item10: TdxLayoutItem
+            AlignHorz = ahLeft
+            CaptionOptions.Text = #20379#24212#21830#21517#31216
+            Control = editProviderName
+            ControlOptions.ShowBorder = False
+          end
         end
-        object dxLayout1Item6: TdxLayoutItem
-          Caption = #20379#24212#21830#32534#30721
-          Control = editProviderCode
-          ControlOptions.ShowBorder = False
-        end
-        object dxLayout1Item7: TdxLayoutItem
-          Caption = #29289#26009#32534#30721
-          Control = editMaterielCode
-          ControlOptions.ShowBorder = False
-        end
-        object dxLayout1Item8: TdxLayoutItem
-          Caption = #26085#26399#31579#36873
-          Control = EditDate
-          ControlOptions.ShowBorder = False
-        end
-        object dxLayout1Item9: TdxLayoutItem
-          Caption = 'cxCheckBox1'
-          Control = CheckDelete
-          ControlOptions.ShowBorder = False
+        object dxLayout1Group2: TdxLayoutGroup
+          ButtonOptions.Buttons = <>
+          Hidden = True
+          LayoutDirection = ldHorizontal
+          ShowBorder = False
+          object dxLayout1Item7: TdxLayoutItem
+            AlignHorz = ahLeft
+            CaptionOptions.Text = #29289#26009#32534#30721
+            Control = editMaterielCode
+            ControlOptions.ShowBorder = False
+          end
+          object dxLayout1Item8: TdxLayoutItem
+            AlignHorz = ahLeft
+            CaptionOptions.Text = #26085#26399#31579#36873
+            Control = EditDate
+            ControlOptions.ShowBorder = False
+          end
+          object dxLayout1Item9: TdxLayoutItem
+            Control = CheckDelete
+            ControlOptions.ShowBorder = False
+          end
         end
       end
       inherited GroupDetail1: TdxLayoutGroup
         object dxLayout1Item1: TdxLayoutItem
-          Caption = #21512#21516#32534#21495':'
+          CaptionOptions.Text = #21512#21516#32534#21495':'
           Control = cxTextEdit1
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem
-          Caption = #20379#24212#21830#21517#31216
+          CaptionOptions.Text = #20379#24212#21830#21517#31216
           Control = cxTextEdit3
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item4: TdxLayoutItem
-          Caption = #29289#26009#21517#31216
+          CaptionOptions.Text = #29289#26009#21517#31216
           Control = cxTextEdit2
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item5: TdxLayoutItem
-          Caption = #25968#37327
+          CaptionOptions.Text = #25968#37327
           Control = cxTextEdit4
           ControlOptions.ShowBorder = False
         end

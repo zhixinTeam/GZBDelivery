@@ -706,10 +706,10 @@ begin
   nService := GetReviceWS(True);
   try
     nResponse := nService.mainfuncs('get_shoporders',nXmlStr);
-    writelog('TBusWorkerBusinessWebchat.Get_Shoporders response:'+#13+nResponse);
+    writelog('TBusWorkerBusinessWebchat.Get_Shoporders request:'+#13+nXmlStr);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
-    writelog('TBusWorkerBusinessWebchat.Get_Shoporders Response:'+#13+nResponse);
+    writelog('TBusWorkerBusinessWebchat.Get_Shoporders response:'+#13+nResponse);
     nObj.FPacker := FPacker;
     Result := nObj.ParseWebResponse(nResponse);
     if not Result then
@@ -767,10 +767,10 @@ begin
   nService := GetReviceWS(True);
   try
     nResponse := nService.mainfuncs('get_shoporderByNO',nXmlStr);
-    writelog('TBusWorkerBusinessWebchat.get_shoporderByNO response:'+#13+nResponse);
+    writelog('TBusWorkerBusinessWebchat.get_shoporderByNO request:'+#13+nXmlStr);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
-    writelog('TBusWorkerBusinessWebchat.get_shoporderByNO Response:'+#13+nResponse);
+    writelog('TBusWorkerBusinessWebchat.get_shoporderByNO response:'+#13+nResponse);
     nObj.FPacker := FPacker;
     Result := nObj.ParseWebResponse(nResponse);
     if not Result then
@@ -834,7 +834,7 @@ begin
   try
     WriteLog('TBusWorkerBusinessWebchat.Send_Event_Msg request:'+#13+nXmlStr);
     nResponse := nService.mainfuncs('send_event_msg',nXmlStr);
-    WriteLog('TBusWorkerBusinessWebchat.Send_Event_Msg Response:'+#13+nResponse);
+    WriteLog('TBusWorkerBusinessWebchat.Send_Event_Msg response:'+#13+nResponse);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
     nObj.FPacker := FPacker;
@@ -867,7 +867,7 @@ begin
     try
       WriteLog('TBusWorkerBusinessWebchat.Edit_ShopClients request='+nXmlStr);
       nResponse := nService.mainfuncs('edit_shopclients',nXmlStr);
-      WriteLog('TBusWorkerBusinessWebchat.Edit_ShopClients Response='+nResponse);
+      WriteLog('TBusWorkerBusinessWebchat.Edit_ShopClients response='+nResponse);
       FPacker.XMLBuilder.Clear;
       FPacker.XMLBuilder.ReadFromString(nResponse);
       nObj.FPacker := FPacker;
@@ -905,7 +905,7 @@ begin
   try
     WriteLog('TBusWorkerBusinessWebchat.Edit_Shopgoods request='+nXmlStr);
     nResponse := nService.mainfuncs('edit_shopgoods',nXmlStr);
-    WriteLog('TBusWorkerBusinessWebchat.Edit_Shopgoods Response='+nResponse);
+    WriteLog('TBusWorkerBusinessWebchat.Edit_Shopgoods response='+nResponse);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
     nObj.FPacker := FPacker;
@@ -937,7 +937,7 @@ begin
   try
     writelog('TBusWorkerBusinessWebchat.complete_shoporders request'+#13+nXmlStr);
     nResponse := nService.mainfuncs('complete_shoporders',nXmlStr);
-    writelog('TBusWorkerBusinessWebchat.complete_shoporders Response'+#13+nResponse);
+    writelog('TBusWorkerBusinessWebchat.complete_shoporders response'+#13+nResponse);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
     nObj.FPacker := FPacker;

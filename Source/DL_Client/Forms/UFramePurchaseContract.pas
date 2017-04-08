@@ -36,6 +36,10 @@ type
     dxLayout1Item8: TdxLayoutItem;
     CheckDelete: TcxCheckBox;
     dxLayout1Item9: TdxLayoutItem;
+    editProviderName: TcxButtonEdit;
+    dxLayout1Item10: TdxLayoutItem;
+    dxLayout1Group2: TdxLayoutGroup;
+    dxLayout1Group3: TdxLayoutGroup;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -168,6 +172,11 @@ begin
     FWhere := 'provider_code like ''%' + nStr + '%''';
     InitFormData(FWhere);
   end
+  else if Sender=editProviderName then
+  begin
+    FWhere := 'provider_name like ''%' + nStr + '%''';
+    InitFormData(FWhere);
+  end  
   else if Sender=editMaterielCode then
   begin
     FWhere := 'con_materiel_Code like ''%' + nStr + '%''';

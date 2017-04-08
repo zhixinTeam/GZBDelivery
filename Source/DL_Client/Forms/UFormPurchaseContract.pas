@@ -11,7 +11,8 @@ uses
   UDataModule, UFormBase, ULibFun, UAdjustForm, USysConst, dxLayoutControl,
   StdCtrls, cxControls, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
   cxContainer, cxEdit, cxTextEdit, cxMemo,
-  cxMaskEdit, cxDropDownEdit, cxMCListBox, Menus, cxButtons, cxButtonEdit;
+  cxMaskEdit, cxDropDownEdit, cxMCListBox, Menus, cxButtons, cxButtonEdit,
+  cxCheckBox;
 
 type
   TProviderParam = record
@@ -85,6 +86,8 @@ type
     dxLayout1Item18: TdxLayoutItem;
     btnDel: TcxButton;
     dxLayout1Item19: TdxLayoutItem;
+    chbType: TcxCheckBox;
+    dxLayout1Item20: TdxLayoutItem;
     procedure BtnExitClick(Sender: TObject);
     procedure BtnOKClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -94,6 +97,7 @@ type
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure btnAddClick(Sender: TObject);
     procedure btnDelClick(Sender: TObject);
+    procedure chbTypeClick(Sender: TObject);
   protected
     { Private declarations }
     FProvider: TProviderParam;
@@ -143,6 +147,25 @@ var
   nstr:string;
 begin
   Result := False;
+  if sender=editMateriel then
+  begin
+    nstr := Trim(editMateriel.text);
+    if nstr ='' then
+    begin
+      nHint := '原材料不能为空';
+      Exit;
+    end;
+    if (FMeterail.FID='') or (FMeterail.FName='') then
+    begin
+      nHint := '未正确选择原材料';
+      Exit;
+    end;
+  end;
+  if chbType.Checked then
+  begin
+    Result := True;
+    Exit;
+  end;
   if Sender=editContractno then
   begin
     nstr := Trim(editContractno.Text);
@@ -165,20 +188,6 @@ begin
       nHint := '未正确选择供应商';
       Exit;
     end; 
-  end;
-  if sender=editMateriel then
-  begin
-    nstr := Trim(editMateriel.text);
-    if nstr ='' then
-    begin
-      nHint := '原材料不能为空';
-      Exit;
-    end;
-    if (FMeterail.FID='') or (FMeterail.FName='') then
-    begin
-      nHint := '未正确选择原材料';
-      Exit;
-    end;
   end;
   if Sender=editPrice then
   begin
@@ -670,6 +679,13 @@ begin
   if nIdx >= InfoList.Count then Dec(nIdx);
   InfoList.ItemIndex := nIdx;
   ShowMsg('信息项已删除', sHint);
+end;
+
+procedure TfFormPurchaseContract.chbTypeClick(Sender: TObject);
+begin
+  editContractno.Enabled := not chbType.Checked;
+  editPrice.Enabled := not chbType.Checked;
+  editQuantity.Enabled := not chbType.Checked;
 end;
 
 initialization
