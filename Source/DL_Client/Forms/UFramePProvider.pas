@@ -28,6 +28,7 @@ type
     PopupMenu1: TPopupMenu;
     N1: TMenuItem;
     N2: TMenuItem;
+    N3: TMenuItem;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -36,9 +37,11 @@ type
     procedure N1Click(Sender: TObject);
     procedure PopupMenu1Popup(Sender: TObject);
     procedure N2Click(Sender: TObject);
+    procedure N3Click(Sender: TObject);
   private
     { Private declarations }
-    function AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string;nUpdate:Boolean=false):Boolean;
+    function AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string):Boolean;
+    function DelMallUser(const nNamepinyin,nprov_num:string):Boolean;
   protected
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
@@ -151,9 +154,7 @@ var
   nPID,nPName:string;
   nBindcustomerid:string;
   nStr:string;
-  nUpdate:Boolean;
 begin
-  nUpdate := False;
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
     ShowMsg('请选择要开通的记录', sHint);
@@ -162,8 +163,8 @@ begin
   nWechartAccount := SQLQuery.FieldByName('P_WechartAccount').AsString;
   if nWechartAccount<>'' then
   begin
-    if not QueryDlg('商城账户['+nWechartAccount+']已存在，是否重新关联?', sHint) then Exit;
-    nUpdate := True;
+    ShowMsg('商城账户['+nWechartAccount+']已存在', sHint);
+    Exit;
   end;
   nParam.FCommand := cCmd_AddData;
   CreateBaseFormItem(cFI_FormGetWechartAccount, PopedomItem, @nParam);
@@ -173,7 +174,7 @@ begin
     nWechartAccount := PackerDecodeStr(nParam.FParamC);
     nPID := SQLQuery.FieldByName('P_ID').AsString;
     nPName := SQLQuery.FieldByName('P_Name').AsString;
-    if not AddMallUser(nBindcustomerid,nPID,nPName,nUpdate) then Exit;
+    if not AddMallUser(nBindcustomerid,nPID,nPName) then Exit;
 
     nStr := 'update %s set P_WechartAccount=''%s'' where P_ID=''%s''';
     nStr := Format(nStr,[sTable_Provider,nWechartAccount,nPID]);
@@ -181,16 +182,16 @@ begin
     try
       FDM.ExecuteSQL(nStr);
       FDM.ADOConn.CommitTrans;
-      ShowMsg('供应商 [ '+nPName+' ] 关联商城用户成功！',sHint);
+      ShowMsg('供应商 [ '+nPName+' ] 关联商城账户成功！',sHint);
       InitFormData(FWhere);
     except
       FDM.ADOConn.RollbackTrans;
-      ShowMsg('关联商城用户失败', '未知错误');
+      ShowMsg('关联商城账户失败', '未知错误');
     end;
   end;  
 end;
 
-function TfFrameProvider.AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string;nUpdate:Boolean=false): Boolean;
+function TfFrameProvider.AddMallUser(const nBindcustomerid,nprov_num,nprov_name:string): Boolean;
 var
   nXmlStr:string;
   nData:string;
@@ -198,10 +199,6 @@ var
 begin
   Result := False;
   ntype := 'add';
-  if nUpdate then
-  begin
-    ntype := 'update';
-  end;  
   //发送绑定请求开户请求
   nXmlStr := '<?xml version="1.0" encoding="UTF-8" ?>'
             +'<DATA>'
@@ -226,10 +223,78 @@ begin
   gSysLoger.AddLog(TfFrameProvider,'AddMallUser',nData);
   if nData<>sFlag_Yes then
   begin
-    ShowMsg('供应商[ '+nProv_num+' ]关联商城用户失败！', sError);
+    ShowMsg('供应商[ '+nProv_num+' ]关联商城账户失败！', sError);
     Exit;
   end;
   Result := True;
+end;
+
+function TfFrameProvider.DelMallUser(const nNamepinyin,nprov_num:string):Boolean;
+var
+  nXmlStr:string;
+  nData:string;
+begin
+  Result := False;
+  //发送http请求
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+      +'<DATA>'
+      +'<head>'
+      +'<Factory>%s</Factory>'
+      +'<Provider>%s</Provider>'
+      +'<type>del</type>'
+      +'</head>'
+      +'<Items><Item>'
+      +'<providernumber>%s</providernumber>'
+      +'</Item></Items><remark/></DATA>';
+  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,nNamepinyin,nprov_num]);
+
+  nXmlStr := PackerEncodeStr(nXmlStr);
+  nData := edit_shopclients(nXmlStr);
+  gSysLoger.AddLog(TfFrameProvider,'DelMallUser',nData);
+  if nData<>sFlag_Yes then
+  begin
+    ShowMsg('供应商[ '+nProv_num+' ]取消商城账户关联 失败！', sError);
+    Exit;
+  end;
+  Result := True;
+end;
+
+procedure TfFrameProvider.N3Click(Sender: TObject);
+var
+  nWechartAccount:string;
+  nPID:string;
+  nStr:string;
+  nPName:string;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要取消的记录', sHint);
+    Exit;
+  end;
+  nWechartAccount := SQLQuery.FieldByName('P_WechartAccount').AsString;
+  if nWechartAccount='' then
+  begin
+    ShowMsg('商城账户不已存在', sHint);
+    Exit;
+  end;
+
+  nPID := SQLQuery.FieldByName('P_ID').AsString;
+  nPName := SQLQuery.FieldByName('P_Name').AsString;
+  
+  if not DelMallUser(nWechartAccount,nPID) then Exit;
+  
+  nStr := 'update %s set P_WechartAccount='''' where P_ID=''%s''';
+  nStr := Format(nStr,[sTable_Provider,nPID]);
+  FDM.ADOConn.BeginTrans;
+  try
+    FDM.ExecuteSQL(nStr);
+    FDM.ADOConn.CommitTrans;
+    ShowMsg('供应商 [ '+nPName+' ] 取消商城账户关联 成功！',sHint);
+    InitFormData(FWhere);
+  except
+    FDM.ADOConn.RollbackTrans;
+    ShowMsg('取消商城账户关联 失败', '未知错误');
+  end;
 end;
 
 initialization

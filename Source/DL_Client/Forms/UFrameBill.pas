@@ -77,6 +77,7 @@ type
     procedure AfterInitFormData; override;
     {*查询SQL*}
     procedure SendMsgToWebMall(const nBillno:string);
+    procedure ModifyWebOrderStatus(const nLId:string);
   public
     { Public declarations }
     class function FrameID: integer; override;
@@ -256,6 +257,18 @@ begin
   nStr := '确定要删除编号为[ %s ]的单据吗?';
   nStr := Format(nStr, [SQLQuery.FieldByName('L_ID').AsString]);
   if not QueryDlg(nStr, sAsk) then Exit;
+
+  try
+    //推送公众号消息
+    SendMsgToWebMall(SQLQuery.FieldByName('L_ID').AsString);
+    nStr := 'update %s set WOM_deleted=''%s'' where WOM_LID=''%s''';
+    nStr := Format(nStr,[sTable_WebOrderMatch,sFlag_Yes,SQLQuery.FieldByName('L_ID').AsString]);
+    fdm.ExecuteSQL(nStr);
+    //修改商城订单状态
+    ModifyWebOrderStatus(SQLQuery.FieldByName('L_ID').AsString);
+  except
+    //不处理异常
+  end;
 
   if DeleteBill(SQLQuery.FieldByName('L_ID').AsString) then
   begin
@@ -468,6 +481,41 @@ begin
     nOutFact := FormatDateTime('yyyy年mm月dd日',SQLQuery.FieldByName('L_OutFact').AsDateTime);
     PrintHuaYanReport(SQLQuery.FieldByName('L_HYDan').AsString,
       SQLQuery.FieldByName('L_StockName').AsString, nOutFact, True);
+  end;
+end;
+
+procedure TfFrameBill.ModifyWebOrderStatus(const nLId: string);
+var
+  nWebOrderId:string;
+  nXmlStr,nData,nSql:string;
+begin
+  nWebOrderId := '';
+  //查询网上商城订单
+  nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+  nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if recordcount>0 then
+    begin
+      nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+    end;
+  end;
+  if nWebOrderId='' then Exit;
+
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+      +'<DATA>'
+      +'<head><ordernumber>%s</ordernumber>'
+      +'<status>%d</status>'
+      +'</head>'
+      +'</DATA>';
+  nXmlStr := Format(nXmlStr,[nWebOrderId,2]);
+  nXmlStr := PackerEncodeStr(nXmlStr);
+
+  nData := complete_shoporders(nXmlStr);
+  gSysLoger.AddLog(TfFrameBill,'ModifyWebOrderStatus',nData);
+  if ndata<>'' then
+  begin
+    ShowMsg(nData,sHint);
   end;
 end;
 

@@ -175,5 +175,9 @@ inherited fFrameCustomer: TfFrameCustomer
       Caption = #20851#32852#24494#20449#21830#22478#36134#25143
       OnClick = m_bindWechartAccountClick
     end
+    object N6: TMenuItem
+      Caption = #21462#28040#21830#22478#36134#21495#20851#32852
+      OnClick = N6Click
+    end
   end
 end

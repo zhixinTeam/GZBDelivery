@@ -595,6 +595,7 @@ var nStr,nSQL,nHKID, nRID, nBill, nCode: string;
     nOut: TWorkerBusinessCommand;
     nIdx,nInt: Integer;
     nVal: Double;
+    nWebOrderID:string;
 begin
   Result := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
@@ -935,11 +936,6 @@ begin
     raise;
   end;
 
-  //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
-  //发送微信消息
-  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
-
   {$IFDEF MicroMsg}
   with FListC do
   begin
@@ -954,6 +950,11 @@ begin
 
   gWXPlatFormHelper.WXSendMsg(nStr, FListC.Text);
   {$ENDIF}
+  nWebOrderID := FListA.Values['WebOrderID'];
+  //修改商城订单状态
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard,nWebOrderID);
+  //发送微信消息
+  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
 end;
 
 //------------------------------------------------------------------------------

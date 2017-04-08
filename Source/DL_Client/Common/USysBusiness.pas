@@ -288,6 +288,9 @@ function edit_shopgoods(const nXmlStr: string): string;
 //获取订单信息
 function get_shoporders(const nXmlStr: string): string;
 
+//更新订单状态
+function complete_shoporders(const nXmlStr: string): string;
+
 function VerifyPoundWarning(var nHint: string; var nWarnVal: Double): Boolean;
 //车辆皮重预警设置
 function AddManualEventRecord(nEID, nKey, nEvent:string;
@@ -2574,6 +2577,15 @@ begin
   Result := '';
   if CallBusinessCommand(cBC_WeChat_get_shoporders, nXmlStr, '', @nOut) then
     Result := nOut.FData;
+end;
+
+//更新订单状态
+function complete_shoporders(const nXmlStr: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  if CallBusinessCommand(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
+    Result := nOut.FData;  
 end;
 
 //Date: 2016/11/27

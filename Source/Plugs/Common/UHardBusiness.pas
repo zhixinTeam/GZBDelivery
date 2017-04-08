@@ -35,7 +35,7 @@ procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillTy
 function Do_send_event_msg(const nXmlStr: string): string;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer=c_WeChatStatusFinished);
+procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer=c_WeChatStatusFinished;const AWebOrderID:string='');
 
 //修改网上订单状态
 function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
@@ -633,41 +633,44 @@ begin
 end;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer);
+procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer;const AWebOrderID:string);
 var
   nXmlStr,nData,nSql:string;
   nDBConn: PDBWorker;
   nWebOrderId:string;
   nIdx:Integer;
 begin
-  nWebOrderId := '';
+  nWebOrderId := AWebOrderID;
   nDBConn := nil;
 
-  with gParamManager.ActiveParam^ do
+  if nWebOrderId='' then
   begin
-    try
-      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
-      if not Assigned(nDBConn) then
-      begin
-//        WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
-        Exit;
-      end;
-      if not nDBConn.FConn.Connected then
-      nDBConn.FConn.Connected := True;
-
-      //查询网上商城订单
-      nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
-      nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
-
-      with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+    with gParamManager.ActiveParam^ do
+    begin
+      try
+        nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+        if not Assigned(nDBConn) then
         begin
-          if recordcount>0 then
-          begin
-            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
-          end;
+  //        WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
+          Exit;
         end;
-    finally
-      gDBConnManager.ReleaseConnection(nDBConn);
+        if not nDBConn.FConn.Connected then
+        nDBConn.FConn.Connected := True;
+
+        //查询网上商城订单
+        nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+        nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
+
+        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+          begin
+            if recordcount>0 then
+            begin
+              nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+            end;
+          end;
+      finally
+        gDBConnManager.ReleaseConnection(nDBConn);
+      end;
     end;
   end;
 

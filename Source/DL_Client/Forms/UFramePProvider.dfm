@@ -114,5 +114,9 @@ inherited fFrameProvider: TfFrameProvider
       Caption = #20851#32852#24494#20449#21830#22478#36134#25143
       OnClick = N2Click
     end
+    object N3: TMenuItem
+      Caption = #21462#28040#21830#22478#36134#21495#20851#32852
+      OnClick = N3Click
+    end
   end
 end

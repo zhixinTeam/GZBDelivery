@@ -61,6 +61,9 @@ type
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     function InitFormDataSQL(const nWhere: string): string; override;
+
+    procedure SendMsgToWebMall(const nOid: string);
+    procedure ModifyWebOrderStatus(const nOid: string);
     {*查询SQL*}
   public
     { Public declarations }
@@ -72,7 +75,8 @@ implementation
 {$R *.dfm}
 uses
   ULibFun, UMgrControl,UDataModule, UFrameBase, UFormBase, USysBusiness,
-  USysConst, USysDB, UFormDateFilter, UFormInputbox;
+  USysConst, USysDB, UFormDateFilter, UFormInputbox,UBusinessConst,
+  UBusinessPacker, USysLoger;
 
 //------------------------------------------------------------------------------
 class function TfFramePurchaseOrder.FrameID: integer;
@@ -160,6 +164,19 @@ begin
 
   nStr := SQLQuery.FieldByName('O_ID').AsString;
   if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的订单吗?', sAsk) then Exit;
+
+  try
+    //推送公众号消息
+    SendMsgToWebMall(SQLQuery.FieldByName('O_ID').AsString);
+    nStr := 'update %s set WOM_deleted=''%s'' where WOM_LID=''%s''';
+    nStr := Format(nStr,[sTable_WebOrderMatch,sFlag_Yes,SQLQuery.FieldByName('O_ID').AsString]);
+    fdm.ExecuteSQL(nStr);
+    //修改商城订单状态
+    ModifyWebOrderStatus(SQLQuery.FieldByName('O_ID').AsString);
+  except
+    //不处理异常
+  end;
+
 
   if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
 
@@ -268,6 +285,94 @@ procedure TfFramePurchaseOrder.Check1Click(Sender: TObject);
 begin
   inherited;
   InitFormData('');
+end;
+
+procedure TfFramePurchaseOrder.ModifyWebOrderStatus(const nOid: string);
+var
+  nWebOrderId:string;
+  nXmlStr,nData,nSql:string;
+begin
+  nWebOrderId := '';
+  //查询网上商城订单
+  nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+  nSql := Format(nSql,[sTable_WebOrderMatch,nOid]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if recordcount>0 then
+    begin
+      nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+    end;
+  end;
+  if nWebOrderId='' then Exit;
+
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+      +'<DATA>'
+      +'<head><ordernumber>%s</ordernumber>'
+      +'<status>%d</status>'
+      +'</head>'
+      +'</DATA>';
+  nXmlStr := Format(nXmlStr,[nWebOrderId,2]);
+  nXmlStr := PackerEncodeStr(nXmlStr);
+
+  nData := complete_shoporders(nXmlStr);
+  gSysLoger.AddLog(TfFramePurchaseOrder,'ModifyWebOrderStatus',nData);
+  if ndata<>'' then
+  begin
+    ShowMsg(nData,sHint);
+  end;
+end;
+
+procedure TfFramePurchaseOrder.SendMsgToWebMall(const nOid: string);
+var
+  nXmlStr,nData:string;
+begin
+  nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+        +'<DATA>'
+        +'<head>'
+        +'<Factory>%s</Factory>'
+        +'<ToUser>%s</ToUser>'
+        +'<MsgType>%d</MsgType>'
+        +'</head>'
+        +'<Items>'
+        +'	  <Item>'
+        +'	      <BillID>%s</BillID>'
+        +'	      <Card>%s</Card>'
+        +'	      <Truck>%s</Truck>'
+        +'	      <StockNo>%s</StockNo>'
+        +'	      <StockName>%s</StockName>'
+        +'	      <CusID>%s</CusID>'
+        +'	      <CusName>%s</CusName>'
+        +'	      <CusAccount>0</CusAccount>'
+        +'	      <MakeDate></MakeDate>'
+        +'	      <MakeMan></MakeMan>'
+        +'	      <TransID></TransID>'
+        +'	      <TransName></TransName>'
+        +'	      <Searial></Searial>'
+        +'	      <OutFact></OutFact>'
+        +'	      <OutMan></OutMan>'
+        +'	  </Item>	'
+        +'</Items>'
+        +'   <remark/>'
+        +'</DATA>';
+
+  nXmlStr := Format(nXmlStr,[gSysParam.FFactory,
+      SQLQuery.FieldByName('o_proid').AsString,
+      cSendWeChatMsgType_DelBill,
+      SQLQuery.FieldByName('o_id').AsString,
+      SQLQuery.FieldByName('o_card').AsString,
+      SQLQuery.FieldByName('o_truck').AsString,
+      SQLQuery.FieldByName('o_stockno').AsString,
+      SQLQuery.FieldByName('o_stockname').AsString,
+      SQLQuery.FieldByName('o_proid').AsString,
+      SQLQuery.FieldByName('o_proname').AsString]);
+  nXmlStr := PackerEncodeStr(nXmlStr);
+  nData := send_event_msg(nXmlStr);
+
+  gSysLoger.AddLog(TfFramePurchaseOrder,'SendMsgToWebMall',nData);
+  if ndata<>'' then
+  begin
+    ShowMsg(nData,sHint);
+  end;
 end;
 
 initialization
