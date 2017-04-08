@@ -935,6 +935,11 @@ begin
     raise;
   end;
 
+  //修改商城订单状态
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
+  //发送微信消息
+  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
+
   {$IFDEF MicroMsg}
   with FListC do
   begin
@@ -949,18 +954,6 @@ begin
 
   gWXPlatFormHelper.WXSendMsg(nStr, FListC.Text);
   {$ENDIF}
-
-  //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
-  //发送微信消息
-  FDBConn.FConn.BeginTrans;
-  try
-    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
-    FDBConn.FConn.CommitTrans;
-  except
-     FDBConn.FConn.RollbackTrans;
-    raise;
-  end;  
 end;
 
 //------------------------------------------------------------------------------
@@ -1961,10 +1954,6 @@ begin
            FNextStatus := sFlag_TruckBFM
       else FNextStatus := sFlag_TruckOut;
 
-      if FYSValid = sFlag_Yes then
-           nStr := sFlag_Yes
-      else nStr := sFlag_No;
-
       {$IFDEF BATAFTERLINE}
       with FListC do
       begin
@@ -2016,6 +2005,10 @@ begin
         end;
       end;
       {$ENDIF}
+
+      if FYSValid = sFlag_Yes then
+           nStr := sFlag_Yes
+      else nStr := sFlag_No;
 
       nSQL := MakeSQLByStr([SF('L_Status', FStatus),
               SF('L_NextStatus', FNextStatus),

@@ -395,6 +395,10 @@ begin
     nStr := '车辆[ %s ]下一状态为:[ %s ],进厂刷卡无效.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
 
+    if gTruckQueueManager.IsTruckAutoIn then
+      gHardwareHelper.SetReaderCard(nReader, nCard);
+    //保证过磅完成
+      
     WriteHardHelperLog(nStr, sPost_In);
     Exit;
   end;
@@ -1064,10 +1068,7 @@ end;
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 var nStr: string;
     nRetain: Boolean;
-    nErrNum: Integer;
-    nDBConn: PDBWorker;
 begin
-  nDBConn := nil;
   nRetain := False;
   //init
 
@@ -1076,55 +1077,16 @@ begin
   WriteHardHelperLog(nStr);
   {$ENDIF}
 
-  with gParamManager.ActiveParam^ do
   try
     if not nItem.FVirtual then Exit;
-    //非虚拟读卡器
-
-    nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
-    if not Assigned(nDBConn) then
-    begin
-      WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
-      Exit;
-    end;
-
-    if not nDBConn.FConn.Connected then
-      nDBConn.FConn.Connected := True;
-    //conn db
-
-    try
-      if nItem.FVType = rtInM100 then
-      begin
-        MakeTruckIn(nItem.FCard, nItem.FVReader, nDBConn);
-      end else
-
-      if nItem.FVType = rtOutM100 then
-      begin
-        nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader, nItem.FVPrinter);
-      end else
-
-      if nItem.FVType = rtGateM100 then
-      begin
-        if nItem.FVReader <> '' then
-          BlueOpenDoor(nItem.FVReader);
-        //抬杆
-      end else
-
-      if nItem.FVType = rtQueueGateM100 then
-      begin
-        if nItem.FVReader <> '' then
-          MakeTruckPassGate(nItem.FCard, nItem.FVReader, nDBConn);
-        //抬杆
-      end;
-    except
-      On E:Exception do
-      begin
-        WriteHardHelperLog(E.Message);
-      end;
+    case nItem.FVType of
+    rtOutM100 :
+      nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader, nItem.FVPrinter);
+    else
+      gHardwareHelper.SetReaderCard(nItem.FVReader, nItem.FCard, False);
     end;
   finally
-    gDBConnManager.ReleaseConnection(nDBConn);
-    gM100ReaderManager.DealtWithCard(nItem, nRetain);
+    gM100ReaderManager.DealtWithCard(nItem, nRetain)
   end;
 end;
 

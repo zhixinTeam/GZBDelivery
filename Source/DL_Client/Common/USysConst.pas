@@ -92,6 +92,7 @@ const
   cFI_FramePurchaseContract = $0121;                     //采购合同
 
   cFI_FrameManualEvent  = $0131;                     //待处理事件日志
+  cFI_FramePoundDaiWC   = $0132;                     //袋装误差范围设置
 
   cFI_FormMemo          = $1000;                     //备注窗口
   cFI_FormBackup        = $1001;                     //数据备份
@@ -183,6 +184,8 @@ const
   cFI_FormPurchaseContract= $1121;                     //采购合同
   cFI_FormGetPurchaseContract  = $1122;                     //选择采购合同
   cFI_FormPurchaseAssayRes  = $1123;                     //采购化验结果
+
+  cFI_FormPoundDaiWC    = $0133;                     //袋装误差范围设置
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
@@ -355,6 +358,7 @@ begin
   AddMenuModuleItem('MAIN_E01', cFI_FramePoundManual);
   AddMenuModuleItem('MAIN_E02', cFI_FramePoundAuto);
   AddMenuModuleItem('MAIN_E03', cFI_FramePoundQuery);
+  AddMenuModuleItem('MAIN_E04', cFI_FramePoundDaiWC);
 
   AddMenuModuleItem('MAIN_F01', cFI_FormLadDai, mtForm);
   AddMenuModuleItem('MAIN_F02', cFI_FormTruckEmpty, mtForm);
