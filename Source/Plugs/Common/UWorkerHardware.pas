@@ -508,18 +508,17 @@ begin
 
       {$IFDEF CODEBATCODE}
       nStr := FieldByName('L_ID').AsString;
-      System.Delete(nStr, 1, nPrefixLen + 2);
+      System.Delete(nStr, 1, nPrefixLen);
       nCode := nStr;
-      //日期(MMDD) + 流水(XXX)
+      //日期(YYMMDD) + 流水(XXX)
 
-      nCode := nCode + FieldByName('L_HYDan').AsString;
+      nStr := FieldByName('L_HYDan').AsString;
+      System.Delete(nStr, 1, 4);
+      nCode := nCode + nStr;
       //批次号：工厂编号(XX) + 检验日期(YYMMDD) + '#' + 流水(XX)
+      //        喷码时,不喷工厂编号,年份,共7位
 
-      nStr := UpperCase(GetPinYinOfStr(FieldByName('L_Area').AsString));
-      nCode:= nCode + Copy(nStr, 1, 2);
-      //销售片区前两位
-
-      nCode := Dbc2Sbc(nCode);
+      nCode := Dbc2Sbc(nCode); 
       {$ENDIF}
     end;
   end;

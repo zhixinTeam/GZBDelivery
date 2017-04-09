@@ -1639,8 +1639,22 @@ begin
     nIdlen := nIdlen-length(nSprefix);
   end;
 
+  {$IFDEF CODECOMMON}
   //生成提货单号
-  nBill_id := nSprefix+Copy(nCode,Length(nCode)-nIdlen+1,nIdlen);
+  nBill_id := nSprefix+Copy(nCode, 1, 6) + //YYMMDD
+              + Copy(nCode, 12, Length(nCode) - 11); //XXXX
+  {$ENDIF}
+
+  {$IFDEF CODEAREA}
+  //生成提货单号
+  nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
+  {$ENDIF}
+
+  {$IFDEF CODEBATCODE}
+  //生成提货单号
+  nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
+  {$ENDIF}
+
 
   //查询数据库
   nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
