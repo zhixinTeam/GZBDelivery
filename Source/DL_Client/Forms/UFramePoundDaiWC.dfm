@@ -6,6 +6,9 @@ inherited fFramePoundDaiWC: TfFramePoundDaiWC
     inherited BtnEdit: TToolButton
       OnClick = BtnEditClick
     end
+    inherited BtnDel: TToolButton
+      OnClick = BtnDelClick
+    end
   end
   inherited cxGrid1: TcxGrid
     Top = 137
@@ -25,6 +28,7 @@ inherited fFramePoundDaiWC: TfFramePoundDaiWC
       Left = 216
       Top = 41
       Hint = 'T.P_End'
+      ParentFont = False
       TabOrder = 1
       Width = 65
     end
@@ -32,6 +36,7 @@ inherited fFramePoundDaiWC: TfFramePoundDaiWC
       Left = 332
       Top = 41
       Hint = 'T.P_DaiWuChaZ'
+      ParentFont = False
       TabOrder = 2
       Width = 61
     end
@@ -39,6 +44,7 @@ inherited fFramePoundDaiWC: TfFramePoundDaiWC
       Left = 444
       Top = 41
       Hint = 'T.P_DaiWuChaF'
+      ParentFont = False
       TabOrder = 3
       Width = 85
     end

@@ -167,6 +167,9 @@ function IsTunnelOK(const nTunnel: string): Boolean;
 //查询通道光栅是否正常
 procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
 //控制通道红绿灯开合
+procedure GetPoundAutoWuCha(var nWCValZ, nWCValF: Double;
+  const nVal: Double; const nStation: string = '');
+//获取自动过磅误差
 
 function SaveOrderBase(const nOrderData: string): string;
 //保存采购申请单
@@ -2784,6 +2787,43 @@ begin
   
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/4/9
+//Parm: [Out]袋装正误差;[Out]袋装负误差;[In]净重;[In]地磅
+//Desc: 获取磅站误差
+procedure GetPoundAutoWuCha(var nWCValZ, nWCValF: Double;
+    const nVal: Double; const nStation: string);
+var nSQL: string;
+begin
+  nWCValZ := 0;
+  nWCValF := 0;
+  //init
+
+  if nVal <= 0 then Exit;
+  //开票量为0
+
+  nSQL := 'Select * From %s Where P_Start < %s and P_End >= %s';
+  nSQL := Format(nSQL, [sTable_PoundDaiWC, FloatToStr(nVal), FloatToStr(nVal)]);
+
+  if Length(nStation) > 0 then
+    nSQL := nSQL + ' And P_Station=''' + nStation + '''';
+
+  with FDM.QuerySQL(nSQL) do
+  if RecordCount > 0 then
+  begin
+    if FieldByName('P_Percent').AsString = sFlag_Yes then
+    begin     //按比例计算误差
+      nWCValZ := nVal * 1000 * FieldByName('P_DaiWuChaZ').AsFloat;
+      nWCValF := nVal * 1000 * FieldByName('P_DaiWuChaF').AsFloat;
+    end else
+
+    begin     //按固定值计算误差
+      nWCValZ := FieldByName('P_DaiWuChaZ').AsFloat;
+      nWCValF := FieldByName('P_DaiWuChaF').AsFloat;
+    end;    
+  end;
 end;
 
 end.

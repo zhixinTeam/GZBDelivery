@@ -23,8 +23,11 @@ type
     dxLayout1Item4: TdxLayoutItem;
     procedure BtnAddClick(Sender: TObject);
     procedure BtnEditClick(Sender: TObject);
+    procedure BtnDelClick(Sender: TObject);
   private
     { Private declarations }
+  protected
+    { protected declarations }
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
   public
@@ -40,7 +43,8 @@ implementation
 {$R *.dfm}
 
 uses
-  USysConst, USysDB, UMgrControl, UFormBase;
+  USysConst, USysDB, UMgrControl, ULibFun, UDataModule,
+  UFormBase, UFormPoundDaiWC;
 
 class function TfFramePoundDaiWC.FrameID: integer;
 begin
@@ -73,7 +77,32 @@ var nP: TFormCommandParam;
 begin
   inherited;
   nP.FCommand := cCmd_EditData;
-  nP.FParamA  := SQLQuery.FieldByName('').AsInteger;
+  nP.FParamA  := SQLQuery.FieldByName('R_ID').AsString;
+  CreateBaseFormItem(cFI_FormPoundDaiWC, '', @nP);
+
+  if (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK) then
+  begin
+    InitFormData('');
+  end;
+end;
+
+procedure TfFramePoundDaiWC.BtnDelClick(Sender: TObject);
+var nStr: string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要删除的记录', sHint); Exit;
+  end;
+
+  nStr := '确定要删除编号为[ %s ]的设置吗?';
+  nStr := Format(nStr, [SQLQuery.FieldByName('R_ID').AsString]);
+  if not QueryDlg(nStr, sAsk) then Exit;
+
+  nStr := 'Delete From %s Where R_ID=%s';
+  nStr := Format(nStr, [sTable_PoundDaiWC, SQLQuery.FieldByName('R_ID').AsString]);
+  FDM.ExecuteSQL(nStr);
+  InitFormData('');
 end;
 
 initialization
