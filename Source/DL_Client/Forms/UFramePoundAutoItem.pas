@@ -740,7 +740,7 @@ begin
           PlayVoice(nHint);
           Exit;
         end;
-      end;    
+      end;
 
       FUIData.FMemo := '';
       FUIData.FKZValue := 0;
@@ -780,6 +780,9 @@ begin
     Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
     //保存称重
   end;
+
+  if not Result then
+    PlayVoice('过磅保存失败，请联系管理员处理');
 end;
 
 //------------------------------------------------------------------------------
@@ -819,6 +822,9 @@ begin
        Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel)
   else Result := SaveDuanDaoItems(nNextStatus, FBillItems, FPoundTunnel);
   //保存称重
+
+  if not Result then
+    PlayVoice('过磅保存失败，请联系管理员处理');
 end;
 
 //Desc: 读取表头数据

@@ -394,10 +394,6 @@ begin
 
     nStr := '车辆[ %s ]下一状态为:[ %s ],进厂刷卡无效.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-
-    if gTruckQueueManager.IsTruckAutoIn then
-      gHardwareHelper.SetReaderCard(nReader, nCard);
-    //保证过磅完成
       
     WriteHardHelperLog(nStr, sPost_In);
     Exit;
@@ -963,7 +959,7 @@ end;
 //Parm: 读头数据
 //Desc: 对nReader读到的卡号做具体动作
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
-var nStr: string;
+var nStr,nSQL: string;
     nErrNum: Integer;
     nDBConn: PDBWorker;
 begin
@@ -985,7 +981,7 @@ begin
       nDBConn.FConn.Connected := True;
     //conn db
 
-    nStr := 'Select C_Card From $TB Where C_Card=''$CD'' or ' +
+    nStr := 'Select C_Card, C_Used From $TB Where C_Card=''$CD'' or ' +
             'C_Card2=''$CD'' or C_Card3=''$CD''';
     nStr := MacroValue(nStr, [MI('$TB', sTable_Card), MI('$CD', nReader.FCard)]);
 
@@ -993,6 +989,31 @@ begin
     if RecordCount > 0 then
     begin
       nStr := Fields[0].AsString;
+
+      {$IFDEF TruckInLoop}
+      if Fields[1].AsString = sFlag_Provide then
+      begin
+        nSQL := 'Select O_CType From $TB Where O_Card=''$CD''';
+        nSQL := MacroValue(nSQL, [MI('$TB', sTable_Order), MI('$CD', nStr)]);
+        with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+        begin
+          if RecordCount < 0 then
+          begin
+            nStr := Format('磁卡号[ %s ]匹配失败.', [nReader.FCard]);
+            WriteHardHelperLog(nStr);
+            Exit;
+          end;
+
+          if (Copy(nReader.FID, 1, 1) = 'V') and
+             (Fields[0].AsString = sFlag_OrderCardL) then
+          begin
+            nStr := '原材料临时卡禁止虚拟出厂.';
+            WriteHardHelperLog(nStr);
+            Exit;
+          end;
+        end;
+      end;
+      {$ENDIF}
     end else
     begin
       nStr := Format('磁卡号[ %s ]匹配失败.', [nReader.FCard]);

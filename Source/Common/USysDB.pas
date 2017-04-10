@@ -1446,7 +1446,7 @@ const
   sSQL_NewYTCode = 'Create Table $Table(R_ID $Inc, C_ID varChar(20),' +
        'C_Code varChar(50), C_Stock varChar(32), C_Freeze $Float, C_HasDone $Float)';
   {-----------------------------------------------------------------------------
-   水泥编号表: Order
+   水泥编号表: YTBatchcode
    *.R_ID: 记录编号
    *.C_ID: 检验记录
    *.C_Code: 水泥编号

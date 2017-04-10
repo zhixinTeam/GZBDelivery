@@ -504,6 +504,7 @@ end;
 function TBusWorkerBusinessWebchat.GetOrderList(var nData:string):Boolean;
 var nOut: TWorkerBusinessCommand;
   nCardData,nCardItem:TStringList;
+  nType: string;
   i:Integer;
 begin
    Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
@@ -532,10 +533,14 @@ begin
             nCardItem.Text := PackerDecodeStr(nCardData.Strings[i]);
             with NodeNew('Item') do
             begin
+              if Pos('´ü', nCardItem.Values['XCB_CementName']) > 0 then
+                   nType := '´ü×°'
+              else nType := 'É¢×°';
+
               NodeNew('SetDate').ValueAsString := nCardItem.Values['XCB_SetDate'];
               NodeNew('BillNumber').ValueAsString := nCardItem.Values['XCB_CardId'];
               NodeNew('StockNo').ValueAsString := nCardItem.Values['XCB_Cement'];
-              NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'];
+              NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + ' ' + nType;
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
             end;
           end;

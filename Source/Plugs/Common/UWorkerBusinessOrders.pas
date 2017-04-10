@@ -564,7 +564,7 @@ end;
 //Date: 2015-8-5
 //Desc: 保存采购单
 function TWorkerBusinessOrders.SaveOrder(var nData: string): Boolean;
-var nStr: string;
+var nStr, nTmp: string;
     nIdx: Integer;
     nVal: Double;
     nOut: TWorkerBusinessCommand;
@@ -609,10 +609,11 @@ begin
       raise Exception.Create(nOut.FData);
     //xxxxx
 
-    FOut.FData := FOut.FData + nOut.FData + ',';
+    nTmp := nOut.FData;
+    FOut.FData := FOut.FData + nTmp + ',';
     //combine Order
 
-    nStr := MakeSQLByStr([SF('O_ID', nOut.FData),
+    nStr := MakeSQLByStr([SF('O_ID', nTmp),
 
             SF('O_CType', FListA.Values['CardType']),
             SF('O_Project', FListA.Values['Project']),
@@ -646,6 +647,28 @@ begin
               'Where B_ID = ''%s'' and B_Value>0';
       nStr := Format(nStr, [sTable_OrderBase, nVal,FListA.Values['SQID']]);
       gDBConnManager.WorkerExec(FDBConn, nStr);
+    end else
+
+    begin
+      {$IFDEF TruckInLoop}
+      FListC.Clear;
+      FListC.Values['Group'] := sFlag_BusGroup;
+      FListC.Values['Object'] := sFlag_OrderDtl;
+
+      if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+          FListC.Text, sFlag_Yes, @nOut) then
+        raise Exception.Create(nOut.FData);
+      //xxxxx
+
+      nStr := MakeSQLByStr([
+            SF('D_ID', nOut.FData),
+            SF('D_OID', nTmp),
+            SF('D_Status', sFlag_TruckIn),
+            SF('D_NextStatus', sFlag_TruckBFP),
+            SF('D_InTime', sField_SQLServer_Now, sfVal)
+            ], sTable_OrderDtl, '', True);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+      {$ENDIF}
     end;
 
     nIdx := Length(FOut.FData);
@@ -735,8 +758,6 @@ begin
   Result := False;
   nTruck := '';
 
-  FListB.Text := FIn.FExtParam;
-  //磁卡列表
   nStr := AdjustListStrFormat(FIn.FData, '''', True, ',', False);
   //采购单列表
 
@@ -769,25 +790,8 @@ begin
         nTruck := nStr;
       //xxxxx
 
-      nStr := FieldByName('O_Card').AsString;
-      //正在使用的磁卡
-        
-      if (nStr <> '') and (FListB.IndexOf(nStr) < 0) then
-        FListB.Add(nStr);
       Next;
     end;
-  end;
-
-  //----------------------------------------------------------------------------
-  nSQL := 'Select O_ID,O_Truck From %s Where O_Card=''%s''';
-  nSQL := Format(nSQL, [sTable_Order, FIn.FExtParam]);
-
-  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
-  if RecordCount > 0 then
-  begin
-    nData := '车辆[ %s ]正在使用该卡,无法并单.';
-    nData := Format(nData, [FieldByName('O_Truck').AsString]);
-    Exit;
   end;
 
   FDBConn.FConn.BeginTrans;
@@ -1399,6 +1403,49 @@ begin
               SF('D_OutMan', FIn.FBase.FFrom.FUser)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL); //更新采购单
+
+      nSQL := 'Select O_CType,O_Card From %s Where O_ID=''%s''';
+      nSQL := Format(nSQL, [sTable_Order, FZhiKa]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+      if RecordCount > 0 then
+      begin
+        nStr := FieldByName('O_CType').AsString;
+        if nStr = sFlag_OrderCardL then
+        begin
+          nSQL := 'Update %s Set O_Card=Null Where O_Card=''%s''';
+          nSQL := Format(nSQL, [sTable_Order, FCard]);
+          FListA.Add(nSQL);
+
+          nSQL := 'Update %s Set C_Status=''%s'', C_Used=Null Where C_Card=''%s''';
+          nSQL := Format(nSQL, [sTable_Card, sFlag_CardInvalid, FCard]);
+          FListA.Add(nSQL);
+        end else
+
+        begin
+          {$IFDEF TruckInLoop}
+          FListC.Clear;
+          FListC.Values['Group'] := sFlag_BusGroup;
+          FListC.Values['Object'] := sFlag_OrderDtl;
+
+          if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+              FListC.Text, sFlag_Yes, @nOut) then
+            raise Exception.Create(nOut.FData);
+          //xxxxx
+
+          nSQL := MakeSQLByStr([
+                SF('D_ID', nOut.FData),
+                SF('D_OID', FZhiKa),
+                SF('D_Card', FCard),
+                SF('D_Status', sFlag_TruckIn),
+                SF('D_NextStatus', sFlag_TruckBFP),
+                SF('D_InTime', sField_SQLServer_Now, sfVal)
+                ], sTable_OrderDtl, '', True);
+          FListA.Add(nSQL);
+          {$ENDIF}
+        end;
+      end;
+      //如果是临时卡片，则注销卡片
     end;
 
     nStr := nPound[0].FID;
@@ -1407,22 +1454,7 @@ begin
       nData := nOut.FData;
       Exit;
     end;
-
-    nSQL := 'Select O_CType,O_Card From %s Where O_ID=''%s''';
-    nSQL := Format(nSQL, [sTable_Order, nPound[0].FZhiKa]);
-
-    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
-    if RecordCount > 0 then
-    begin
-      nStr := FieldByName('O_Card').AsString;
-      if FieldByName('O_CType').AsString = sFlag_OrderCardL then
-      if not CallMe(cBC_LogOffOrderCard, nStr, '', @nOut) then
-      begin
-        nData := nOut.FData;
-        Exit;
-      end;
-    end;
-    //如果是临时卡片，则注销卡片
+    //同步原材料
   end;
 
   //----------------------------------------------------------------------------

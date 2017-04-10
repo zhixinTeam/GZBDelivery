@@ -103,5 +103,9 @@
   //JSQ应答模式
   {$DEFINE BATAFTERLINE}
   //刷卡获取批次
+  {$DEFINE TruckInLoop}
+  //车辆循环进厂
+  {$DEFINE USECONTRACT}
+  //采购使用合同
 {$ENDIF}
 

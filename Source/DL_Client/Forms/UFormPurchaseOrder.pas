@@ -88,6 +88,7 @@ begin
     FillChar(nP^, SizeOf(TFormCommandParam), #0);
   end else nP := nParam;
 
+  {$IFDEF USECONTRACT}
   try
     CreateBaseFormItem(cFI_FormGetPurchaseContract, nPopedom, nP);
     if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
@@ -95,6 +96,15 @@ begin
   finally
     if not Assigned(nParam) then Dispose(nP);
   end;
+  {$ELSE}
+  try
+    CreateBaseFormItem(cFI_FormGetPOrderBase, nPopedom, nP);
+    if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
+    nStr := nP.FParamB;
+  finally
+    if not Assigned(nParam) then Dispose(nP);
+  end;
+  {$ENDIF}
 
   with TfFormPurchaseOrder.Create(Application) do
   try
