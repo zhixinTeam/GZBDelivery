@@ -175,7 +175,7 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
           ShowBorder = False
           object dxLayout1Item7: TdxLayoutItem
             AlignHorz = ahLeft
-            CaptionOptions.Text = #29289#26009#32534#30721
+            CaptionOptions.Text = #29289#26009#21517#31216
             Control = editMaterielCode
             ControlOptions.ShowBorder = False
           end

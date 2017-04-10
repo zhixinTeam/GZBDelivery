@@ -2551,7 +2551,7 @@ function send_event_msg(const nXmlStr: string): string;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := '';
-  if CallBusinessCommand(cBC_WeChat_send_event_msg, nXmlStr, '', @nOut) then
+  if CallBusinessCommand(cBC_WeChat_send_event_msg, nXmlStr, '', @nOut,false) then
     Result := nOut.FData;
 end;
 

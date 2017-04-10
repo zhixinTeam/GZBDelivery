@@ -132,7 +132,7 @@ begin
     EditCustomer.Text := Trim(EditCustomer.Text);
     if EditCustomer.Text = '' then Exit;
 
-    FWhere := 'D_ProPY like ''%%%s%%'' Or D_ProName like ''%%%s%%''';
+    FWhere := 'O_ProId like ''%%%s%%'' Or O_ProName like ''%%%s%%''';
     FWhere := Format(FWhere, [EditCustomer.Text, EditCustomer.Text]);
     InitFormData(FWhere);
   end else

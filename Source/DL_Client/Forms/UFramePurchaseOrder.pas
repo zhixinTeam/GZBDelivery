@@ -176,7 +176,7 @@ begin
   except
     //不处理异常
   end;
-
+  nStr := SQLQuery.FieldByName('O_ID').AsString;
 
   if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
 
