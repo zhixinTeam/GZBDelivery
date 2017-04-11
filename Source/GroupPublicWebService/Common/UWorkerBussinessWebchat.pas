@@ -65,30 +65,6 @@ type
     items:array of stShopOrderItem;
     function ParseWebResponse(var nData:string):Boolean;override;
   end;
-  
-  TMITDBWorker = class(TBusinessWorkerBase)
-  protected
-    FErrNum: Integer;
-    //错误码
-    FDBConn: PDBWorker;
-    //数据通道
-    FDataIn,FDataOut: PBWDataBase;
-    //入参出参
-    FDataOutNeedUnPack: Boolean;
-    //需要解包
-    procedure GetInOutData(var nIn,nOut: PBWDataBase); virtual; abstract;
-    //出入参数
-    function VerifyParamIn(var nData: string): Boolean; virtual;
-    //验证入参
-    function DoDBWork(var nData: string): Boolean; virtual; abstract;
-    function DoAfterDBWork(var nData: string; nResult: Boolean): Boolean; virtual;
-    //数据业务
-  public
-    function DoWork(var nData: string): Boolean; override;
-    //执行业务
-    procedure WriteLog(const nEvent: string);
-    //记录日志
-  end;
 
   TBusWorkerBusinessWebchat = class(TBusinessWorkerBase)
   private
@@ -383,7 +359,7 @@ begin
 
       with Root.NodeNew('EXMG') do
       begin
-        NodeNew('MsgTxt').ValueAsString     := '????3?|';
+        NodeNew('MsgTxt').ValueAsString     := '业务执行成功';
         NodeNew('MsgResult').ValueAsString  := sFlag_Yes;
         NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
       end;
@@ -957,98 +933,6 @@ begin
     nObj.Free;
     nService := nil;
   end;  
-end;
-
-//------------------------------------------------------------------------------
-//Date: 2012-3-13
-//Parm: 如参数护具
-//Desc: 获取连接数据库所需的资源
-function TMITDBWorker.DoWork(var nData: string): Boolean;
-begin
-  Result := False;
-  FDBConn := nil;
-
-  with gParamManager.ActiveParam^ do
-  try
-    FDBConn := gDBConnManager.GetConnection(FDB.FID, FErrNum);
-    if not Assigned(FDBConn) then
-    begin
-      nData := '连接数据库失败(DBConn Is Null).';
-      Exit;
-    end;
-
-    if not FDBConn.FConn.Connected then
-      FDBConn.FConn.Connected := True;
-    //conn db
-
-    FDataOutNeedUnPack := True;
-    GetInOutData(FDataIn, FDataOut);
-    FPacker.UnPackIn(nData, FDataIn);
-
-    with FDataIn.FVia do
-    begin
-      FUser   := gSysParam.FAppFlag;
-      FIP     := gSysParam.FLocalIP;
-      FMAC    := gSysParam.FLocalMAC;
-      FTime   := FWorkTime;
-      FKpLong := FWorkTimeInit;
-    end;
-
-    {$IFDEF DEBUG}
-    WriteLog('Fun: '+FunctionName+' InData:'+ FPacker.PackIn(FDataIn, False));
-    {$ENDIF}
-    if not VerifyParamIn(nData) then Exit;
-    //invalid input parameter
-
-    FPacker.InitData(FDataOut, False, True, False);
-    //init exclude base
-    FDataOut^ := FDataIn^;
-
-    Result := DoDBWork(nData);
-    //execute worker
-
-    if Result then
-    begin
-      if FDataOutNeedUnPack then
-        FPacker.UnPackOut(nData, FDataOut);
-      //xxxxx
-
-      Result := DoAfterDBWork(nData, True);
-      if not Result then Exit;
-
-      with FDataOut.FVia do
-        FKpLong := GetTickCount - FWorkTimeInit;
-      nData := FPacker.PackOut(FDataOut);
-
-      {$IFDEF DEBUG}
-      WriteLog('Fun: '+FunctionName+' OutData:'+ FPacker.PackOut(FDataOut, False));
-      {$ENDIF}
-    end else DoAfterDBWork(nData, False);
-  finally
-    gDBConnManager.ReleaseConnection(FDBConn);
-  end;
-end;
-
-//Date: 2012-3-22
-//Parm: 输出数据;结果
-//Desc: 数据业务执行完毕后的收尾操作
-function TMITDBWorker.DoAfterDBWork(var nData: string; nResult: Boolean): Boolean;
-begin
-  Result := True;
-end;
-
-//Date: 2012-3-18
-//Parm: 入参数据
-//Desc: 验证入参数据是否有效
-function TMITDBWorker.VerifyParamIn(var nData: string): Boolean;
-begin
-  Result := True;
-end;
-
-//Desc: 记录nEvent日志
-procedure TMITDBWorker.WriteLog(const nEvent: string);
-begin
-  gSysLoger.AddLog(TMITDBWorker, FunctionName, nEvent);
 end;
 
 

@@ -338,6 +338,7 @@ ResourceString
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
   sTable_YT_Batchcode = 'S_YTBatchcodeInfo';         //云天系统化验记录
+  sTable_YT_CusBatMap = 'S_YTCusBatMap';             //云天客户批次绑定
 
   sTable_WebOrderMatch   = 'S_WebOrderMatch';        //商城订单映射
   sTable_PurchaseContract = 'P_PurchaseContract';    //采购合同

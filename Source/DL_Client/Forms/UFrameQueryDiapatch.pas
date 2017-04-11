@@ -84,7 +84,7 @@ end;
 
 function TfFrameQueryDispatch.InitFormDataSQL(const nWhere: string): string;
 begin
-  Result := ' Select zt.*,Z_Name,L_CusID,L_CusName,L_Status,L_Value ' +
+  Result := ' Select zt.*,Z_Name,b.* ' +
             'From $ZT zt ' +
             ' Left Join $ZL zl On zl.Z_ID=zt.T_Line ' +
             ' Left Join $Bill b On b.L_ID=zt.T_Bill ';

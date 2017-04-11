@@ -455,11 +455,12 @@ begin
     Exit;
   end;
 
-  if FTunnelCode.Values[nTunnel] = nCode then
+  if Length(nCode) < 1 then
   begin
     Result := True;
     Exit;
-  end; //通道喷码已发送
+  end;
+  //喷码信息为空
   
   Result := False;
   nPrinter := GetPrinter(nTunnel);

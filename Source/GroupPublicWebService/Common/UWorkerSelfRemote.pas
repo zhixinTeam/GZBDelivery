@@ -71,7 +71,7 @@ uses
 //Desc: 记录nEvent日志
 procedure WriteLog(const nEvent: string);
 begin
-  gSysLoger.AddLog(TClientBusinessHardware, 'uworkerselfremove.writelog' , nEvent);
+  gSysLoger.AddLog(TRemote2MITWorker, '中间件互访' , nEvent);
 end;
 //Date: 2014-09-15
 //Parm: 对象;命令;数据;参数;输出

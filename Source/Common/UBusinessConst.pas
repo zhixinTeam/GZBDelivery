@@ -242,11 +242,12 @@ resourcestring
   sBus_HardwareCommand        = 'Bus_HardwareCommand';  //硬件指令
   sBus_BusinessDuanDao        = 'Bus_BusinessDuanDao';  //短倒业务相关
   sBus_BusinessPurchaseOrder  = 'Bus_BusinessPurchaseOrder'; //采购单相关
+  sBus_BusinessWebchat        = 'Bus_BusinessWebchat';  //Web平台服务
 
   {*client function name*}
   sCLI_ServiceStatus          = 'CLI_ServiceStatus';    //服务状态
   sCLI_GetQueryField          = 'CLI_GetQueryField';    //查询的字段
-  sBus_BusinessWebchat        = 'Bus_BusinessWebchat';  //Web平台服务
+  sCLI_BusinessWebchat        = 'CLI_BusinessWebchat';  //Web平台服务
 
   sCLI_BusinessSaleBill       = 'CLI_BusinessSaleBill'; //交货单业务
   sCLI_BusinessCommand        = 'CLI_BusinessCommand';  //业务指令

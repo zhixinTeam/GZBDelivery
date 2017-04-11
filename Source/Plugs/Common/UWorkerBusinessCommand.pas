@@ -175,7 +175,7 @@ type
 
 implementation
 uses
-  UMgrQueue,uFormCallWechatWebService;//,UHardBusiness;
+  UMgrQueue, UWorkerClientWebChat;
 
 
 class function TBusWorkerQueryField.FunctionName: string;
@@ -2152,140 +2152,101 @@ end;
 
 //获取客户注册信息
 function TWorkerBusinessCommander.getCustomerInfo(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_getCustomerInfo,fin.FData);
-    nData := fin.FData;
-    FOut.FData := fin.FData;
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_getCustomerInfo);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
 end;
 
 //客户与微信账号绑定
 function TWorkerBusinessCommander.get_Bindfunc(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_Bindfunc,fin.FData);
-    FOut.FData := 'Y';
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_get_Bindfunc);
+  if Result then
+       FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
 end;
 
 //发送消息
 function TWorkerBusinessCommander.send_event_msg(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_send_event_msg,fin.FData);
-    FOut.FData := 'Y';
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_send_event_msg);
+  if Result then
+       FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
 end;
 
 //新增商城用户
 function TWorkerBusinessCommander.edit_shopclients(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_edit_shopclients,fin.FData);
-    FOut.FData := 'Y';
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_edit_shopclients);
+  if Result then
+       FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
 end;
 
 //添加商品
 function TWorkerBusinessCommander.edit_shopgoods(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_edit_shopgoods,fin.FData);
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_edit_shopgoods);
+  if Result then
+       FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
 end;
 
 //获取订单信息
 function TWorkerBusinessCommander.get_shoporders(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shoporders,fin.FData);
-    nData := fin.FData;
-    FOut.FData := fin.FData;
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_get_shoporders);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
 end;
 
 //根据订单号获取订单信息
 function TWorkerBusinessCommander.get_shoporderbyno(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shoporderbyNO,fin.FData);
-    nData := fin.FData;
-    FOut.FData := fin.FData;
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_get_shoporderbyNO);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
 end;
 
 //根据货单号获取货单信息-原材料
 function TWorkerBusinessCommander.get_shopPurchasebyNO(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_get_shopPurchasebyNO,fin.FData);
-    nData := fin.FData;
-    FOut.FData := fin.FData;
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_get_shopPurchasebyNO);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
 end;
 
 //修改订单状态
 function TWorkerBusinessCommander.complete_shoporders(var nData:string):Boolean;
-var
-  frmCall:TFrmCallWechatWebService;
+var nOut: TWorkerBusinessCommand;
 begin
-  Result := False;
-  frmCall := TFrmCallWechatWebService.Create(nil);
-  try
-    Result := frmCall.ExecuteWebAction(cBC_WeChat_complete_shoporders,fin.FData);
-    FOut.FData := 'Y';
-  finally
-    frmCall.Free;
-  end;
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_complete_shoporders);
+  if Result then
+       FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
 end;
 
 //------------------------------------------------------------------------------

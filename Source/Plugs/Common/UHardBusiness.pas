@@ -1012,7 +1012,15 @@ begin
             Exit;
           end;
         end;
-      end;
+      end else
+      begin
+        if Copy(nReader.FID, 1, 1) = 'V' then
+        begin
+          nStr := '非原材料固定卡禁止虚拟出厂.';
+          WriteHardHelperLog(nStr);
+          Exit;
+        end;
+      end;  
       {$ENDIF}
     end else
     begin
@@ -1579,7 +1587,7 @@ end;
 //Date: 2012-4-25
 //Parm: 车辆;通道
 //Desc: 授权nTruck在nTunnel车道放灰
-procedure TruckStartFH(const nTruck: PTruckItem; const nTunnel: string);
+procedure TruckStartFH(const nTruck: PTruckItem; const nLine: PLineItem);
 var nStr,nTmp,nCardUse: string;
    nField: TField;
    nWorker: PDBWorker;
@@ -1608,22 +1616,22 @@ begin
       //xxxxx
     end;
 
-    g02NReader.SetRealELabel(nTunnel, nTmp);
+    g02NReader.SetRealELabel(nLine.FLineID, nTmp);
   finally
     gDBConnManager.ReleaseConnection(nWorker);
   end;
 
 
-  gERelayManager.LineOpen(nTunnel);
+  gERelayManager.LineOpen(nLine.FLineID);
   //打开放灰
 
   nStr := nTruck.FTruck + StringOfChar(' ', 12 - Length(nTruck.FTruck));
   nTmp := nTruck.FStockName + FloatToStr(nTruck.FValue);
-  nStr := nStr + nTruck.FStockName + StringOfChar(' ', 12 - Length(nTmp)) +
+  nStr := nStr + nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
           FloatToStr(nTruck.FValue);
   //xxxxx  
 
-  gERelayManager.ShowTxt(nTunnel, nStr);
+  gERelayManager.ShowTxt(nLine.FLineID, nStr);
   //显示内容
 end;
 
@@ -1690,7 +1698,7 @@ begin
     nStr := Format(nStr, [nTrucks[0].FTruck]);
     WriteNearReaderLog(nStr);
     
-    TruckStartFH(nPTruck, nTunnel);
+    TruckStartFH(nPTruck, nPLine);
     Exit;
   end;
 
@@ -1704,7 +1712,7 @@ begin
     Exit;
   end;
 
-  TruckStartFH(nPTruck, nTunnel);
+  TruckStartFH(nPTruck, nPLine);
   //执行放灰
 end;
 

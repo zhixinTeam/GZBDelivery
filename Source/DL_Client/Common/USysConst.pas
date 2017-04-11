@@ -93,6 +93,7 @@ const
 
   cFI_FrameManualEvent  = $0131;                     //待处理事件日志
   cFI_FramePoundDaiWC   = $0132;                     //袋装误差范围设置
+  cFI_FrameCusBatMap    = $0133;                     //特殊客户批次
 
   cFI_FormMemo          = $1000;                     //备注窗口
   cFI_FormBackup        = $1001;                     //数据备份
@@ -185,7 +186,7 @@ const
   cFI_FormGetPurchaseContract  = $1122;                     //选择采购合同
   cFI_FormPurchaseAssayRes  = $1123;                     //采购化验结果
 
-  cFI_FormPoundDaiWC    = $0133;                     //袋装误差范围设置
+  cFI_FormPoundDaiWC    = $1133;                     //袋装误差范围设置
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据

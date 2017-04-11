@@ -39,7 +39,7 @@ uses
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
   UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
   UFrameImportOrderDetail, UFormTodo, UFormTodoSend, UFrameManualEvent,
-  UFramePoundDaiWC,
+  UFramePoundDaiWC, UFrameCusBatMap,
   {$IFDEF MicroMsg}
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,
