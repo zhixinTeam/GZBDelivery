@@ -197,6 +197,7 @@ begin
   if cxView1.DataController.GetSelectedCount > 0 then
   begin
     LogoutDDCard(SQLQuery.FieldByName('B_Card').AsString);
+    InitFormData(FWhere);
   end;
 end;
 
@@ -220,6 +221,8 @@ begin
       ShowMsg('办理磁卡成功', sHint);
     //办理磁卡
     {$ENDIF}
+
+    InitFormData(FWhere);
   end;
 end;
 

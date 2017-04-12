@@ -988,8 +988,8 @@ const
   -----------------------------------------------------------------------------}
 
   sSQL_NewTransBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +
-       'B_Card varChar(32), B_Truck varChar(15), B_TID varChar(15),' +
-       'B_SrcAddr varChar(160), B_DestAddr varChar(160),' +
+       'B_CType Char(1), B_Card varChar(32), B_Truck varChar(15), ' +
+       'B_TID varChar(15), B_SrcAddr varChar(160), B_DestAddr varChar(160),' +
        'B_Type Char(1), B_StockNo varChar(32), B_StockName varChar(160),' +
        'B_PValue $Float, B_PDate DateTime, B_PMan varChar(32),' +
        'B_MValue $Float, B_MDate DateTime, B_MMan varChar(32),' +
@@ -1283,7 +1283,8 @@ const
 
   sSQL_NewProvider = 'Create Table $Table(R_ID $Inc, P_ID varChar(32),' +
        'P_Name varChar(80),P_PY varChar(80), P_Phone varChar(20),' +
-       'P_Saler varChar(32),p_WechartAccount varchar(32), P_Memo varChar(50))';
+       'P_Saler varChar(32),p_WechartAccount varchar(32), ' +
+       'P_Index Integer, P_Memo varChar(50))';
   {-----------------------------------------------------------------------------
    供应商: Provider
    *.P_ID: 编号
@@ -1292,6 +1293,7 @@ const
    *.P_Phone: 联系方式
    *.P_Saler: 业务员
    *.p_WechartAccount：商城账号
+   *.P_Index: 索引
    *.P_Memo: 备注
   -----------------------------------------------------------------------------}
 

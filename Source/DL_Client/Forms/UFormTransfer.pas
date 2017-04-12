@@ -130,7 +130,8 @@ procedure TfFormTransfer.InitFormData;
 var nStr: string;
     nInt, nIdx: Integer;
 begin
-  nStr := 'Select M_ID,M_Name From ' + sTable_Materails;
+  nStr := 'Select M_ID,M_Name From %s Where M_Index=2';
+  nStr := Format(nStr, [sTable_Materails]);
 
   EditMID.Properties.Items.Clear;
   SetLength(gMateItems, 0);
@@ -161,7 +162,8 @@ begin
     EditMate.Text := gMateItems[nInt].FName;
   end;
 
-  nStr := 'P_ID=Select P_ID,P_Name From ' + sTable_Provider;
+  nStr := 'P_ID=Select P_ID,P_Name From %s Where P_Index=2';
+  nStr := Format(nStr, [sTable_Provider]);
   FDM.FillStringsData(EditDC.Properties.Items, nStr, 1, '.');
   AdjustCXComboBoxItem(EditDC, False);
 

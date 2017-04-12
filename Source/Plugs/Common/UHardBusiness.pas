@@ -1641,7 +1641,7 @@ begin
   //´ò¿ª·Å»Ò
 
   nStr := nTruck.FTruck + StringOfChar(' ', 12 - Length(nTruck.FTruck));
-  nTmp := nTruck.FStockName + FloatToStr(nTruck.FValue);
+  nTmp := nLine.FName + FloatToStr(nTruck.FValue);
   nStr := nStr + nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
           FloatToStr(nTruck.FValue);
   //xxxxx  

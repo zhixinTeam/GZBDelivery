@@ -811,9 +811,31 @@ begin
               ], sTable_TransBase, SF('B_ID', FZhiKa), False);
       FListA.Add(nSQL);
 
-//      nSQL := 'Update %s Set C_Status=''%s'' Where C_Card=''%s''';
-//      nSQL := Format(nSQL, [sTable_Card, sFlag_CardIdle, FCard]);
-//      FListA.Add(nSQL); //¸üÐÂ´Å¿¨×´Ì¬
+      nSQL := 'Select B_CType From %s Where B_ID=''%s''';
+      nSQL := Format(nSQL, [sTable_TransBase, FZhiKa]);
+      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+      if RecordCount > 0 then
+      begin
+        if Fields[0].AsString <> sFlag_OrderCardG then
+        begin
+          nSQL := 'Update %s Set T_IDCard=Null Where T_IDCard=''%s''';
+          nSQL := Format(nSQL, [sTable_Truck, FCard]);
+          FListA.Add(nSQL);
+
+          nSQL := 'Update %s Set T_Card=Null Where T_Card=''%s''';
+          nSQL := Format(nSQL, [sTable_Transfer, FCard]);
+          FListA.Add(nSQL);
+
+          nSQL := 'Update %s Set B_Card=Null Where B_Card=''%s''';
+          nSQL := Format(nSQL, [sTable_TransBase, FCard]);
+          FListA.Add(nSQL);
+
+          nSQL := 'Update %s Set C_Status=''%s'', C_Used=Null, C_TruckNo=Null ' +
+                  'Where C_Card=''%s''';
+          nSQL := Format(nSQL, [sTable_Card, sFlag_CardInvalid, FCard]);
+          FListA.Add(nSQL);
+        end;
+      end;
     end;
   end;
 
