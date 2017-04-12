@@ -273,10 +273,11 @@ function TWorkerBusinessOrders.SavePurchaseContract(var nData: string):Boolean;
 var nStr: string;
     nIdx: Integer;
     nOut: TWorkerBusinessCommand;
-    nName,nCondition,nValue, nPunishcondition:string;
+    nName,nCondition,nValue, nUnit, nPunishcondition:string;
     nPunishBasis,nPunishStandard:double;
     nPunishMode:integer;
     ndValue:Double;
+    j:Integer;
 begin
   FListA.Text := PackerDecodeStr(FIn.FData);
   //init
@@ -319,11 +320,18 @@ begin
   begin
     FListD.Clear;
     FListD.CommaText := FListC[nIdx];
-
+    for j := FListD.Count-1 downto 0 do
+    begin
+      if FListD.Strings[j]='' then
+      begin
+        FListD.Delete(j);
+      end;
+    end;
     nName := FListD[0];
+    nUnit := FListD[1];
     nCondition := FListD[2];
-    nValue:= StringReplace(FListD[1], '%', '', [rfReplaceAll]);
-    ndValue := StrToFloatDef(nValue, 0) / 100;
+    nValue:= FListD[3];
+    ndValue := StrToFloatDef(nValue,0);
 
     nPunishcondition :='';
     nPunishStandard := 0;
@@ -332,12 +340,16 @@ begin
 
     if FListD.Count > 4 then
     begin
-      nPunishcondition := FListD[3];
-      nPunishBasis := StrToFloatDef(FListD[4],0)/100;
-      nPunishStandard := StrToFloatDef(FListD[5],0);
-      if FListD[6]='单价' then
+      nPunishcondition := FListD[4];
+      nPunishBasis := StrToFloatDef(FListD[5],0);
+      nPunishStandard := StrToFloatDef(FListD[6],0);
+      if FListD[7]='单价' then
       begin
         nPunishMode := 1;
+      end
+      else if FListD[6]='净重' then
+      begin
+        nPunishMode := 2;
       end;
     end;
 
@@ -345,6 +357,7 @@ begin
             SF('quota_name', nName),
             SF('quota_condition', nCondition),
             SF('quota_value', ndValue,sfVal),
+            SF('quota_unit', nUnit),
             SF('punish_condition', nPunishcondition),
             SF('punish_Basis', nPunishBasis,sfVal),
             SF('punish_standard', nPunishStandard,sfVal),
@@ -380,6 +393,8 @@ var nStr: string;
     nPunishBasis,nPunishStandard:double;
     nPunishMode:integer;
     ndValue:Double;
+    nUnit:string;
+    j:integer;
 begin
   FListA.Text := PackerDecodeStr(FIn.FData);
 
@@ -425,6 +440,13 @@ begin
     for nIdx := 0 to FListB.Count - 1 do
     begin
       FListC.CommaText := FListB[nIdx];
+      for j := FListC.Count-1 downto 0 do
+      begin
+        if FListC.Strings[j]='' then
+        begin
+          FListC.Delete(j);
+        end;
+      end;
 
       nPunishcondition :='';
       nPunishStandard := 0;
@@ -432,23 +454,29 @@ begin
       nPunishMode := 0;
 
       nName := FListC[0];
+      nUnit := FListC[1];
       nCondition := FListC[2];
-      nValue :=  StringReplace(FListC[1], '%', '', [rfReplaceAll]);
-      ndValue := StrToFloatDef(nValue,0)/100;
+      nValue :=  FListC[3];
+      ndValue := StrToFloatDef(nValue,0);
 
       if FListC.Count > 4 then
       begin
-        nPunishcondition := FListC[3];
-        nPunishBasis := StrToFloatDef(FListC[4],0)/100;
-        nPunishStandard := StrToFloatDef(FListC[5],0);
-        if FListC[6]='单价' then
+        nPunishcondition := FListC[4];
+        nPunishBasis := StrToFloatDef(FListC[5],0)/100;
+        nPunishStandard := StrToFloatDef(FListC[6],0);
+        if FListC[7]='单价' then
         begin
           nPunishMode := 1;
+        end
+        else if FListC[7]='净重' then
+        begin
+          nPunishMode := 2;
         end;
       end;
 
       nStr := MakeSQLByStr([SF('pcid', Values['FID']),
               SF('quota_name', nName),
+              SF('quota_unit', nUnit),
               SF('quota_condition', nCondition),
               SF('quota_value', ndValue,sfval),
               SF('punish_condition', nPunishcondition),

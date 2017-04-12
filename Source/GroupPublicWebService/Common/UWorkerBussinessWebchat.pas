@@ -482,10 +482,11 @@ var nOut: TWorkerBusinessCommand;
   nCardData,nCardItem:TStringList;
   nType: string;
   i:Integer;
+  nRequest,nResponse:string;
 begin
    Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
-
+  nRequest := PackerDecodeStr(fin.FData);
   nCardData := TStringList.Create;
   nCardItem := TStringList.Create;
   try
@@ -518,6 +519,7 @@ begin
               NodeNew('StockNo').ValueAsString := nCardItem.Values['XCB_Cement'];
               NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + ' ' + nType;
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
+              NodeNew('SaleArea').ValueAsString := nCardItem.Values['pcb_name'];
             end;
           end;
         end;
@@ -535,6 +537,9 @@ begin
     nCardData.Free;
   end;
   nData := FPacker.XMLBuilder.WriteToString;
+  nResponse := FPacker.XMLBuilder.WriteToString;
+  WriteLog('TBusWorkerBusinessWebchat.GetOrderList request='+nRequest);
+  WriteLog('TBusWorkerBusinessWebchat.GetOrderList request='+nResponse);
 end;
 
 //获取采购合同列表
@@ -542,11 +547,13 @@ function TBusWorkerBusinessWebchat.GetPurchaseContractList(var nData:string):Boo
 var nOut: TWorkerBusinessCommand;
   nCardData,nCardItem:TStringList;
   i:Integer;
+  nRequest,nResponse:string;
 begin
   Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetPurchaseContractList, Trim(FIn.FRemoteUL));
   nCardData := TStringList.Create;
   nCardItem := TStringList.Create;
+  nRequest := PackerDecodeStr(fin.FData);
   try
     BuildDefaultXMLPack;
     if Result then
@@ -589,6 +596,9 @@ begin
     nCardData.Free;
   end;
   nData := FPacker.XMLBuilder.WriteToString;
+  nResponse := FPacker.XMLBuilder.WriteToString;
+  WriteLog('TBusWorkerBusinessWebchat.GetPurchaseContractList request='+nRequest);
+  WriteLog('TBusWorkerBusinessWebchat.GetPurchaseContractList request='+nResponse);
 end;
 
 //获取客户注册信息

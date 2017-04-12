@@ -25,6 +25,7 @@ uses
 type
   TPurchaseContractDtlInfo = record
     Fquota_name:string;
+    Fquota_unit:string;
     Fquota_condition:string;
     Fquota_value:Double;
     Fpunish_condition:string;
@@ -218,9 +219,14 @@ begin
   end;
   SGRes.Cells[0,0] := '行号';
   SGRes.Cells[1,0] := '指标名';
-  SGRes.Cells[2,0] := '条件';
-  SGRes.Cells[3,0] := '标准值(%)';
-  SGRes.Cells[4,0] := '化验值(%)';
+  SGRes.Cells[2,0] := '单位';
+  SGRes.Cells[3,0] := '条件';
+  SGRes.Cells[4,0] := '扣重条件';
+  SGRes.Cells[5,0] := '扣重依据';
+  SGRes.Cells[6,0] := '扣重标准';
+  SGRes.Cells[7,0] := '扣重模式';
+  SGRes.Cells[8,0] := '标准值';
+  SGRes.Cells[9,0] := '化验值';
   EditProvider.Text := Fprovider_name;
   EditMate.Text := Fmateriel_name;
   nStr := 'select * from %s where pcid=''%s''';
@@ -245,23 +251,42 @@ begin
       with FContractDtlItems[nIdx] do
       begin
         Fquota_name := FieldByName('quota_name').AsString;
+        Fquota_unit := FieldByName('quota_unit').AsString;
         Fquota_condition := FieldByName('quota_condition').AsString;
-        Fquota_value := FieldByName('quota_value').AsFloat*100;
+        Fquota_value := FieldByName('quota_value').AsFloat;
         Fpunish_condition := FieldByName('punish_condition').AsString;
-        Fpunish_Basis := FieldByName('punish_Basis').AsFloat*100;
+        Fpunish_Basis := FieldByName('punish_Basis').AsFloat;
         Fpunish_standard := FieldByName('punish_standard').AsFloat;
         Fpunish_mode := FieldByName('punish_mode').AsInteger;
 
         SGRes.Cells[0,nIdx+1] := IntToStr(nIdx+1);
         SGRes.Cells[1,nIdx+1] := Fquota_name;
-        SGRes.Cells[2,nIdx+1] := Fquota_condition;
-        SGRes.Cells[3,nIdx+1] := FloatToStr(Fquota_value);
+        SGRes.Cells[2,nIdx+1] := Fquota_unit;
+        SGRes.Cells[3,nIdx+1] := Fquota_condition;
+
+        SGRes.Cells[4,nIdx+1] := Fpunish_condition;
+        SGRes.Cells[5,nIdx+1] := FloatToStr(Fpunish_Basis);
+        SGRes.Cells[6,nIdx+1] := FloatToStr(Fpunish_standard);
+        if Fpunish_mode=0 then
+        begin
+          SGRes.Cells[7,nIdx+1] := '重量';
+        end
+        else if Fpunish_mode=1 then
+        begin
+          SGRes.Cells[7,nIdx+1] := '单价';
+        end
+        else if Fpunish_mode=2 then
+        begin
+          SGRes.Cells[7,nIdx+1] := '净重';
+        end;
+
+        SGRes.Cells[8,nIdx+1] := FloatToStr(Fquota_value);
         if FAssayResults.IndexOfName(Fquota_name)=-1 then
         begin
-          SGRes.Cells[4,nIdx+1] := FloatToStr(Fquota_value);
+          SGRes.Cells[9,nIdx+1] := FloatToStr(Fquota_value);
         end
         else begin
-          SGRes.Cells[4,nIdx+1] := FAssayResults.Values[Fquota_name];
+          SGRes.Cells[9,nIdx+1] := FAssayResults.Values[Fquota_name];
         end;
       end;
       
@@ -274,7 +299,7 @@ end;
 procedure TfFormPurchaseAssayRes.SGResSelectCell(Sender: TObject; ACol,
   ARow: Integer; var CanSelect: Boolean);
 begin
-  if ACol<4 then CanSelect := False;
+  if ACol<9 then CanSelect := False;
 end;
 
 procedure TfFormPurchaseAssayRes.BtnpunishClick(Sender: TObject);
@@ -294,18 +319,20 @@ var
   npunish_Basis:Double; //扣重依据,每小于标准1%或5%扣重X
   npunish_standard:Double; //扣重标准，0.1吨或0.5元
   npunish_mode:Integer; //扣重模式，0为重量，1为单价
+  nUnit:string;
 begin
   Result := False;
   npunishSum := 0;
   for nIdx := 1 to SGRes.RowCount-1 do
   begin
     npunish_Condition := FContractDtlItems[nIdx-1].Fpunish_condition;
+    nUnit := FContractDtlItems[nIdx-1].Fquota_unit;
     npunish_Basis := FContractDtlItems[nIdx-1].Fpunish_Basis;
     npunish_standard := FContractDtlItems[nIdx-1].Fpunish_standard;
     npunish_mode := FContractDtlItems[nIdx-1].Fpunish_mode;
-    nquota_value := StrToFloatDef(SGRes.Cells[3,nIdx],0);
+    nquota_value := StrToFloatDef(SGRes.Cells[8,nIdx],0);
 
-    nStr := SGRes.Cells[4,nIdx];
+    nStr := SGRes.Cells[9,nIdx];
     nAssayRes := StrToFloatDef(nStr,0);
     if nAssayRes=0 then
     begin
@@ -326,6 +353,10 @@ begin
 
 
     ndiff := Abs(nquota_value-nAssayRes);
+    if nUnit='%' then
+    begin
+      ndiff := ndiff/100;
+    end;
     //扣重量
 
     if npunish_mode=0 then
@@ -338,7 +369,15 @@ begin
     begin
       //本次扣重=(差额/扣重依据)*净重/合同单价
       npunishSum := npunishSum+ npunish_standard*ndiff*FNetweight/FcontractPrice;
+    end
+    else if npunish_mode=2 then
+    begin
+      npunishSum := npunishSum+ ndiff*FNetweight;
     end;
+  end;
+  if npunishSum-FNetweight>0.00001 then
+  begin
+    npunishSum := FNetweight;
   end;
   EditpunishRes.Text := FloatToStr(npunishSum);
   Result := True;

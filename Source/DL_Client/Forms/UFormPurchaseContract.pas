@@ -12,7 +12,7 @@ uses
   StdCtrls, cxControls, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
   cxContainer, cxEdit, cxTextEdit, cxMemo,
   cxMaskEdit, cxDropDownEdit, cxMCListBox, Menus, cxButtons, cxButtonEdit,
-  cxCheckBox;
+  cxCheckBox, cxListView, ComCtrls;
 
 type
   TProviderParam = record
@@ -80,14 +80,14 @@ type
     dxLayout1Group5: TdxLayoutGroup;
     cxMemo2: TcxMemo;
     dxLayout1Item16: TdxLayoutItem;
-    InfoList: TcxMCListBox;
-    dxLayout1Item17: TdxLayoutItem;
     btnAdd: TcxButton;
     dxLayout1Item18: TdxLayoutItem;
     btnDel: TcxButton;
     dxLayout1Item19: TdxLayoutItem;
     chbType: TcxCheckBox;
     dxLayout1Item20: TdxLayoutItem;
+    InfoList: TcxListView;
+    dxLayout1Item21: TdxLayoutItem;
     procedure BtnExitClick(Sender: TObject);
     procedure BtnOKClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -98,12 +98,15 @@ type
     procedure btnAddClick(Sender: TObject);
     procedure btnDelClick(Sender: TObject);
     procedure chbTypeClick(Sender: TObject);
+    procedure comPunishModePropertiesChange(Sender: TObject);
+    procedure SetStrToInfoListItems(const nStr:string);
   protected
     { Private declarations }
     FProvider: TProviderParam;
     FMeterail: TMeterailsParam;
     FPurchaseContractInfo:TPurchaseContractInfo;
     Fid:string;
+    FQuotaUnit:string;//指标单位
     procedure InitFormData(const nID: string);    
     function OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean; virtual;
     function IsDataValid: Boolean; virtual;
@@ -277,7 +280,7 @@ begin
       Values['Price'] := Trim(editPrice.Text);
       Values['Quantity'] := Trim(editQuantity.Text);
       Values['Remark'] := Trim(editRemark.Text);
-      Values['QuotaList'] := PackerEncodeStr(InfoList.Items.Text);
+      Values['QuotaList'] := PackerEncodeStr(FPurchaseContractInfo.FQuotaList.Text);
     end;
     if FCommand=cCmd_AddData then
     begin
@@ -305,12 +308,14 @@ begin
   editpunishStandard.Clear;
   comQuotaName.Properties.DropDownListStyle := lsFixedList;
   comQuotaCondition.Properties.DropDownListStyle := lsFixedList;
-  comQuotaValue.Properties.DropDownListStyle := lsFixedList;
+  comQuotaValue.Text := '';
   comPunishCondition.Properties.DropDownListStyle := lsFixedList;
   comPunishMode.Properties.DropDownListStyle := lsFixedList;
-  InfoList.Delimiter := ',';
   FillChar(FProvider, 1, #0);
   FillChar(FMeterail, 1, #0);
+  InfoList.ViewStyle := vsReport;
+  InfoList.RowSelect := True;
+  InfoList.ReadOnly := True;
   
   ResetHintAllForm(Self, 'T', sTable_PurchaseContract);
   //重置表名称
@@ -408,6 +413,18 @@ begin
   begin
     comQuotaValue.ItemIndex := 0;
   end;
+
+  nStr := 'select distinct reference_unit from %s where quota_name=''%s''';
+  nStr := Format(nStr,[sTable_PurchaseQuotaStandard,nquota_name]);
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      FQuotaUnit := FieldByName('reference_unit').AsString;
+    end;
+  end;
+  dxLayout1Item11.CaptionOptions.Text := '指标值(单位'+FQuotaUnit+')';
+  dxLayout1Item13.CaptionOptions.Text := '扣重依据(单位'+FQuotaUnit+')'
 end;
 
 procedure TfFormPurchaseContract.editProviderKeyPress(Sender: TObject;
@@ -492,10 +509,11 @@ begin
   FMeterail.FName := FPurchaseContractInfo.FMaterielName;
   editPrice.Text := FloatToStr(FPurchaseContractInfo.FPrice);
   editQuantity.Text := FloatToStr(FPurchaseContractInfo.FQuantity);
+  editRemark.Text := FPurchaseContractInfo.FRemark;
   for i := 0 to FPurchaseContractInfo.FQuotaList.Count-1 do
   begin
     nStr := FPurchaseContractInfo.FQuotaList.Strings[i];
-    InfoList.Items.Add(nStr);
+    SetStrToInfoListItems(nStr);
   end;
 end;
 
@@ -513,6 +531,7 @@ begin
   comPunishMode.Properties.Items.Clear;
   comPunishMode.Properties.Items.Add('重量');
   comPunishMode.Properties.Items.Add('单价');
+  comPunishMode.Properties.Items.Add('净重');
 
   comQuotaName.Properties.Items.Clear;
   nStr := 'select distinct quota_name from %s';
@@ -538,7 +557,10 @@ var
   nValue,nPunishBasic,nPunishStandard:double;
   nsPunishMode:string;
   nsValue,nsPunishBasic,nsPunishStandard:string;
+  nDelimiter:string;
+  nUnit:string;
 begin
+  nDelimiter := ',';
   if nID<>'' then
   begin
     FPurchaseContractInfo.FQuotaList.Clear;
@@ -569,26 +591,37 @@ begin
     while not nDs.Eof do
     begin
       nName := nDs.FieldByName('quota_name').AsString;
+      nUnit := nDs.FieldByName('quota_unit').AsString;
       nCondition := nDs.FieldByName('quota_condition').AsString;
       nValue := nDs.FieldByName('quota_value').AsFloat;
       nPunishCondition := nDs.FieldByName('punish_condition').AsString;
       nPunishBasic := nDs.FieldByName('punish_Basis').AsFloat;
       nPunishStandard := nDs.FieldByName('punish_standard').AsFloat;
       nPunishMode := nDs.FieldByName('punish_mode').AsInteger;
-      nsValue := FloatToStr(nValue*100)+'%';
+      nsValue := FloatToStr(nValue);
       if nPunishCondition<>'' then
       begin
-        nsPunishBasic := FloatToStr(nPunishBasic*100);
+        nsPunishBasic := FloatToStr(nPunishBasic);
         nsPunishStandard := FloatToStr(nPunishStandard);
         nsPunishMode := '重量';
         if nPunishMode=1 then
         begin
           nsPunishMode := '单价';
+        end
+        else if nPunishMode=2 then
+        begin
+          nsPunishMode := '净重';
         end;
-        nPunish := nPunishCondition + InfoList.Delimiter + nsPunishBasic + InfoList.Delimiter
-            +nsPunishStandard + InfoList.Delimiter + nsPunishMode;
+        nPunish := nPunishCondition + nDelimiter
+            + nsPunishBasic + nDelimiter
+            + nsPunishStandard + nDelimiter
+            + nsPunishMode;
       end;
-      nStr := nName + InfoList.Delimiter + nsValue + InfoList.Delimiter + nCondition + InfoList.Delimiter + nPunish;
+      nStr := nName + nDelimiter
+          + nUnit + nDelimiter
+          + nCondition + nDelimiter
+          + nsValue + nDelimiter
+          + nPunish;
       FPurchaseContractInfo.FQuotaList.Add(nStr);
       nDs.Next;
     end;
@@ -600,7 +633,9 @@ var
   nStr:string;
   nPunishCondition,nPunishBasic,nPunishStandard,nPunishMode:string;
   nPunish:string;
+  nDelimiter:string;
 begin
+  nDelimiter := ',';
   nName := comQuotaName.Text;
   nCondition := comQuotaCondition.Text;
   nValue := comQuotaValue.Text;
@@ -638,30 +673,40 @@ begin
       ShowMsg('指标条件或扣重条件录入有误，请检查',sHint);
       Exit;
     end;
-      
-    if (StrToFloatDef(nPunishBasic,0)=0) or (StrToFloatDef(nPunishBasic,0)<0.00001) then
+    if nPunishMode<>'净重' then
     begin
-      editpunishBasis.Focused;
-      ShowMsg('扣重依据录入有误', sHint);
-      Exit;
-    end;
-    if (StrToFloatDef(nPunishStandard,0)=0) or (StrToFloatDef(nPunishStandard,0)<0.00001) then
-    begin
-      editpunishStandard.Focused;
-      ShowMsg('扣重标准录入有误', sHint);
-      Exit;
+      if (StrToFloatDef(nPunishBasic,0)=0) or (StrToFloatDef(nPunishBasic,0)<0.00001) then
+      begin
+        editpunishBasis.Focused;
+        ShowMsg('扣重依据录入有误', sHint);
+        Exit;
+      end;
+      if (StrToFloatDef(nPunishStandard,0)=0) or (StrToFloatDef(nPunishStandard,0)<0.00001) then
+      begin
+        editpunishStandard.Focused;
+        ShowMsg('扣重标准录入有误', sHint);
+        Exit;
+      end;
     end;
 
-    nPunish := nPunishCondition + InfoList.Delimiter + nPunishBasic + InfoList.Delimiter
-      +nPunishStandard + InfoList.Delimiter + nPunishMode
+    nPunish := nPunishCondition + nDelimiter
+      + nPunishBasic + nDelimiter
+      + nPunishStandard + nDelimiter
+      + nPunishMode;
   end
   else begin
     if not QueryDlg('扣重信息不完整，将不予处理，是否继续？',sHint) then Exit;
   end;
-  nStr := nName + InfoList.Delimiter + nValue + InfoList.Delimiter + nCondition + InfoList.Delimiter + nPunish;
-  if InfoList.Items.IndexOf(nstr)=-1 then
+  nStr := nName +nDelimiter
+    + FQuotaUnit + nDelimiter
+    + nCondition+ nDelimiter
+    + nValue + nDelimiter
+    + nPunish + nDelimiter;
+  if FPurchaseContractInfo.FQuotaList.IndexOf(nStr)=-1 then
   begin
-    InfoList.Items.Add(nStr);
+//    InfoList.Items.Add(nStr);
+    SetStrToInfoListItems(nStr);
+    FPurchaseContractInfo.FQuotaList.Add(nStr);
   end;
 end;
 
@@ -675,9 +720,11 @@ begin
 
   nIdx := InfoList.ItemIndex;
   InfoList.Items.Delete(InfoList.ItemIndex);
+  FPurchaseContractInfo.FQuotaList.Delete(nIdx);
 
-  if nIdx >= InfoList.Count then Dec(nIdx);
+  if nIdx >= InfoList.Items.Count then Dec(nIdx);
   InfoList.ItemIndex := nIdx;
+  InfoList.SetFocus;
   ShowMsg('信息项已删除', sHint);
 end;
 
@@ -686,6 +733,52 @@ begin
   editContractno.Enabled := not chbType.Checked;
   editPrice.Enabled := not chbType.Checked;
   editQuantity.Enabled := not chbType.Checked;
+end;
+
+procedure TfFormPurchaseContract.comPunishModePropertiesChange(
+  Sender: TObject);
+begin
+  if comPunishMode.ItemIndex=2 then
+  begin
+    editpunishBasis.Text := '0';
+    editpunishStandard.Text := '0';
+    editpunishBasis.Enabled := False;
+    editpunishStandard.Enabled := False;
+    ShowMsg('选择【净重】模式，则扣重依据和扣重标准参数无效',sHint);
+  end;
+end;
+
+procedure TfFormPurchaseContract.SetStrToInfoListItems(const nStr: string);
+var
+  nList:TStrings;
+  nItem:TListItem;
+  nIdx:integer;
+begin
+  nList := TStringList.Create;
+  try
+    nList.CommaText := nStr;
+    for nIdx := nList.Count-1 downto 0 do
+    begin
+      if nList.Strings[nIdx]='' then
+      begin
+        nList.Delete(nIdx);
+      end;
+    end;
+    nItem := InfoList.Items.Add;
+    nItem.Caption := nList.Strings[0];
+    nItem.SubItems.Add(nList.Strings[1]);
+    nItem.SubItems.Add(nList.Strings[2]);
+    nItem.SubItems.Add(nList.Strings[3]);
+    if nList.Count>4 then
+    begin
+      nItem.SubItems.Add(nList.Strings[4]);
+      nItem.SubItems.Add(nList.Strings[5]);
+      nItem.SubItems.Add(nList.Strings[6]);
+      nItem.SubItems.Add(nList.Strings[7]);
+    end;
+  finally
+    nList.Free;
+  end;
 end;
 
 initialization

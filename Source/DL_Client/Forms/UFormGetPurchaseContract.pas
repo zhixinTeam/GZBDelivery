@@ -175,6 +175,7 @@ begin
 
         Fprice := FieldByName('con_price').AsFloat;
         FRemainQuantity := FieldByName('con_remain_quantity').AsFloat;
+        if FRemainQuantity<0.000001 then FRemainQuantity := 0;
         FRemark := FieldByName('con_remark').AsString;
 
         with ListQuery.Items.Add do

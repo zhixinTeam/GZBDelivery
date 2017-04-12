@@ -1,10 +1,10 @@
 inherited fFormPurchaseContract: TfFormPurchaseContract
   Left = 464
-  Top = 136
+  Top = 108
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  ClientHeight = 520
-  ClientWidth = 463
+  ClientHeight = 560
+  ClientWidth = 526
   OldCreateOrder = True
   OnClose = FormClose
   OnCreate = FormCreate
@@ -13,15 +13,15 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
   object dxLayout1: TdxLayoutControl
     Left = 0
     Top = 0
-    Width = 463
-    Height = 520
+    Width = 526
+    Height = 560
     Align = alClient
     TabOrder = 0
     TabStop = False
     LayoutLookAndFeel = FDM.dxLayoutWeb1
     object BtnOK: TButton
-      Left = 317
-      Top = 487
+      Left = 380
+      Top = 527
       Width = 65
       Height = 22
       Caption = #20445#23384
@@ -29,8 +29,8 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       OnClick = BtnOKClick
     end
     object BtnExit: TButton
-      Left = 387
-      Top = 487
+      Left = 450
+      Top = 527
       Width = 65
       Height = 22
       Caption = #21462#28040
@@ -38,7 +38,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       OnClick = BtnExitClick
     end
     object editProvider: TcxButtonEdit
-      Left = 93
+      Left = 75
       Top = 62
       ParentFont = False
       Properties.Buttons = <
@@ -52,7 +52,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editMateriel: TcxButtonEdit
-      Left = 93
+      Left = 75
       Top = 87
       ParentFont = False
       Properties.Buttons = <
@@ -66,7 +66,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editContractno: TcxTextEdit
-      Left = 93
+      Left = 75
       Top = 112
       ParentFont = False
       TabOrder = 3
@@ -74,7 +74,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editPrice: TcxTextEdit
-      Left = 198
+      Left = 218
       Top = 112
       ParentFont = False
       TabOrder = 4
@@ -82,7 +82,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editQuantity: TcxTextEdit
-      Left = 305
+      Left = 325
       Top = 112
       ParentFont = False
       TabOrder = 5
@@ -90,7 +90,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editRemark: TcxMemo
-      Left = 93
+      Left = 75
       Top = 137
       ParentFont = False
       TabOrder = 6
@@ -98,7 +98,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 185
     end
     object comQuotaName: TcxComboBox
-      Left = 93
+      Left = 75
       Top = 229
       ParentFont = False
       Properties.OnChange = comQuotaNamePropertiesChange
@@ -109,7 +109,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object comQuotaCondition: TcxComboBox
-      Left = 271
+      Left = 253
       Top = 229
       ParentFont = False
       Style.ButtonStyle = btsHotFlat
@@ -119,7 +119,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object comQuotaValue: TcxComboBox
-      Left = 93
+      Left = 75
       Top = 259
       ParentFont = False
       Style.ButtonStyle = btsHotFlat
@@ -129,7 +129,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object comPunishCondition: TcxComboBox
-      Left = 271
+      Left = 253
       Top = 259
       ParentFont = False
       Style.ButtonStyle = btsHotFlat
@@ -139,7 +139,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editpunishBasis: TcxTextEdit
-      Left = 93
+      Left = 75
       Top = 289
       ParentFont = False
       TabOrder = 13
@@ -147,7 +147,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object editpunishStandard: TcxTextEdit
-      Left = 201
+      Left = 251
       Top = 289
       ParentFont = False
       TabOrder = 14
@@ -155,9 +155,10 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Width = 121
     end
     object comPunishMode: TcxComboBox
-      Left = 323
+      Left = 373
       Top = 289
       ParentFont = False
+      Properties.OnChange = comPunishModePropertiesChange
       Style.ButtonStyle = btsHotFlat
       Style.PopupBorderStyle = epbsSingle
       TabOrder = 15
@@ -168,55 +169,20 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Left = 23
       Top = 314
       Lines.Strings = (
-        #31034#20363':'#12304#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.1,'#25187#37325#27169#24335':'#37325#37327#12305
+        #31034#20363':'#12304'1'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.1,'#25187#37325#27169#24335':'
+        #37325#37327#12305
         #34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#25187#37325'0.1'#21544';'
-        #12304#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.5,'#25187#37325#27169#24335':'
-        #21333#20215#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#21333#20215#38477#20302'0.5'#20803)
+        #12304'2'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.5,'#25187#37325#27169#24335':'
+        #21333#20215#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#21333#20215#38477#20302'0.5'#20803
+        #12304'3'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#27169#24335':'#20928#37325#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#20302#20110
+        #36136#37327#35201#27714','#25187#37325'='#20928#37325'*'#25351#26631#24046#24322)
       ParentFont = False
       TabOrder = 16
-      Height = 57
-      Width = 417
-    end
-    object InfoList: TcxMCListBox
-      Left = 23
-      Top = 376
-      Width = 121
-      Height = 97
-      HeaderSections = <
-        item
-          Text = #25351#26631#20540
-          Width = 80
-        end
-        item
-          Text = #26465#20214
-          Width = 40
-        end
-        item
-          Text = #20869#23481
-          Width = 40
-        end
-        item
-          Text = #25187#37325#26465#20214
-          Width = 60
-        end
-        item
-          Text = #25187#37325#20381#25454'(%)'
-          Width = 65
-        end
-        item
-          Text = #25187#37325#26631#20934
-          Width = 60
-        end
-        item
-          Text = #25187#37325#27169#24335
-          Width = 60
-        end>
-      ParentFont = False
-      Style.Edges = [bLeft, bTop, bRight, bBottom]
-      TabOrder = 17
+      Height = 96
+      Width = 431
     end
     object btnAdd: TcxButton
-      Left = 338
+      Left = 320
       Top = 229
       Width = 75
       Height = 25
@@ -225,7 +191,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       OnClick = btnAddClick
     end
     object btnDel: TcxButton
-      Left = 335
+      Left = 317
       Top = 259
       Width = 75
       Height = 25
@@ -242,6 +208,49 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Transparent = True
       OnClick = chbTypeClick
       Width = 121
+    end
+    object InfoList: TcxListView
+      Left = 23
+      Top = 415
+      Width = 121
+      Height = 97
+      Columns = <
+        item
+          Caption = #25351#26631#21517
+          Width = 80
+        end
+        item
+          Caption = #21333#20301
+        end
+        item
+          Caption = #26465#20214
+          Width = 40
+        end
+        item
+          Caption = #20540
+          Width = 40
+        end
+        item
+          Caption = #25187#37325#26465#20214
+          Width = 60
+        end
+        item
+          Caption = #25187#37325#20381#25454
+          Width = 65
+        end
+        item
+          Caption = #25187#37325#26631#20934
+          Width = 60
+        end
+        item
+          Caption = #25187#37325#27169#24335
+          Width = 60
+        end>
+      ParentFont = False
+      Style.BorderStyle = cbsUltraFlat
+      Style.Edges = [bLeft, bTop, bRight, bBottom]
+      TabOrder = 17
+      ViewStyle = vsReport
     end
     object dxLayout1Group_Root: TdxLayoutGroup
       AlignHorz = ahParentManaged
@@ -284,7 +293,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
             SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
             SizeOptions.SizableHorz = True
             SizeOptions.SizableVert = True
-            SizeOptions.Width = 142
+            SizeOptions.Width = 162
             Control = editContractno
             ControlOptions.ShowBorder = False
           end
@@ -389,11 +398,11 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
           ShowBorder = False
           object dxLayout1Item13: TdxLayoutItem
             AlignHorz = ahLeft
-            CaptionOptions.Text = #25187#37325#20381#25454'(%)'
+            CaptionOptions.Text = #25187#37325#20381#25454
             SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
             SizeOptions.SizableHorz = True
             SizeOptions.SizableVert = True
-            SizeOptions.Width = 121
+            SizeOptions.Width = 171
             Control = editpunishBasis
             ControlOptions.ShowBorder = False
           end
@@ -422,7 +431,7 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
           Control = cxMemo2
           ControlOptions.ShowBorder = False
         end
-        object dxLayout1Item17: TdxLayoutItem
+        object dxLayout1Item21: TdxLayoutItem
           Control = InfoList
           ControlOptions.ShowBorder = False
         end

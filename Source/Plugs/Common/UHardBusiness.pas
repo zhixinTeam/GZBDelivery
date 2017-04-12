@@ -635,7 +635,9 @@ var
   nDBConn: PDBWorker;
   nWebOrderId:string;
   nIdx:Integer;
+  FNetWeight:string;
 begin
+  FNetWeight := '0';
   nWebOrderId := AWebOrderID;
   nDBConn := nil;
 
@@ -658,12 +660,24 @@ begin
         nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
 
         with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+        begin
+          if recordcount>0 then
           begin
-            if recordcount>0 then
-            begin
-              nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
-            end;
+            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
           end;
+        end;
+
+        //查询净重
+        nSql := 'select l_pvalue, l_mvalue from %s where l_id=''%s''';
+        nSql := Format(nSql,[sTable_Bill,nLId]);
+        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+        begin
+          //销售
+          if recordcount>0 then
+          begin
+            FNetWeight := FloatToStr(FieldByName('l_mvalue').asFloat-FieldByName('l_pvalue').asFloat);
+          end;
+        end;
       finally
         gDBConnManager.ReleaseConnection(nDBConn);
       end;
@@ -676,9 +690,10 @@ begin
             +'<DATA>'
             +'<head><ordernumber>%s</ordernumber>'
             +'<status>%d</status>'
+            +'<NetWeight>%f</NetWeight>'
             +'</head>'
             +'</DATA>';
-  nXmlStr := Format(nXmlStr,[nWebOrderId,nStatus]);
+  nXmlStr := Format(nXmlStr,[nWebOrderId,nStatus,FNetWeight]);
   nXmlStr := PackerEncodeStr(nXmlStr);
 
   nData := Do_ModifyWebOrderStatus(nXmlStr);

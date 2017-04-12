@@ -23,7 +23,7 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
       TabOrder = 7
     end
     object EditProvider: TcxButtonEdit [2]
-      Left = 81
+      Left = 99
       Top = 36
       ParentFont = False
       Properties.Buttons = <
@@ -43,7 +43,7 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
       Transparent = True
     end
     object EditMate: TcxButtonEdit [4]
-      Left = 81
+      Left = 99
       Top = 61
       ParentFont = False
       Properties.Buttons = <
@@ -61,20 +61,26 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
       Width = 649
       Height = 165
       BorderStyle = bsNone
-      DefaultColWidth = 128
+      ColCount = 10
+      DefaultColWidth = 80
       FixedCols = 0
       RowCount = 2
       TabOrder = 3
       OnSelectCell = SGResSelectCell
       ColWidths = (
-        56
-        128
-        128
-        128
-        128)
+        42
+        63
+        55
+        54
+        59
+        61
+        62
+        54
+        57
+        66)
     end
     object EditpunishRes: TcxTextEdit [6]
-      Left = 81
+      Left = 99
       Top = 279
       ParentFont = False
       TabOrder = 4
@@ -91,14 +97,14 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
-        Caption = #21270#39564#32467#26524
+        CaptionOptions.Text = #21270#39564#32467#26524
         object dxLayout1Item5: TdxLayoutItem
-          Caption = #20379' '#24212' '#21830':'
+          CaptionOptions.Text = #20379' '#24212' '#21830':'
           Control = EditProvider
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item3: TdxLayoutItem
-          Caption = #21407' '#26448' '#26009':'
+          CaptionOptions.Text = #21407' '#26448' '#26009':'
           Control = EditMate
           ControlOptions.ShowBorder = False
         end
@@ -110,7 +116,7 @@ inherited fFormPurchaseAssayRes: TfFormPurchaseAssayRes
           Control = SGRes
         end
         object dxLayout1Item6: TdxLayoutItem
-          Caption = #33258#21160#25187#37325
+          CaptionOptions.Text = #33258#21160#25187#37325'('#21544')'
           Control = EditpunishRes
           ControlOptions.ShowBorder = False
         end

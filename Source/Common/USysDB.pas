@@ -1623,6 +1623,7 @@ const
   sSQL_NewPurchaseContractDetail = 'Create Table $Table(R_ID $Inc,'
       +'pcId varchar(32),'
       +'quota_name varchar(32),'
+      +'quota_unit varchar(20) default ''%'','
       +'quota_condition varchar(2), '
       +'quota_value $float,'
       +'punish_condition varchar(2),'
@@ -1637,6 +1638,7 @@ const
    *.R_ID: 记录编号
    *.pcId: 合同表记录编号（外键）
    *.quota_name: 指标名称
+   *.quota_unit: 指标单位   
    *.quota_condition：指标条件,'≤'或'≥'
    *.quota_value：指标值
    *.punish_condition：惩罚条件,'≤'或'≥'
@@ -1651,7 +1653,8 @@ const
   sSQL_NewPurchaseQuotaStandard = 'Create Table $Table(R_ID $Inc,'
   +'quota_name varchar(32),'
   +'reference_condition varchar(2),'
-  +'reference_value varchar(32),'
+  +'reference_value $float,'
+  +'reference_unit varchar(20),'
   +'remark varchar(255))';
   {-----------------------------------------------------------------------------
    采购指标标准表: sys_PurchaseQuotaStandard

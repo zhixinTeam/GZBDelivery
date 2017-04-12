@@ -217,10 +217,11 @@ begin
     nHint := '请填写有效的办理量';
     if not Result then Exit;
 
-    nVal := StrToFloat(EditValue.Text);
-    Result := FloatRelation(nVal, StrToFloat(FCardData.Values['SQ_RestValue']),
-              rtLE);
-    nHint := '已超出可提货量';
+//    原材料不控制数量
+//    nVal := StrToFloat(EditValue.Text);
+//    Result := FloatRelation(nVal, StrToFloat(FCardData.Values['SQ_RestValue']),
+//              rtLE);
+//    nHint := '已超出可提货量';
   end;
 end;
 
