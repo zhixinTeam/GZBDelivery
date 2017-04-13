@@ -555,7 +555,9 @@ procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillTy
 var nBills: TLadingBillItems;
     nXmlStr,nData:string;
     nIdx:Integer;
+    nNetWeight:Double;
 begin
+  nNetWeight := 0;
   if nBillType=sFlag_Sale then
   begin
     //加载提货单信息
@@ -579,6 +581,7 @@ begin
   for nIdx := Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
+    nNetWeight := FMData.FValue-FPdata.FValue;
     nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
         +'<DATA>'
         +'<head>'
@@ -600,6 +603,7 @@ begin
         +'	      <MakeMan></MakeMan>'
         +'	      <TransID></TransID>'
         +'	      <TransName></TransName>'
+        +'	      <NetWeight>%f</NetWeight>'
         +'	      <Searial></Searial>'
         +'	      <OutFact></OutFact>'
         +'	      <OutMan></OutMan>'
@@ -608,7 +612,7 @@ begin
         +'   <remark/>'
         +'</DATA>';
     nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName]);
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName,nNetWeight]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
 
@@ -635,9 +639,9 @@ var
   nDBConn: PDBWorker;
   nWebOrderId:string;
   nIdx:Integer;
-  FNetWeight:string;
+  FNetWeight:Double;
 begin
-  FNetWeight := '0';
+  FNetWeight := 0;
   nWebOrderId := AWebOrderID;
   nDBConn := nil;
 
@@ -667,15 +671,27 @@ begin
           end;
         end;
 
-        //查询净重
-        nSql := 'select l_pvalue, l_mvalue from %s where l_id=''%s''';
-        nSql := Format(nSql,[sTable_Bill,nLId]);
+        //销售净重
+        nSql := 'select l_pvalue, l_mvalue from %s where l_id=''%s'' and l_status=''%s''';
+        nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
         with gDBConnManager.WorkerQuery(nDBConn, nSql) do
         begin
-          //销售
           if recordcount>0 then
           begin
-            FNetWeight := FloatToStr(FieldByName('l_mvalue').asFloat-FieldByName('l_pvalue').asFloat);
+            FNetWeight := FieldByName('l_mvalue').asFloat-FieldByName('l_pvalue').asFloat;
+          end;          
+        end;
+        //采购净重
+        if FNetWeight<0.0001 then
+        begin
+          nSql := 'select sum(d_mvalue) d_mvalue,sum(d_pvalue) d_pvalue from %s where d_oid=''%s'' and d_status=''%s''';
+          nSql := Format(nSql,[sTable_OrderDtl,nLId,sFlag_TruckOut]);
+          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+          begin
+            if recordcount>0 then
+            begin
+              FNetWeight := FieldByName('d_mvalue').asFloat-FieldByName('d_pvalue').asFloat;
+            end;
           end;
         end;
       finally

@@ -596,9 +596,11 @@ var nStr, nTmp: string;
     nIdx: Integer;
     nVal: Double;
     nOut: TWorkerBusinessCommand;
+    nWeborder:string;
 begin
   FListA.Text := PackerDecodeStr(FIn.FData);
   nVal := StrToFloat(FListA.Values['Value']);
+  nWeborder := FListA.Values['WebOrderID'];
   //unpack Order
 
   //begin判断该车牌号是否有未完成业务
@@ -712,7 +714,7 @@ begin
   end;
 
   //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard);
+  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard,nWeborder);
   //发送微信消息
   SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Provide);
 end;

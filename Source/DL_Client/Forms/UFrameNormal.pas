@@ -140,6 +140,9 @@ begin
     nIni.Free;
     FreeAndNil(FBarImage);
   end;
+  GroupDetail1.Visible := False;
+  dxGroup1.Height := GroupSearch1.Height+10;
+  dxLayout1.Height := 90;
 end;
 
 procedure TfFrameNormal.OnDestroyFrame;
