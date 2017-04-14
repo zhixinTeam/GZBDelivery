@@ -39,13 +39,13 @@ type
     N1: TMenuItem;
     N2: TMenuItem;
     N3: TMenuItem;
+    N4: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
-    procedure N3Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -142,7 +142,7 @@ begin
     EditTruck.Text := Trim(EditTruck.Text);
     if EditTruck.Text = '' then Exit;
 
-    FWhere := 'oo.O_Truck like ''%%%s%%''';
+    FWhere := 'O_Truck like ''%%%s%%''';
     FWhere := Format(FWhere, [EditTruck.Text]);
     InitFormData(FWhere);
   end;
@@ -152,7 +152,7 @@ begin
     EditBill.Text := Trim(EditBill.Text);
     if EditBill.Text = '' then Exit;
 
-    FWhere := 'od.D_ID like ''%%%s%%''';
+    FWhere := 'D_ID like ''%%%s%%''';
     FWhere := Format(FWhere, [EditBill.Text]);
     InitFormData(FWhere);
   end;
@@ -163,7 +163,13 @@ procedure TfFrameOrderDetailQuery.mniN1Click(Sender: TObject);
 begin
   if ShowDateFilterForm(FTimeS, FTimeE, True) then
   try
-    FJBWhere := '(D_OutFact>=''%s'' and D_OutFact <''%s'')';
+    if Sender = mniN1 then
+      FJBWhere := '(D_OutFact>=''%s'' and D_OutFact <''%s'')' else
+    if Sender = N3 then
+      FJBWhere := '(D_MDate>=''%s'' and D_MDate <''%s'')' else
+    if Sender = N4 then
+      FJBWhere := '(D_PDate>=''%s'' and D_PDate <''%s'')';
+
     FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
     InitFormData('');
   finally
@@ -188,21 +194,6 @@ end;
 //Date: 2015/8/13
 //Parm: 
 //Desc: 删除未完成记录
-procedure TfFrameOrderDetailQuery.N3Click(Sender: TObject);
-var nStr, nSQL: string;
-begin
-  inherited;
-  if cxView1.DataController.GetSelectedCount > 0 then
-  begin
-    nStr := SQLQuery.FieldByName('D_ID').AsString;
-    if not QueryDlg('确认删除该订单么?', sWarn) then Exit;
-
-    //nSQL := MacroValue()
-  end;
-
-  N2.Click;
-end;
-
 initialization
   gControlManager.RegCtrl(TfFrameOrderDetailQuery, TfFrameOrderDetailQuery.FrameID);
 end.

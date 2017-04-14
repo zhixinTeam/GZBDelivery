@@ -4,7 +4,7 @@
 *******************************************************************************}
 unit UFormMain;
 
-{.$DEFINE DEBUG}
+{$I Link.Inc}
 interface
 
 uses
@@ -254,6 +254,10 @@ var nStr: string;
     nParam: TReportParamItem;
 begin
   Result := False;
+  {$IFDEF GZBZX}
+  if Length(nPrinter) < 1 then Exit;
+  {$ENDIF}
+  
   nStr := 'Select *,%s As L_ValidMoney From %s b Where L_ID=''%s''';
   nStr := Format(nStr, [nMoney, sTable_Bill, nBill]);
 
@@ -315,6 +319,11 @@ var nStr: string;
     nDS: TDataSet;
 begin
   Result := False;
+
+  {$IFDEF GZBZX}
+  if Length(nPrinter) < 1 then Exit;
+  {$ENDIF}
+
   nStr := 'Select * From %s oo Inner Join %s od on oo.O_ID=od.D_OID Where D_ID=''%s''';
   nStr := Format(nStr, [sTable_Order, sTable_OrderDtl, nOrder]);
 
@@ -350,6 +359,11 @@ var nStr: string;
     nDS: TDataSet;
 begin
   Result := False;
+
+  {$IFDEF GZBZX}
+  if Length(nPrinter) < 1 then Exit;
+  {$ENDIF}
+
   nStr := 'Select * From %s Where T_ID=''%s''';
   nStr := Format(nStr, [sTable_Transfer, nID]);
 
@@ -385,6 +399,11 @@ var nStr: string;
     nDS: TDataSet;
 begin
   Result := False;
+
+  {$IFDEF GZBZX}
+  if Length(nPrinter) < 1 then Exit;
+  {$ENDIF}
+  
   nStr := 'Select * From %s Where P_ID=''%s''';
   nStr := Format(nStr, [sTable_PoundLog, nID]);
 

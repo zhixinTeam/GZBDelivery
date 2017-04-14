@@ -38,12 +38,13 @@ type
     dxLayout1Item7: TdxLayoutItem;
     N1: TMenuItem;
     N2: TMenuItem;
+    N3: TMenuItem;
+    N4: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
-    procedure N2Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -169,20 +170,15 @@ procedure TfFrameSaleDetailQuery.mniN1Click(Sender: TObject);
 begin
   if ShowDateFilterForm(FTimeS, FTimeE, True) then
   try
-    FJBWhere := '(L_OutFact>=''%s'' and L_OutFact <''%s'')';
-    FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
-    InitFormData('');
-  finally
-    FJBWhere := '';
-  end;
-end;
+    if Sender = mniN1 then
+      FJBWhere := '(L_OutFact>=''%s'' and L_OutFact <''%s'')' else
+    if Sender = N2 then
+      FJBWhere := '(L_LadeTime>=''%s'' and L_LadeTime <''%s'')' else
+    if Sender = N3 then
+      FJBWhere := '(L_MDate>=''%s'' and L_MDate <''%s'')' else
+    if Sender = N4 then
+      FJBWhere := '(L_PDate>=''%s'' and L_PDate <''%s'')';
 
-//Desc:
-procedure TfFrameSaleDetailQuery.N2Click(Sender: TObject);
-begin
-  if ShowDateFilterForm(FTimeS, FTimeE, True) then
-  try
-    FJBWhere := '(L_LadeTime>=''%s'' and L_LadeTime <''%s'')';
     FJBWhere := Format(FJBWhere, [DateTime2Str(FTimeS), DateTime2Str(FTimeE)]);
     InitFormData('');
   finally
