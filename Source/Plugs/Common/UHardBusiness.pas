@@ -581,7 +581,7 @@ begin
   for nIdx := Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
-    nNetWeight := FMData.FValue-FPdata.FValue;
+    nNetWeight := FValue;
     nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
         +'<DATA>'
         +'<head>'
@@ -672,13 +672,13 @@ begin
         end;
 
         //销售净重
-        nSql := 'select l_pvalue, l_mvalue from %s where l_id=''%s'' and l_status=''%s''';
+        nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
         nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
         with gDBConnManager.WorkerQuery(nDBConn, nSql) do
         begin
           if recordcount>0 then
           begin
-            FNetWeight := FieldByName('l_mvalue').asFloat-FieldByName('l_pvalue').asFloat;
+            FNetWeight := FieldByName('L_Value').asFloat;
           end;          
         end;
         //采购净重

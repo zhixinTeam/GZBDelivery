@@ -515,6 +515,11 @@ begin
     nStr := FPurchaseContractInfo.FQuotaList.Strings[i];
     SetStrToInfoListItems(nStr);
   end;
+  if (FPurchaseContractInfo.FPrice<0.000001) or (FPurchaseContractInfo.FQuantity<0.000001) then
+  begin
+    chbType.Checked := True;
+    chbTypeClick(chbType);
+  end;
 end;
 
 procedure TfFormPurchaseContract.InitComboxControl;

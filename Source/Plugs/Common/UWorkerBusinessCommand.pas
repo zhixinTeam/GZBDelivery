@@ -1979,8 +1979,8 @@ begin
         '  XCB_Firm,' +                         //所属厂区
         '  pbf.pbf_name as XCB_FirmName,' +     //工厂名称
         '  pcb.pcb_id, pcb.pcb_name, ' +        //销售片区
-        '  xcg.xob_id as XCB_TransID, ' +       //运输单位编号
-        '  xcg.XOB_Name as XCB_TransName ' +    //运输单位
+        '  '''' as XCB_TransID, ' +       //运输单位编号
+        '  '''' as XCB_TransName ' +    //运输单位
         'from XS_Card_Base xcb' +
         '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
         '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
@@ -1988,8 +1988,6 @@ begin
         '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
         '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
         '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
-        '  Left Join XS_Card_Freight xcf on xcf.Xcf_Card=xcb.xcb_ID ' +
-        '  Left Join XS_Compy_Base xcg on xcg.xob_id=xcf.xcf_tran ' +
         //未删除、可用数量大于0、卡片启用并且处于已审核状态
         ' where xcb.xcb_del=''0'''
               +' and xcb.XCB_Status=''1'''
@@ -2111,7 +2109,8 @@ function TWorkerBusinessCommander.GetPurchaseContractList(var nData:string):Bool
 var nStr:string;
 begin
   Result := False;
-  nStr := 'select * from %s where provider_code=''%s'' and con_status>0 and con_quantity-con_finished_quantity>0.00001';
+  //nStr := 'select * from %s where provider_code=''%s'' and con_status>0 and con_quantity-con_finished_quantity>0.00001';
+  nStr := 'select * from %s where provider_code=''%s'' and con_status>0';
   nStr := format(nStr,[sTable_PurchaseContract,Trim(FIn.FData)]);
 
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -2137,6 +2136,10 @@ begin
       FListB.Values['con_price'] := FieldByName('con_price').AsString;
       FListB.Values['con_quantity'] := FieldByName('con_quantity').AsString;
       FListB.Values['con_finished_quantity'] := FieldByName('con_finished_quantity').AsString;
+      if FieldByName('con_finished_quantity').AsFloat<0.000001 then
+      begin
+        FListB.Values['con_finished_quantity'] := '0';
+      end;
       FListB.Values['con_date'] := FieldByName('con_date').AsString;
       FListB.Values['con_remark'] := FieldByName('con_remark').AsString;
       FListA.Add(PackerEncodeStr(FListB.Text));

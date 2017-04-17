@@ -510,6 +510,7 @@ function TWorkerBusinessOrders.DeletePurchaseContract(var nData: string):Boolean
 var nStr:string;
 begin
   Result := False;
+  {
   nStr := 'Select Count(*) From %s Where PCID=''%s''';
   nStr := Format(nStr, [sTable_Order, Trim(FIn.FData)]);
 
@@ -522,16 +523,26 @@ begin
       Exit;
     end;
   end;
+  }
+  FDBConn.FConn.BeginTrans;
+  try
+    nStr := 'Update %s Set con_DelMan=''%s'',con_DelDate=%s,con_Status=%d ' +
+            'Where PCID=''%s''';
+    nStr := Format(nStr,[sTable_PurchaseContract, FIn.FBase.FFrom.FUser,
+            sField_SQLServer_Now, StrToInt(sFlag_PurchaseContract_deleted),
+            FIn.FData]);
 
-  nStr := 'Update %s Set con_DelMan=''%s'',con_DelDate=%s,con_Status=%d ' +
-          'Where PCID=''%s''';
-  nStr := Format(nStr,[sTable_PurchaseContract, FIn.FBase.FFrom.FUser,
-          sField_SQLServer_Now, StrToInt(sFlag_PurchaseContract_deleted),
-          FIn.FData]);
-  //删除状态
-
-  gDBConnManager.WorkerExec(FDBConn, nStr);
-  Result := True;
+    gDBConnManager.WorkerExec(FDBConn, nStr);
+    FDBConn.FConn.CommitTrans;
+    Result := True;
+  except
+    on E:Exception do
+    begin
+      nData := '删除采购合同[ %s ]发生错误，错误信息[ %s ].';
+      nData := Format(nData, [FIn.FData,e.Message]);
+      FDBConn.FConn.RollbackTrans;
+    end;
+  end;
 end;
 
 //------------------------------------------------------------------------------

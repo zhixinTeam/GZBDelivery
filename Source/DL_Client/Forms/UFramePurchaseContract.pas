@@ -135,20 +135,36 @@ end;
 procedure TfFramePurchaseContract.BtnDelClick(Sender: TObject);
 var nStr: string;
   npcId:string;
+  nHasconQuota:Boolean;
 begin
+  nHasconQuota := False;
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
     ShowMsg('请选择要删除的记录', sHint); Exit;
   end;
 
-  nStr := '确定要删除编号为[ %s ]的合同吗?';
+  nStr := 'select * from %s where pcid=''%s''';
+  nStr := Format(nStr, [sTable_PurchaseContractDetail,SQLQuery.FieldByName('pcId').AsString]);
+  with fdm.QueryTemp(nStr) do
+  begin
+    nHasconQuota := RecordCount>0;
+  end;
+
+  if nHasconQuota then
+  begin
+    nStr := '存在对应的合同指标，删除后将无法录入化验结果，确定要删除编号为[ %s ]的合同吗?';
+  end
+  else begin
+    nStr := '确定要删除编号为[ %s ]的合同吗?';
+  end;
+  
   nStr := Format(nStr, [SQLQuery.FieldByName('pcId').AsString]);
   if not QueryDlg(nStr, sAsk) then Exit;
 
   if DeletePurchaseContract(SQLQuery.FieldByName('pcId').AsString) then
   begin
     InitFormData(FWhere);
-    ShowMsg('提货单已删除', sHint);
+    ShowMsg('采购合同已删除', sHint);
   end;
 end;
 

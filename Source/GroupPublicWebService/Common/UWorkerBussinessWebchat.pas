@@ -519,7 +519,7 @@ begin
               NodeNew('StockNo').ValueAsString := nCardItem.Values['XCB_Cement'];
               NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + ' ' + nType;
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
-              NodeNew('SaleArea').ValueAsString := nCardItem.Values['pcb_name'];
+              NodeNew('SaleArea').ValueAsString := nCardItem.Values['XCB_WorkAddr'];
             end;
           end;
         end;
@@ -548,6 +548,7 @@ var nOut: TWorkerBusinessCommand;
   nCardData,nCardItem:TStringList;
   i:Integer;
   nRequest,nResponse:string;
+  nMaxNumber:Double;
 begin
   Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetPurchaseContractList, Trim(FIn.FRemoteUL));
@@ -578,7 +579,10 @@ begin
               NodeNew('BillNumber').ValueAsString := nCardItem.Values['pcId'];
               NodeNew('StockNo').ValueAsString := nCardItem.Values['con_materiel_Code'];
               NodeNew('StockName').ValueAsString := nCardItem.Values['con_materiel_name'];
-              NodeNew('MaxNumber').ValueAsString := FloatToStr(StrToFloatdef(nCardItem.Values['con_quantity'],0)-StrToFloatdef(nCardItem.Values['con_finished_quantity'],0));
+              nMaxNumber := StrToFloatdef(nCardItem.Values['con_quantity'],0)-StrToFloatdef(nCardItem.Values['con_finished_quantity'],0);
+              if nMaxNumber<0.000001 then
+                nMaxNumber := 0;
+              NodeNew('MaxNumber').ValueAsString := FloatToStr(nMaxNumber);
             end;
           end;
         end;
