@@ -1,10 +1,10 @@
 inherited fFormPurchaseContract: TfFormPurchaseContract
-  Left = 464
-  Top = 108
+  Left = 221
+  Top = 107
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  ClientHeight = 560
-  ClientWidth = 526
+  ClientHeight = 550
+  ClientWidth = 546
   OldCreateOrder = True
   OnClose = FormClose
   OnCreate = FormCreate
@@ -13,15 +13,16 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
   object dxLayout1: TdxLayoutControl
     Left = 0
     Top = 0
-    Width = 526
-    Height = 560
+    Width = 546
+    Height = 550
     Align = alClient
     TabOrder = 0
     TabStop = False
-    LayoutLookAndFeel = FDM.dxLayoutWeb1
+    AutoContentSizes = [acsWidth, acsHeight]
+    LookAndFeel = FDM.dxLayoutWeb1
     object BtnOK: TButton
-      Left = 380
-      Top = 527
+      Left = 400
+      Top = 517
       Width = 65
       Height = 22
       Caption = #20445#23384
@@ -29,179 +30,18 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       OnClick = BtnOKClick
     end
     object BtnExit: TButton
-      Left = 450
-      Top = 527
+      Left = 470
+      Top = 517
       Width = 65
       Height = 22
       Caption = #21462#28040
       TabOrder = 19
       OnClick = BtnExitClick
     end
-    object editProvider: TcxButtonEdit
-      Left = 75
-      Top = 62
-      ParentFont = False
-      Properties.Buttons = <
-        item
-          Caption = '...'
-        end>
-      Style.ButtonStyle = btsHotFlat
-      TabOrder = 1
-      Text = 'editProvider'
-      OnKeyPress = editProviderKeyPress
-      Width = 121
-    end
-    object editMateriel: TcxButtonEdit
-      Left = 75
-      Top = 87
-      ParentFont = False
-      Properties.Buttons = <
-        item
-          Caption = '...'
-        end>
-      Style.ButtonStyle = btsHotFlat
-      TabOrder = 2
-      Text = 'editMateriel'
-      OnKeyPress = editMaterielKeyPress
-      Width = 121
-    end
-    object editContractno: TcxTextEdit
-      Left = 75
-      Top = 112
-      ParentFont = False
-      TabOrder = 3
-      Text = 'editContractno'
-      Width = 121
-    end
-    object editPrice: TcxTextEdit
-      Left = 218
-      Top = 112
-      ParentFont = False
-      TabOrder = 4
-      Text = 'editPrice'
-      Width = 121
-    end
-    object editQuantity: TcxTextEdit
-      Left = 325
-      Top = 112
-      ParentFont = False
-      TabOrder = 5
-      Text = 'editQuantity'
-      Width = 121
-    end
-    object editRemark: TcxMemo
-      Left = 75
-      Top = 137
-      ParentFont = False
-      TabOrder = 6
-      Height = 89
-      Width = 185
-    end
-    object comQuotaName: TcxComboBox
-      Left = 75
-      Top = 229
-      ParentFont = False
-      Properties.OnChange = comQuotaNamePropertiesChange
-      Style.ButtonStyle = btsHotFlat
-      Style.PopupBorderStyle = epbsSingle
-      TabOrder = 7
-      Text = 'comQuotaName'
-      Width = 121
-    end
-    object comQuotaCondition: TcxComboBox
-      Left = 253
-      Top = 229
-      ParentFont = False
-      Style.ButtonStyle = btsHotFlat
-      Style.PopupBorderStyle = epbsSingle
-      TabOrder = 8
-      Text = 'comQuotaCondition'
-      Width = 121
-    end
-    object comQuotaValue: TcxComboBox
-      Left = 75
-      Top = 259
-      ParentFont = False
-      Style.ButtonStyle = btsHotFlat
-      Style.PopupBorderStyle = epbsSingle
-      TabOrder = 10
-      Text = 'comQuotaValue'
-      Width = 121
-    end
-    object comPunishCondition: TcxComboBox
-      Left = 253
-      Top = 259
-      ParentFont = False
-      Style.ButtonStyle = btsHotFlat
-      Style.PopupBorderStyle = epbsSingle
-      TabOrder = 11
-      Text = 'comPunishCondition'
-      Width = 121
-    end
-    object editpunishBasis: TcxTextEdit
-      Left = 75
-      Top = 289
-      ParentFont = False
-      TabOrder = 13
-      Text = 'editpunishBasis'
-      Width = 121
-    end
-    object editpunishStandard: TcxTextEdit
-      Left = 251
-      Top = 289
-      ParentFont = False
-      TabOrder = 14
-      Text = 'editpunishStandard'
-      Width = 121
-    end
-    object comPunishMode: TcxComboBox
-      Left = 373
-      Top = 289
-      ParentFont = False
-      Properties.OnChange = comPunishModePropertiesChange
-      Style.ButtonStyle = btsHotFlat
-      Style.PopupBorderStyle = epbsSingle
-      TabOrder = 15
-      Text = 'comPunishMode'
-      Width = 121
-    end
-    object cxMemo2: TcxMemo
-      Left = 23
-      Top = 314
-      Lines.Strings = (
-        #31034#20363':'#12304'1'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.1,'#25187#37325#27169#24335':'
-        #37325#37327#12305
-        #34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#25187#37325'0.1'#21544';'
-        #12304'2'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.5,'#25187#37325#27169#24335':'
-        #21333#20215#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#21333#20215#38477#20302'0.5'#20803
-        #12304'3'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#27169#24335':'#20928#37325#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#20302#20110
-        #36136#37327#35201#27714','#25187#37325'='#20928#37325'*'#25351#26631#24046#24322)
-      ParentFont = False
-      TabOrder = 16
-      Height = 96
-      Width = 431
-    end
-    object btnAdd: TcxButton
-      Left = 320
-      Top = 229
-      Width = 75
-      Height = 25
-      Caption = #28155#21152#25351#26631
-      TabOrder = 9
-      OnClick = btnAddClick
-    end
-    object btnDel: TcxButton
-      Left = 317
-      Top = 259
-      Width = 75
-      Height = 25
-      Caption = #21024#38500#25351#26631
-      TabOrder = 12
-      OnClick = btnDelClick
-    end
     object chbType: TcxCheckBox
       Left = 23
       Top = 36
+      Align = alLeft
       Caption = #20020#26102#19994#21153
       ParentFont = False
       TabOrder = 0
@@ -209,11 +49,169 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       OnClick = chbTypeClick
       Width = 121
     end
+    object editProvider: TcxButtonEdit
+      Left = 75
+      Top = 62
+      ParentFont = False
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      TabOrder = 1
+      Text = 'editProvider'
+      OnKeyPress = editProviderKeyPress
+      Width = 358
+    end
+    object editMateriel: TcxButtonEdit
+      Left = 75
+      Top = 87
+      ParentFont = False
+      Properties.Buttons = <
+        item
+          Default = True
+          Kind = bkEllipsis
+        end>
+      TabOrder = 2
+      Text = 'editMateriel'
+      OnKeyPress = editMaterielKeyPress
+      Width = 358
+    end
+    object editContractno: TcxTextEdit
+      Left = 75
+      Top = 112
+      ParentFont = False
+      TabOrder = 3
+      Text = 'editContractno'
+      Width = 174
+    end
+    object editPrice: TcxTextEdit
+      Left = 282
+      Top = 112
+      ParentFont = False
+      TabOrder = 4
+      Text = 'editPrice'
+      Width = 151
+    end
+    object editQuantity: TcxTextEdit
+      Left = 75
+      Top = 137
+      ParentFont = False
+      TabOrder = 5
+      Text = 'editQuantity'
+      Width = 358
+    end
+    object editRemark: TcxMemo
+      Left = 75
+      Top = 162
+      ParentFont = False
+      Style.Edges = [bLeft, bTop, bRight, bBottom]
+      TabOrder = 6
+      Height = 37
+      Width = 446
+    end
+    object comQuotaName: TcxComboBox
+      Left = 75
+      Top = 236
+      ParentFont = False
+      Properties.OnChange = comQuotaNamePropertiesChange
+      TabOrder = 7
+      Text = 'comQuotaName'
+      Width = 121
+    end
+    object comQuotaCondition: TcxComboBox
+      Left = 253
+      Top = 236
+      ParentFont = False
+      TabOrder = 8
+      Text = 'comQuotaCondition'
+      Width = 121
+    end
+    object comQuotaValue: TcxComboBox
+      Left = 75
+      Top = 266
+      ParentFont = False
+      TabOrder = 10
+      Text = 'comQuotaValue'
+      Width = 121
+    end
+    object comPunishCondition: TcxComboBox
+      Left = 253
+      Top = 266
+      ParentFont = False
+      TabOrder = 11
+      Text = 'comPunishCondition'
+      Width = 121
+    end
+    object editpunishBasis: TcxTextEdit
+      Left = 75
+      Top = 296
+      ParentFont = False
+      TabOrder = 13
+      Text = 'editpunishBasis'
+      Width = 121
+    end
+    object editpunishStandard: TcxTextEdit
+      Left = 253
+      Top = 296
+      ParentFont = False
+      TabOrder = 15
+      Text = 'editpunishStandard'
+      Width = 121
+    end
+    object comPunishMode: TcxComboBox
+      Left = 75
+      Top = 321
+      ParentFont = False
+      Properties.OnChange = comPunishModePropertiesChange
+      TabOrder = 14
+      Text = 'comPunishMode'
+      Width = 121
+    end
+    object btnAdd: TcxButton
+      Left = 379
+      Top = 236
+      Width = 75
+      Height = 25
+      Caption = #28155#21152#25351#26631
+      TabOrder = 9
+      OnClick = btnAddClick
+      Align = alLeft
+    end
+    object btnDel: TcxButton
+      Left = 379
+      Top = 266
+      Width = 75
+      Height = 25
+      Caption = #21024#38500#25351#26631
+      TabOrder = 12
+      OnClick = btnDelClick
+      Align = alLeft
+    end
+    object cxMemo2: TcxMemo
+      Left = 23
+      Top = 346
+      Align = alLeft
+      Lines.Strings = (
+        #31034#20363':'#12304'1'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.1,'#25187#37325#27169#24335':'#37325#37327#12305
+        #34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#25187#37325'0.1'#21544';'
+        #12304'2'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#20381#25454':1,'#25187#37325#26631#20934':0.5,'#25187#37325#27169#24335':'#21333#20215#12305
+        #34920#31034#20132#20184#30340#36135#29289#20013'SiO'#27599#20302#20110#36136#37327#35201#27714'1%,'#21333#20215#38477#20302'0.5'#20803
+        #12304'3'#12289#25351#26631#21517':SiO,'#25187#37325#26465#20214':<,'#25187#37325#27169#24335':'#20928#37325#12305#34920#31034#20132#20184#30340#36135#29289#20013'SiO'#20302#20110#36136#37327#35201#27714','#25187#37325'='#20928
+        #37325'*'#25351#26631
+        #24046#24322)
+      ParentFont = False
+      Style.Edges = [bLeft, bTop, bRight, bBottom]
+      TabOrder = 16
+      Height = 81
+      Width = 498
+    end
     object InfoList: TcxListView
       Left = 23
-      Top = 415
-      Width = 121
-      Height = 97
+      Top = 432
+      Width = 498
+      Height = 73
+      Align = alLeft
       Columns = <
         item
           Caption = #25351#26631#21517
@@ -247,213 +245,186 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
           Width = 60
         end>
       ParentFont = False
-      Style.BorderStyle = cbsUltraFlat
       Style.Edges = [bLeft, bTop, bRight, bBottom]
       TabOrder = 17
       ViewStyle = vsReport
     end
     object dxLayout1Group_Root: TdxLayoutGroup
-      AlignHorz = ahParentManaged
-      AlignVert = avParentManaged
-      CaptionOptions.Visible = False
-      ButtonOptions.Buttons = <>
+      ShowCaption = False
       Hidden = True
       ShowBorder = False
       object dxGroup1: TdxLayoutGroup
-        AlignVert = avTop
-        CaptionOptions.Text = #21512#21516#22522#26412#20449#24687
-        SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-        SizeOptions.SizableHorz = True
-        SizeOptions.SizableVert = True
-        ButtonOptions.Buttons = <>
-        object dxLayout1Item20: TdxLayoutItem
-          CaptionOptions.Text = 'cxCheckBox1'
-          CaptionOptions.Visible = False
+        AutoAligns = []
+        Caption = #21512#21516#22522#26412#20449#24687
+        object dxLayout1Item3: TdxLayoutItem
+          Caption = 'cxCheckBox1'
+          ShowCaption = False
           Control = chbType
           ControlOptions.ShowBorder = False
         end
-        object dxLayout1Item3: TdxLayoutItem
-          CaptionOptions.Text = #20379#24212#21830
+        object dxLayout1Item4: TdxLayoutItem
+          AutoAligns = [aaVertical]
+          Caption = #20379#24212#21830
           Control = editProvider
           ControlOptions.ShowBorder = False
         end
-        object dxLayout1Item4: TdxLayoutItem
-          CaptionOptions.Text = #21407#26448#26009
+        object dxLayout1Item5: TdxLayoutItem
+          AutoAligns = [aaVertical]
+          Caption = #21407#26448#26009
           Control = editMateriel
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Group2: TdxLayoutGroup
-          ButtonOptions.Buttons = <>
+          ShowCaption = False
           Hidden = True
-          LayoutDirection = ldHorizontal
           ShowBorder = False
-          object dxLayout1Item5: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #21512#21516#32534#21495
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 162
-            Control = editContractno
-            ControlOptions.ShowBorder = False
+          object dxLayout1Group8: TdxLayoutGroup
+            ShowCaption = False
+            Hidden = True
+            LayoutDirection = ldHorizontal
+            ShowBorder = False
+            object dxLayout1Item6: TdxLayoutItem
+              AutoAligns = [aaVertical]
+              Caption = #21512#21516#32534#21495
+              Control = editContractno
+              ControlOptions.ShowBorder = False
+            end
+            object dxLayout1Item7: TdxLayoutItem
+              AutoAligns = [aaVertical]
+              Caption = #21333#20215
+              Control = editPrice
+              ControlOptions.ShowBorder = False
+            end
           end
-          object dxLayout1Item6: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #21333#20215
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 102
-            Control = editPrice
-            ControlOptions.ShowBorder = False
-          end
-          object dxLayout1Item7: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #25968#37327
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 134
+          object dxLayout1Item8: TdxLayoutItem
+            AutoAligns = [aaVertical]
+            Caption = #25968#37327
             Control = editQuantity
             ControlOptions.ShowBorder = False
           end
         end
-        object dxLayout1Item8: TdxLayoutItem
-          AlignVert = avTop
-          CaptionOptions.Text = #22791#27880
-          SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-          SizeOptions.SizableHorz = True
-          SizeOptions.SizableVert = True
-          SizeOptions.Height = 55
+        object dxLayout1Item9: TdxLayoutItem
+          AutoAligns = [aaVertical]
+          Caption = #22791#27880
           Control = editRemark
           ControlOptions.ShowBorder = False
         end
       end
       object dxGroup2: TdxLayoutGroup
-        AlignVert = avTop
-        CaptionOptions.Text = #21512#21516#25351#26631#20449#24687
-        ButtonOptions.Buttons = <>
-        object dxLayout1Group3: TdxLayoutGroup
-          ButtonOptions.Buttons = <>
+        AutoAligns = []
+        Caption = #21512#21516#25351#26631#20449#24687
+        object dxLayout1Group5: TdxLayoutGroup
+          ShowCaption = False
           Hidden = True
           LayoutDirection = ldHorizontal
           ShowBorder = False
-          object dxLayout1Item9: TdxLayoutItem
-            CaptionOptions.Text = #25351#26631#21517
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
+          object dxLayout1Item10: TdxLayoutItem
+            AutoAligns = [aaVertical]
+            Caption = #25351#26631#21517
             Control = comQuotaName
             ControlOptions.ShowBorder = False
           end
-          object dxLayout1Item10: TdxLayoutItem
-            CaptionOptions.Text = #25351#26631#26465#20214
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 114
+          object dxLayout1Item11: TdxLayoutItem
+            AutoAligns = [aaVertical]
+            Caption = #25351#26631#26465#20214
             Control = comQuotaCondition
             ControlOptions.ShowBorder = False
           end
-          object dxLayout1Item18: TdxLayoutItem
-            CaptionOptions.Text = 'cxButton1'
-            CaptionOptions.Visible = False
+          object dxLayout1Item17: TdxLayoutItem
+            Caption = 'cxButton1'
+            ShowCaption = False
             Control = btnAdd
             ControlOptions.ShowBorder = False
           end
         end
         object dxLayout1Group4: TdxLayoutGroup
-          ButtonOptions.Buttons = <>
+          ShowCaption = False
           Hidden = True
-          LayoutDirection = ldHorizontal
           ShowBorder = False
-          object dxLayout1Item11: TdxLayoutItem
-            CaptionOptions.Text = #25351#26631#20540
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            Control = comQuotaValue
-            ControlOptions.ShowBorder = False
+          object dxLayout1Group3: TdxLayoutGroup
+            ShowCaption = False
+            Hidden = True
+            LayoutDirection = ldHorizontal
+            ShowBorder = False
+            object dxLayout1Item12: TdxLayoutItem
+              AutoAligns = [aaVertical]
+              Caption = #25351#26631#20540
+              Control = comQuotaValue
+              ControlOptions.ShowBorder = False
+            end
+            object dxLayout1Item13: TdxLayoutItem
+              AutoAligns = [aaVertical]
+              Caption = #25187#37325#26465#20214
+              Control = comPunishCondition
+              ControlOptions.ShowBorder = False
+            end
+            object dxLayout1Item18: TdxLayoutItem
+              Caption = 'cxButton2'
+              ShowCaption = False
+              Control = btnDel
+              ControlOptions.ShowBorder = False
+            end
           end
-          object dxLayout1Item12: TdxLayoutItem
-            CaptionOptions.Text = #25187#37325#26465#20214
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 111
-            Control = comPunishCondition
-            ControlOptions.ShowBorder = False
-          end
-          object dxLayout1Item19: TdxLayoutItem
-            CaptionOptions.Text = 'cxButton2'
-            CaptionOptions.Visible = False
-            Control = btnDel
-            ControlOptions.ShowBorder = False
+          object dxLayout1Group6: TdxLayoutGroup
+            ShowCaption = False
+            Hidden = True
+            LayoutDirection = ldHorizontal
+            ShowBorder = False
+            object dxLayout1Group7: TdxLayoutGroup
+              ShowCaption = False
+              Hidden = True
+              ShowBorder = False
+              object dxLayout1Item14: TdxLayoutItem
+                AutoAligns = [aaVertical]
+                Caption = #25187#37325#20381#25454
+                Control = editpunishBasis
+                ControlOptions.ShowBorder = False
+              end
+              object dxLayout1Item16: TdxLayoutItem
+                AutoAligns = [aaVertical]
+                Caption = #25187#37325#27169#24335
+                Control = comPunishMode
+                ControlOptions.ShowBorder = False
+              end
+            end
+            object dxLayout1Item15: TdxLayoutItem
+              AutoAligns = [aaVertical]
+              Caption = #25187#37325#26631#20934
+              Control = editpunishStandard
+              ControlOptions.ShowBorder = False
+            end
           end
         end
-        object dxLayout1Group5: TdxLayoutGroup
-          ButtonOptions.Buttons = <>
-          Hidden = True
-          LayoutDirection = ldHorizontal
-          ShowBorder = False
-          object dxLayout1Item13: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #25187#37325#20381#25454
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 171
-            Control = editpunishBasis
-            ControlOptions.ShowBorder = False
-          end
-          object dxLayout1Item14: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #25187#37325#26631#20934
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 117
-            Control = editpunishStandard
-            ControlOptions.ShowBorder = False
-          end
-          object dxLayout1Item15: TdxLayoutItem
-            AlignHorz = ahLeft
-            CaptionOptions.Text = #25187#37325#27169#24335
-            SizeOptions.AssignedValues = [sovSizableHorz, sovSizableVert]
-            SizeOptions.SizableHorz = True
-            SizeOptions.SizableVert = True
-            SizeOptions.Width = 125
-            Control = comPunishMode
-            ControlOptions.ShowBorder = False
-          end
-        end
-        object dxLayout1Item16: TdxLayoutItem
+        object dxLayout1Item19: TdxLayoutItem
           Control = cxMemo2
           ControlOptions.ShowBorder = False
         end
-        object dxLayout1Item21: TdxLayoutItem
+        object dxLayout1Item20: TdxLayoutItem
           Control = InfoList
           ControlOptions.ShowBorder = False
         end
       end
       object dxLayout1Group1: TdxLayoutGroup
+        AutoAligns = []
+        AlignHorz = ahRight
         AlignVert = avBottom
-        CaptionOptions.Visible = False
-        ButtonOptions.Buttons = <>
+        ShowCaption = False
         Hidden = True
         LayoutDirection = ldHorizontal
         ShowBorder = False
         object dxLayout1Item1: TdxLayoutItem
+          AutoAligns = [aaVertical]
           AlignHorz = ahRight
-          CaptionOptions.Text = 'Button1'
-          CaptionOptions.Visible = False
+          Caption = 'Button1'
+          ShowCaption = False
           Control = BtnOK
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item2: TdxLayoutItem
+          AutoAligns = [aaVertical]
           AlignHorz = ahRight
-          CaptionOptions.Text = 'Button2'
-          CaptionOptions.Visible = False
+          Caption = 'Button2'
+          ShowCaption = False
           Control = BtnExit
           ControlOptions.ShowBorder = False
         end

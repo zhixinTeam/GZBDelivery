@@ -1,6 +1,6 @@
 {*******************************************************************************
-  作者: 289525016@163.com 2017-3-16
-  描述: 采购合同录入
+  作者: dmzn@163.com 2009-6-13
+  描述: 添加、修改、删除、浏览处理Form基类
 *******************************************************************************}
 unit UFormPurchaseContract;
 
@@ -10,9 +10,8 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   UDataModule, UFormBase, ULibFun, UAdjustForm, USysConst, dxLayoutControl,
   StdCtrls, cxControls, cxGraphics, cxLookAndFeels, cxLookAndFeelPainters,
-  cxContainer, cxEdit, cxTextEdit, cxMemo,
-  cxMaskEdit, cxDropDownEdit, cxMCListBox, Menus, cxButtons, cxButtonEdit,
-  cxCheckBox, cxListView, ComCtrls;
+  cxContainer, cxEdit, cxMemo, cxTextEdit, cxMaskEdit, cxButtonEdit,
+  cxCheckBox, Menus, ComCtrls, cxListView, cxButtons, cxDropDownEdit;
 
 type
   TProviderParam = record
@@ -37,7 +36,7 @@ type
     FRemark:string;
     FQuotaList:TStrings;
   end;
-  
+    
   TfFormPurchaseContract = class(TBaseForm)
     dxLayout1Group_Root: TdxLayoutGroup;
     dxLayout1: TdxLayoutControl;
@@ -48,46 +47,49 @@ type
     BtnExit: TButton;
     dxLayout1Item2: TdxLayoutItem;
     dxLayout1Group1: TdxLayoutGroup;
-    editProvider: TcxButtonEdit;
+    chbType: TcxCheckBox;
     dxLayout1Item3: TdxLayoutItem;
-    editMateriel: TcxButtonEdit;
+    editProvider: TcxButtonEdit;
     dxLayout1Item4: TdxLayoutItem;
-    editContractno: TcxTextEdit;
+    editMateriel: TcxButtonEdit;
     dxLayout1Item5: TdxLayoutItem;
-    editPrice: TcxTextEdit;
+    editContractno: TcxTextEdit;
     dxLayout1Item6: TdxLayoutItem;
-    editQuantity: TcxTextEdit;
+    editPrice: TcxTextEdit;
     dxLayout1Item7: TdxLayoutItem;
-    editRemark: TcxMemo;
+    editQuantity: TcxTextEdit;
     dxLayout1Item8: TdxLayoutItem;
+    editRemark: TcxMemo;
+    dxLayout1Item9: TdxLayoutItem;
     dxLayout1Group2: TdxLayoutGroup;
     comQuotaName: TcxComboBox;
-    dxLayout1Item9: TdxLayoutItem;
-    comQuotaCondition: TcxComboBox;
     dxLayout1Item10: TdxLayoutItem;
-    comQuotaValue: TcxComboBox;
+    comQuotaCondition: TcxComboBox;
     dxLayout1Item11: TdxLayoutItem;
-    comPunishCondition: TcxComboBox;
+    comQuotaValue: TcxComboBox;
     dxLayout1Item12: TdxLayoutItem;
-    dxLayout1Group3: TdxLayoutGroup;
-    dxLayout1Group4: TdxLayoutGroup;
-    editpunishBasis: TcxTextEdit;
+    comPunishCondition: TcxComboBox;
     dxLayout1Item13: TdxLayoutItem;
-    editpunishStandard: TcxTextEdit;
+    editpunishBasis: TcxTextEdit;
     dxLayout1Item14: TdxLayoutItem;
-    comPunishMode: TcxComboBox;
+    editpunishStandard: TcxTextEdit;
     dxLayout1Item15: TdxLayoutItem;
+    dxLayout1Group4: TdxLayoutGroup;
     dxLayout1Group5: TdxLayoutGroup;
-    cxMemo2: TcxMemo;
+    dxLayout1Group3: TdxLayoutGroup;
+    dxLayout1Group6: TdxLayoutGroup;
+    comPunishMode: TcxComboBox;
     dxLayout1Item16: TdxLayoutItem;
     btnAdd: TcxButton;
-    dxLayout1Item18: TdxLayoutItem;
+    dxLayout1Item17: TdxLayoutItem;
     btnDel: TcxButton;
+    dxLayout1Item18: TdxLayoutItem;
+    cxMemo2: TcxMemo;
     dxLayout1Item19: TdxLayoutItem;
-    chbType: TcxCheckBox;
-    dxLayout1Item20: TdxLayoutItem;
     InfoList: TcxListView;
-    dxLayout1Item21: TdxLayoutItem;
+    dxLayout1Item20: TdxLayoutItem;
+    dxLayout1Group8: TdxLayoutGroup;
+    dxLayout1Group7: TdxLayoutGroup;
     procedure BtnExitClick(Sender: TObject);
     procedure BtnOKClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -99,7 +101,6 @@ type
     procedure btnDelClick(Sender: TObject);
     procedure chbTypeClick(Sender: TObject);
     procedure comPunishModePropertiesChange(Sender: TObject);
-    procedure SetStrToInfoListItems(const nStr:string);
   protected
     { Private declarations }
     FProvider: TProviderParam;
@@ -108,11 +109,12 @@ type
     Fid:string;
     FQuotaUnit:string;//指标单位
     procedure InitFormData(const nID: string);    
-    function OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean; virtual;
-    function IsDataValid: Boolean; virtual;
     procedure ClearUI;
     procedure FillUI;
-    procedure InitComboxControl;    
+    procedure InitComboxControl;
+    procedure SetStrToInfoListItems(const nStr:string);
+    function OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean; virtual;
+    function IsDataValid: Boolean; virtual;
     {*验证数据*}
     procedure GetSaveSQLList(const nList: TStrings); virtual;
     {*写SQL列表*}
@@ -123,8 +125,9 @@ type
     class function FormID: integer; override;
   end;
 
-{$R *.dfm}
 implementation
+
+{$R *.dfm}
 uses
   UMgrControl,USysDB,USysBusiness,UBusinessPacker,UFormCtrl,Db;
 var
@@ -320,7 +323,7 @@ begin
   ResetHintAllForm(Self, 'T', sTable_PurchaseContract);
   //重置表名称
 
-  FPurchaseContractInfo.FQuotaList := TStringList.Create;  
+  FPurchaseContractInfo.FQuotaList := TStringList.Create;
 end;
 
 class function TfFormPurchaseContract.CreateForm(const nPopedom: string;
@@ -390,8 +393,7 @@ begin
   Result := cFI_FormPurchaseContract;
 end;
 
-procedure TfFormPurchaseContract.comQuotaNamePropertiesChange(
-  Sender: TObject);
+procedure TfFormPurchaseContract.comQuotaNamePropertiesChange(Sender: TObject);
 var
   nStr:string;
   nquota_name:string;
@@ -423,8 +425,8 @@ begin
       FQuotaUnit := FieldByName('reference_unit').AsString;
     end;
   end;
-  dxLayout1Item11.CaptionOptions.Text := '指标值(单位'+FQuotaUnit+')';
-  dxLayout1Item13.CaptionOptions.Text := '扣重依据(单位'+FQuotaUnit+')'
+  dxLayout1Item11.Caption := '指标值(单位'+FQuotaUnit+')';
+  dxLayout1Item13.Caption := '扣重依据(单位'+FQuotaUnit+')'
 end;
 
 procedure TfFormPurchaseContract.editProviderKeyPress(Sender: TObject;
@@ -447,7 +449,7 @@ begin
       FSaler:= nP.FParamE;
 
       EditProvider.Text := FName;
-    end;                               
+    end;
 
     EditProvider.SelectAll;
   end;
@@ -632,6 +634,7 @@ begin
     end;
   end;
 end;
+
 procedure TfFormPurchaseContract.btnAddClick(Sender: TObject);
 var
   nName,nCondition,nValue:string;
@@ -788,4 +791,5 @@ end;
 
 initialization
   gControlManager.RegCtrl(TfFormPurchaseContract, TfFormPurchaseContract.FormID);
+
 end.
