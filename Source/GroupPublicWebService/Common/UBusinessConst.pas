@@ -107,6 +107,10 @@ type
     FSeal       : string;          //编号ID
     FHYDan      : string;          //水泥编号
     FMemo       : string;          //动作备注
+    FArea       : string;          //销售片区
+    Fworkaddr   : string;          //工地名称
+    Ftransname  : string;          //运输单位
+    Foutfact    : TDateTime;       //出厂日期    
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -251,6 +255,10 @@ begin
         FHYDan  := Values['HYDan'];
         FMemo   := Values['Memo']; 
         FHKRecord:= Values['HKRecord'];
+        FAREA := Values['AREA'];
+        FWORKADDR := Values['WORKADDR'];
+        FTRANSNAME := Values['TRANSNAME'];
+        Foutfact := Str2DateTime(Values['OUTDATE'])
       end;
 
       Inc(nInt);

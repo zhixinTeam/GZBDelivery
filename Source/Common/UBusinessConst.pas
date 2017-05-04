@@ -179,6 +179,10 @@ type
     FKZValue    : Double;          //供应扣除
     FYTID       : string;          //云天系统XLB_ID
     FMemo       : string;          //动作备注
+    FArea       : string;          //销售片区
+    Fworkaddr   : string;          //工地名称
+    Ftransname  : string;          //运输单位
+    Foutfact    : TDateTime;       //出厂日期
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -431,6 +435,10 @@ begin
         Values['YSValid']    := FYSValid;
         Values['Memo']       := FMemo;
         Values['HKRecord']   := FHKRecord;
+        Values['AREA']   := FAREA;
+        Values['WORKADDR']   := FWORKADDR;
+        Values['TRANSNAME']   := FTRANSNAME;
+        Values['OUTDATE']   := DateTime2Str(Foutfact);
       end;
 
       nListA.Add(PackerEncodeStr(nListB.Text));

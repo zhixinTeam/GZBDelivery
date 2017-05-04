@@ -1659,7 +1659,8 @@ begin
   //²éÑ¯Êý¾Ý¿â
   nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
       'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
-      'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue From $Bill b ';
+      'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue,l_project,l_area,'+
+      'l_workaddr,l_transname,l_hydan,l_outfact From $Bill b ';
   nStr := nStr + 'Where L_ID=''$CD''';
   nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill), MI('$CD', nBill_id)]);
 
@@ -1710,6 +1711,13 @@ begin
 
       FPData.FValue := nDs.FieldByName('L_PValue').AsFloat;
       FMData.FValue := nDs.FieldByName('L_MValue').AsFloat;
+
+      FProject := nDs.FieldByName('l_project').AsString;
+      FArea := nDs.FieldByName('l_area').AsString;
+      Fworkaddr := nDs.FieldByName('l_workaddr').AsString;
+      Ftransname := nDs.FieldByName('l_transname').AsString;
+      Fhydan := nDs.FieldByName('l_hydan').AsString;
+      Foutfact := nDs.FieldByName('l_outfact').AsDateTime;
     end;
 
     Inc(nIdx);

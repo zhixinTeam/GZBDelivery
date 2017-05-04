@@ -299,6 +299,18 @@ begin
           NodeNew('Truck').ValueAsString := FTruck;
           NodeNew('StockNo').ValueAsString := FStockNo;
           NodeNew('StockName').ValueAsString := FStockName;
+
+          NodeNew('BILL').ValueAsString := FID;
+          NodeNew('PROJECT').ValueAsString := FProject;
+          NodeNew('STOCK').ValueAsString := FStockName;
+          NodeNew('CUSNAME').ValueAsString := FCusName;
+          NodeNew('AREA').ValueAsString := Farea;
+          NodeNew('WORKADDR').ValueAsString := Fworkaddr;
+          NodeNew('TRANSNAME').ValueAsString := Ftransname;
+          NodeNew('HYDAN').ValueAsString := FHYDan;
+          NodeNew('TRUCK').ValueAsString := FTruck;
+          NodeNew('LVALUE').ValueAsString := FloatToStr(FValue);
+          NodeNew('OUTDATE').ValueAsString := FormatDateTime('yyyy-mm-dd',Foutfact);
         end;  
       end;
 
