@@ -40,6 +40,10 @@ type
     N2: TMenuItem;
     N3: TMenuItem;
     Check1: TcxCheckBox;
+    editTruck: TcxButtonEdit;
+    dxLayout1Item9: TdxLayoutItem;
+    dxLayout1Group1: TdxLayoutGroup;
+    dxLayout1Group2: TdxLayoutGroup;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditIDPropertiesButtonClick(Sender: TObject;
@@ -225,6 +229,15 @@ begin
 
     FWhere := 'O_ProPY like ''%%%s%%'' Or O_ProName like ''%%%s%%''';
     FWhere := Format(FWhere, [EditCustomer.Text, EditCustomer.Text]);
+    InitFormData(FWhere);
+  end
+  else if Sender=editTruck then
+  begin
+    editTruck.Text := Trim(editTruck.Text);
+    if editTruck.Text='' then Exit;
+
+    FWhere := 'o_truck like ''%%%s%%''';
+    FWhere := Format(FWhere, [editTruck.Text]);
     InitFormData(FWhere);
   end;
 end;
