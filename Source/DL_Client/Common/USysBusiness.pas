@@ -309,6 +309,8 @@ function DealManualEvent(const nEID, nResult: string): Boolean;
 
 function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Boolean;
 //读取栈台分组信息
+function LoadZTLines(const nList: TStrings; const nWhere: string = ''): Boolean;
+//读取栈台信息
 
 implementation
 
@@ -802,7 +804,7 @@ begin
   nStr := Format(nStr, [sTable_Customer, sFlag_Yes, nW]);
 
   AdjustStringsItem(nList, True);
-  FDM.FillStringsData(nList, nStr, -1, '.');
+  FDM.FillStringsData(nList, nStr, -1, '.', DSA(['C_ID']));
 
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;
@@ -2784,6 +2786,25 @@ begin
 
   AdjustStringsItem(nList, True);
   FDM.FillStringsData(nList, nStr, -1, '.', DSA(['D_Value']));
+  
+  AdjustStringsItem(nList, False);
+  Result := nList.Count > 0;
+end;
+
+//Desc: 读取栈台列表到nList中,包含附加数据
+function LoadZTLines(const nList: TStrings; const nWhere: string = ''): Boolean;
+var nStr,nW: string;
+begin
+  if nWhere = '' then
+       nW := ''
+  else nW := Format(' And (%s)', [nWhere]);
+
+  nStr := 'Z_ID=Select Z_ID,Z_Name From %s ' +
+          'Where Z_Index>=0 %s Order By Z_Index';
+  nStr := Format(nStr, [sTable_ZTLines, nW]);
+
+  AdjustStringsItem(nList, True);
+  FDM.FillStringsData(nList, nStr, -1, '.', DSA(['Z_ID']));
   
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;

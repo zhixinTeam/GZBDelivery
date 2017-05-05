@@ -26,6 +26,8 @@ type
     FEnable : Boolean;           //启用
     FOnline : Boolean;           //在线
     FLastOn : Int64;             //上次在线
+
+    FOptions: TStrings;          //附加选项
   end;
 
   TCodePrinterManager = class;
@@ -239,11 +241,18 @@ end;
 
 procedure TCodePrinterManager.ClearPrinters(const nFree: Boolean);
 var nIdx: Integer;
+    nPrinter: PCodePrinter;
 begin
   FSyncLock.Enter;
   try
     for nIdx:=FPrinters.Count - 1 downto 0 do
-      Dispose(PCodePrinter(FPrinters[nIdx]));
+    begin
+      nPrinter := FPrinters[nIdx];
+      if Assigned(nPrinter.FOptions) then
+        FreeAndNil(nPrinter.FOptions);
+
+      Dispose(nPrinter);
+    end;
     //xxxxx
 
     if nFree then
@@ -526,6 +535,12 @@ begin
           FTunnel := nNode.NodeByName('tunnel').ValueAsString;
           FDriver := nNode.NodeByName('driver').ValueAsString;
           FEnable := nNode.NodeByName('enable').ValueAsInteger = 1;
+
+          if Assigned(nNode.FindNode('options')) then
+          begin
+            FOptions := TStringList.Create;
+            SplitStr(nNode.FindNode('options').ValueAsString, FOptions, 0, ';');
+          end else FOptions := nil;
 
           FOnline := False;
           FLastOn := 0;

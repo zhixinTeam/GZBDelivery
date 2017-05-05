@@ -1681,7 +1681,8 @@ begin
 
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
-          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,L_IsEmpty '+
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,' +
+          'L_IsEmpty, L_LineGroup '+
           'From $Bill b ';
   //xxxxx
 
@@ -1748,7 +1749,8 @@ begin
       FPData.FValue := FieldByName('L_PValue').AsFloat;
       FMData.FValue := FieldByName('L_MValue').AsFloat;
 
-      FYSValid  := FieldByName('L_IsEmpty').AsString;
+      FLineGroup:= FieldByName('L_LineGroup').AsString;
+      FYSValid  := FieldByName('L_IsEmpty').AsString;  
       FSelected := True;
 
       Inc(nIdx);
@@ -2252,6 +2254,7 @@ begin
                                     
                 SF('L_Lading', sFlag_TiHuo),
                 SF('L_IsVIP', sFlag_TypeCommon),
+                SF('L_LineGroup', nBills[nInt].FLineGroup),
                 {$IFNDEF BATAFTERLINE}
                 SF('L_Seal', FListB.Values['XCB_CementCodeID']),
                 SF('L_HYDan', FListB.Values['XCB_CementCode']),

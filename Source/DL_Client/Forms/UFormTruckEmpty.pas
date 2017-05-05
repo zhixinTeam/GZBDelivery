@@ -72,20 +72,27 @@ begin
     FillChar(nP^, SizeOf(TFormCommandParam), #0);
   end else nP := nParam;
 
-  while True do
-  begin
-    try
+
+
+  try
       CreateBaseFormItem(cFI_FormReadCard, nPopedom, nP);
       if (nP.FCommand <> cCmd_ModalResult) or (nP.FParamA <> mrOK) then Exit;
 
       nStr := Trim(nP.FParamB);
-      if nStr = '' then Continue;
+      if nStr = '' then
+      begin
+        ShowDlg('∂¡»°¥≈ø® ß∞‹,«Î÷ÿ–¬À¢ø®', sWarn);
+        Exit;
+      end;
 
       nRet := GetLadingBills(nStr, sFlag_TruckZT, gBills);
-      if nRet and (Length(gBills)>0) then Break;
-    finally
-      if not Assigned(nParam) then Dispose(nP);
-    end;
+      if not (nRet and (Length(gBills)>0)) then
+      begin
+        ShowDlg('¥≈ø®∫≈Œﬁ–ß', sWarn);
+        Exit;
+      end;
+  finally
+    if not Assigned(nParam) then Dispose(nP);
   end;
 
   nHint := '';

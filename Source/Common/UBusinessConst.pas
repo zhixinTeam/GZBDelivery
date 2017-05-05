@@ -94,15 +94,13 @@ const
   cBC_GetYTBatchCode          = $0088;   //获取云天系统批次
   cBC_SaveLadingSealInfo      = $0089;   //更新批次信息
   cBC_SyncYTBatchCodeInfo     = $0090;   //获取化验单信息
-  cBC_SyncProvidePound        = $0192;   //同步供应磅单到远程
-  cBC_GetBatcodeAfterLine     = $0193;   //现场刷卡后获取批次号
 
   cBC_VerifPrintCode          = $0091;   //验证喷码信息
   cBC_WaitingForloading       = $0092;   //工厂待装查询
   cBC_BillSurplusTonnage      = $0093;   //网上订单可下单数量查询
   cBC_GetOrderInfo            = $0094;   //获取订单信息，用于网上商城下单
   cBC_GetOrderList            = $0103;   //获取订单列表，用于网上商城下单
-  cBC_GetPurchaseContractList = $0107;   //获取采购合同列表，用于网上商城下单  
+  cBC_GetPurchaseContractList = $0107;   //获取采购合同列表，用于网上商城下单
 
   cBC_WeChat_getCustomerInfo  = $0095;   //微信平台接口：获取客户注册信息
   cBC_WeChat_get_Bindfunc     = $0096;   //微信平台接口：客户与微信账号绑定
@@ -112,11 +110,15 @@ const
   cBC_WeChat_get_shoporders   = $0100;   //微信平台接口：获取订单信息
   cBC_WeChat_complete_shoporders   = $0101;   //微信平台接口：修改订单状态
   cBC_WeChat_get_shoporderbyNO   = $0102;   //微信平台接口：根据订单号获取订单信息
-  cBC_WeChat_get_shopPurchasebyNO   = $0108;   //微信平台接口：根据订单号获取订单信息  
+  cBC_WeChat_get_shopPurchasebyNO   = $0108;   //微信平台接口：根据订单号获取订单信息
 
   cBC_SavePurchaseContract           = $0104;   //保存采购合同
   cBC_DeletePurchaseContract         = $0105;   //删除采购合同
   cBC_ModifyPurchaseContract           = $0106;   //修改采购合同
+
+  cBC_SyncProvidePound        = $0192;   //同步供应磅单到远程
+  cBC_GetBatcodeAfterLine     = $0193;   //现场刷卡后获取批次号
+  cBC_GetLineGroupByCustom    = $0194;   //获取客户指定分组编号
 
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;

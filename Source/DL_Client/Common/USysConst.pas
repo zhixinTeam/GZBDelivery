@@ -187,6 +187,7 @@ const
   cFI_FormPurchaseAssayRes  = $1123;                     //采购化验结果
 
   cFI_FormPoundDaiWC    = $1133;                     //袋装误差范围设置
+  cFI_FormCusBatMap     = $1134;                     //批次号客户绑定
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
@@ -355,6 +356,7 @@ begin
   AddMenuModuleItem('MAIN_D05', cFI_FrameZhiKa);
   AddMenuModuleItem('MAIN_D06', cFI_FrameBill);
   AddMenuModuleItem('MAIN_D07', cFI_FrameTrucks);
+  AddMenuModuleItem('MAIN_D08', cFI_FrameCusBatMap);
 
   AddMenuModuleItem('MAIN_E01', cFI_FramePoundManual);
   AddMenuModuleItem('MAIN_E02', cFI_FramePoundAuto);

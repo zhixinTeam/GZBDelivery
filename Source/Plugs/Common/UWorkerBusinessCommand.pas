@@ -102,6 +102,8 @@ type
     //获取云天系统化验单信息
     function GetBatcodeAfterLine(var nData: string): Boolean;
     //现场刷卡后获取批次号
+    function GetLineGroupByCustom(var nData: string): Boolean;
+    //根据客户信息获取通道分组
 
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
@@ -437,6 +439,7 @@ begin
    cBC_SaveLadingSealInfo  : Result := SaveLadingSealInfo(nData);
    cBC_SyncYTBatchCodeInfo : Result := SyncYT_BatchCodeInfo(nData);
    cBC_GetBatcodeAfterLine : Result := GetBatcodeAfterLine(nData);
+   cBC_GetLineGroupByCustom: Result := GetLineGroupByCustom(nData);
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -1065,6 +1068,7 @@ begin
           '  XCB_Client,' +                       //客户编号
           '  xob.XOB_Name as XCB_ClientName,' +   //客户名称
           '  xgd.XOB_Name as XCB_WorkAddr,' +     //工程工地
+          '  XCB_Sublader,' +                     //工地编号
           '  XCB_Alias,' +                        //客户别名
           '  XCB_OperMan,' +                      //业务员
           '  XCB_Area,' +                         //销售区域
@@ -1142,6 +1146,7 @@ begin
         FListB.Values['XCB_Client']     := FieldByName('XCB_Client').AsString;
         FListB.Values['XCB_ClientName'] := FieldByName('XCB_ClientName').AsString;
         FListB.Values['XCB_WorkAddr']   := FieldByName('XCB_WorkAddr').AsString;
+        FListB.Values['XCB_Sublader']   := FieldByName('XCB_Sublader').AsString;
         FListB.Values['XCB_Alias']      := FieldByName('XCB_Alias').AsString;
         FListB.Values['XCB_OperMan']    := FieldByName('XCB_OperMan').AsString;
         FListB.Values['XCB_Area']       := FieldByName('XCB_Area').AsString;
@@ -1344,7 +1349,7 @@ begin
   try
     nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status ' +
             'From XS_Compy_Base ' +
-            'Where XOB_IsClient=''1''';
+            'Where XOB_IsClient=1 or XOB_ISAREA=1';
     //xxxxx
 
     with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
@@ -2686,6 +2691,7 @@ begin
                   SF('XLB_ScaleDifNum', '0.00', sfVal),
                   SF('XLB_InvoNum', '0.00', sfVal),
 
+                  SF('XLB_SELLS', FieldByName('XCB_OperMan').AsString),         //业务员
                   SF('XLB_SendArea', FieldByName('XCB_SubLader').AsString),
                   SF('XLB_CarCode', nBills[nIdx].FTruck),
                   SF('XLB_Quantity', '0', sfVal),
@@ -4843,6 +4849,71 @@ begin
       FDBConn.FConn.RollbackTrans;
     raise;
   end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/4/25
+//Parm: 客户编号(FIn.FData);工地编号(FIn.FExtParam)
+//Desc: 根据客户信息获取指定分组
+function TWorkerBusinessCommander.GetLineGroupByCustom(var nData: string): Boolean;
+var nSQL: string;
+    nIdx: Integer;
+begin
+  Result := True;
+  FOut.FData := '';
+
+  nSQL := 'Select * From %s Where M_CusID=''%s''';
+  nSQL := Format(nSQL, [sTable_YT_CusBatMap, FIn.FData]);
+  //只搜索对应客户的批次
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  begin
+    if RecordCount < 1 then Exit;
+
+    First;
+    FListA.Clear;
+
+    while not Eof do
+    try
+      with FListC do
+      begin
+        Clear;
+        Values['CusID'] := FieldByName('M_CusID').AsString;
+        Values['AddrID'] := FieldByName('M_AddrID').AsString;
+        Values['LineGroup'] := FieldByName('M_LineGroup').AsString;
+      end;
+
+      FListA.Add(PackerEncodeStr(FListC.Text));
+    finally
+      Next;
+    end;
+  end;
+
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Clear;
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+
+    if (FListB.Values['AddrID'] <> '') and             //规则中含有工厂工地
+       (FListB.Values['AddrID'] = FIn.FExtParam) then
+    begin
+      FOut.FData := FListB.Values['LineGroup'];
+      Exit;
+    end;
+  end;
+  //带有工程工地的规则优先
+
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Clear;
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+
+    if FListB.Values['AddrID'] <> '' then Continue;
+
+    FOut.FData := FListB.Values['LineGroup'];
+    Exit;
+  end;
+  //检测不带工程工地的规则
 end;
 
 initialization

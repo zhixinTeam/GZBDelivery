@@ -1,4 +1,15 @@
 inherited fFrameCusBatMap: TfFrameCusBatMap
+  inherited ToolBar1: TToolBar
+    inherited BtnAdd: TToolButton
+      OnClick = BtnAddClick
+    end
+    inherited BtnEdit: TToolButton
+      OnClick = BtnEditClick
+    end
+    inherited BtnDel: TToolButton
+      OnClick = BtnDelClick
+    end
+  end
   inherited dxLayout1: TdxLayoutControl
     object EditCusName: TcxButtonEdit [0]
       Left = 81

@@ -542,7 +542,8 @@ const
        'C_FaRen varChar(50), C_LiXiRen varChar(50), C_WeiXin varChar(15),' +
        'C_Phone varChar(15), C_Fax varChar(15), C_Tax varChar(32),' +
        'C_Bank varChar(35), C_Account varChar(18), C_SaleMan varChar(15),' +
-       'C_Param varChar(32), C_Memo varChar(50), C_XuNi Char(1), C_WechartAccount varchar(32))';
+       'C_Param varChar(32), C_Memo varChar(50), C_XuNi Char(1), ' +
+       'C_WechartAccount varchar(32), C_Index Integer Default 0)';
   {-----------------------------------------------------------------------------
    客户信息表: Customer
    *.R_ID: 记录号
@@ -1096,7 +1097,7 @@ const
 
   sSQL_NewZTTrucks = 'Create Table $Table(R_ID $Inc, T_Truck varChar(15),' +
        'T_StockNo varChar(20), T_Stock varChar(80), T_Type Char(1),' +
-       'T_Line varChar(15), T_Index Integer, ' +
+       'T_Line varChar(15), T_LineGroup varChar(15), T_Index Integer, ' +
        'T_InTime DateTime, T_InFact DateTime, T_InQueue DateTime,' +
        'T_InLade DateTime, T_VIP Char(1), T_Valid Char(1), T_Bill varChar(15),' +
        'T_Value $Float, T_PeerWeight Integer, T_Total Integer Default 0,' +
@@ -1570,7 +1571,22 @@ const
    *.C_Freeze: 冻结量
    *.C_HasDone: 完成量
   -----------------------------------------------------------------------------}
-    
+
+  sSQL_NewYTCusBatMap = 'Create Table $Table(R_ID $Inc, ' +
+       'M_CusID varChar(32), M_CusPY varChar(128), M_CusName varChar(256), ' +
+       'M_AddrID varChar(32), M_AddrName varChar(256), ' +
+       'M_Line varChar(32), M_LineName varChar(64), M_LineGroup varChar(32),' +
+       'M_BatCode varChar(32), M_Memo varChar(128))';
+  {-----------------------------------------------------------------------------
+   云天系统特殊客户批次对照表: YTCusBatMap
+   *.R_ID: 记录编号
+   *.M_CusID,M_CusPY,M_CusName: 客户ID, 拼音, 名称
+   *.M_AddrID, M_AddrName: 工地ID, 工地名称
+   *.M_Line, M_LineName, M_LineGroup: 放灰库,放灰库名称,通道分组
+   *.M_BatCode: 指定批次
+   *.M_Memo: 备注
+  -----------------------------------------------------------------------------}
+
   sSQL_NewWebOrderMatch = 'Create Table $Table(R_ID $Inc,'
       +'WOM_WebOrderID varchar(32) null,'
       +'WOM_LID varchar(20) null,'
@@ -1856,6 +1872,7 @@ begin
   AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
   AddSysTableItem(sTable_YT_CodeInfo, sSQL_NewYTCode);
   AddSysTableItem(sTable_YT_Batchcode, sSQL_NewYTBatchcode);
+  AddSysTableItem(sTable_YT_CusBatMap, sSQL_NewYTCusBatMap);
   AddSysTableItem(sTable_WebOrderMatch,sSQL_NewWebOrderMatch);
 
   AddSysTableItem(sTable_PurchaseContract,sSQL_NewPurchaseContract);

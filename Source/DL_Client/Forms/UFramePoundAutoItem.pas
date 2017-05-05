@@ -596,13 +596,12 @@ begin
   //开单量和净重差额
 
   nStr := '提货单号[%s]详情如下:' + #13#10 +
-          '※.提货净重: %s吨' + #13#10 +
-          '※.开 票 量: %s吨' + #13#10 +
-          '※.订单剩余: %s吨' + #13#10 +
-          '※.超发数量: %s吨' + #13#10 +
+          '※.提货净重: %.2f吨' + #13#10 +
+          '※.开 票 量: %.2f吨' + #13#10 +
+          '※.订单剩余: %.2f吨' + #13#10 +
+          '※.超发数量: %.2f吨' + #13#10 +
           '请核对信息';
-  nStr := Format(nStr, [FInnerData.FID, FloatToStr(nValue),
-          FloatToStr(FInnerData.FValue),FloatToStr(m),FloatToStr(f)]);
+  nStr := Format(nStr, [FInnerData.FID, nValue, FInnerData.FValue, m, f]);
   WriteSysLog(nStr);
 
   m := f - m;
