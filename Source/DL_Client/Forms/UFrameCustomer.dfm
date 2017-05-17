@@ -153,7 +153,7 @@ inherited fFrameCustomer: TfFrameCustomer
     Top = 264
     object N1: TMenuItem
       Tag = 10
-      Caption = #38750#27491#24335#23458#25143
+      Caption = #26597#30475#24037#22320
       OnClick = N2Click
     end
     object N2: TMenuItem
@@ -167,6 +167,10 @@ inherited fFrameCustomer: TfFrameCustomer
     object N4: TMenuItem
       Caption = #21516#27493#36828#31243#23458#25143
       OnClick = N4Click
+    end
+    object N7: TMenuItem
+      Caption = #35774#20026#29305#27530#24037#31243
+      OnClick = N7Click
     end
     object N5: TMenuItem
       Caption = '-'

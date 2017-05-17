@@ -115,7 +115,7 @@ begin
   inherited;
   LoadCustomer(EditCusID.Properties.Items, 'C_Index=1');
   //加载客户
-  LoadCustomer(EditAddrID.Properties.Items, 'C_Index=2');
+  LoadCustomer(EditAddrID.Properties.Items, 'C_XuNi=''Y''');
   //加载工地
 
   //LoadZTLines(EditLine.Properties.Items);

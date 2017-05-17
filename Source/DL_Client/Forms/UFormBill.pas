@@ -53,12 +53,15 @@ type
     dxLayout1Item3: TdxLayoutItem;
     EditMemo: TcxTextEdit;
     dxLayout1Item4: TdxLayoutItem;
-    dxLayout1Group2: TdxLayoutGroup;
     EditWorkAddr: TcxTextEdit;
     dxLayout1Item6: TdxLayoutItem;
     EditFQ: TcxButtonEdit;
     dxLayout1Item7: TdxLayoutItem;
     dxLayout1Group3: TdxLayoutGroup;
+    EditLineGroup: TcxComboBox;
+    dxLayout1Item10: TdxLayoutItem;
+    dxLayout1Group4: TdxLayoutGroup;
+    dxLayout1Group5: TdxLayoutGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -226,6 +229,9 @@ begin
     EditTrans.Text  := Values['XCB_TransName'];
     EditWorkAddr.Text:= Values['XCB_WorkAddr'];
   end;
+
+  if EditLineGroup.ItemIndex < 0 then
+    LoadZTLineGroup(EditLineGroup.Properties.Items);
 end;
 
 function TfFormBill.OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean;
@@ -294,6 +300,7 @@ begin
       Values['Seal'] := FCardData.Values['XCB_CementCodeID'];
       Values['HYDan'] := EditFQ.Text;
       Values['BuDan'] := FBuDanFlag;
+      Values['LineGroup'] := GetCtrlData(EditLineGroup);
     end;
 
     FNewBillID := SaveBill(PackerEncodeStr(nList.Text));

@@ -1087,6 +1087,7 @@ begin
           '  XCB_IsImputed,' +                    //卡片是否估算
           '  XCB_IsOnly,' +                       //是否一车一票
           '  XCB_Del,' +                          //删除标记:0,正常;1,删除
+          '  XCB_IsLock,' +                       //锁定标记:0,正常;1,锁定
           '  XCB_Creator,' +                      //创建人
           '  pub.pub_name as XCB_CreatorNM,' +    //创建人名
           '  XCB_CDate,' +                        //创建时间
@@ -1163,6 +1164,7 @@ begin
         FListB.Values['XCB_Status']     := FieldByName('XCB_Status').AsString;
         FListB.Values['XCB_IsOnly']     := FieldByName('XCB_IsOnly').AsString;
         FListB.Values['XCB_Del']        := FieldByName('XCB_Del').AsString;
+        FListB.Values['XCB_IsLock']     := FieldByName('XCB_IsLock').AsString;
         FListB.Values['XCB_Creator']    := FieldByName('XCB_Creator').AsString;
         FListB.Values['XCB_CreatorNM']  := FieldByName('XCB_CreatorNM').AsString;
         FListB.Values['XCB_CDate']      := DateTime2Str(FieldByName('XCB_CDate').AsDateTime);
@@ -1223,8 +1225,14 @@ begin
     begin
       nStr := '※.单据:[ %s ]剩余量读取失败.' + #13#10;
       nData := nData + Format(nStr, [Values['XCB_CardId']]);
-      Exit;
     end;
+
+    if Values['XCB_IsLock'] = '1' then
+    begin
+      nStr := '※.单据:[ %s ]已锁定.' + #13#10;
+      nData := Format(nStr, [Values['XCB_CardId']]);
+    end;
+    //单据锁定,无法提货
 
     if nData <> ''  then Exit;
     //已有错误,不再校验冻结量
@@ -1321,15 +1329,15 @@ end;
 //Parm: 
 //Desc: 同步云天系统客户信息
 function TWorkerBusinessCommander.SyncRemoteCustomer(var nData: string): Boolean;
-var nStr: string;
-    nIdx: Integer;
+var nIdx: Integer;
+    nStr, nType: string;
     nDBWorker: PDBWorker;
 begin
   FListA.Clear;
   Result := True;
 
-  nStr := 'Select C_Param From %s Where C_XuNi<>''%s''';
-  nStr := Format(nStr, [sTable_Customer, sFlag_Yes]);
+  nStr := 'Select C_Param From ' + sTable_Customer;
+  //init
 
   FListB.Clear;
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -1347,7 +1355,7 @@ begin
 
   nDBWorker := nil;
   try
-    nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status ' +
+    nStr := 'Select XOB_ID,XOB_Code,XOB_Name,XOB_JianPin,XOB_Status,XOB_ISAREA ' +
             'From XS_Compy_Base ' +
             'Where XOB_IsClient=1 or XOB_ISAREA=1';
     //xxxxx
@@ -1369,11 +1377,15 @@ begin
           Continue;
           //Has Saved
 
+          if FieldByName('XOB_ISAREA').AsString = '1' then
+               nType := sFlag_Yes                     //工地,虚拟客户
+          else nType := sFlag_No;                     //非工地,销售客户
+
           nStr := MakeSQLByStr([SF('C_ID', FieldByName('XOB_ID').AsString),
                   SF('C_Name', FieldByName('XOB_Name').AsString),
                   SF('C_PY', FieldByName('XOB_JianPin').AsString),
                   SF('C_Param', FieldByName('XOB_ID').AsString),
-                  SF('C_XuNi', sFlag_No)
+                  SF('C_XuNi', nType)
                   ], sTable_Customer, '', True);
           FListA.Add(nStr);
 
@@ -1957,7 +1969,8 @@ begin
   nTmp := Trim(FIn.FData);
   if nTmp='' then Exit;
 
-  nStr := 'select XCB_ID,' +                      //内部编号
+  nStr := 'Select * From ' +
+        '(select XCB_ID,' +                      //内部编号
         '  XCB_CardId,' +                       //销售卡片编号
         '  XCB_Origin,' +                       //卡片来源
         '  XCB_BillID,' +                       //来源单据号
@@ -2001,12 +2014,15 @@ begin
         '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
         '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
         '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
-        //未删除、可用数量大于0、卡片启用并且处于已审核状态
-        ' where xcb.xcb_del=''0'''
+        //未删除、可用数量大于0、卡片启用并且处于已审核状态、未锁定
+        ' where  xcb.xcb_del=''0'''
               +' and xcb.XCB_Status=''1'''
               +' and xcb.XCB_RemainNum>0'
+              +' and xcb.XCB_IsLock<>''1'''
               +' and ((xcb.XCB_AuditState=''201'') or (xcb.XCB_IsOnly=''1''))'
-              +' and xcb.XCB_Client = ''%s''';
+              +' and xcb.XCB_Client = ''%s'' ' +
+        'Order By XCB_SetDate DESC) t Where Rownum <= 100';
+        //排序后,取前100条
   nStr := Format(nStr,[nTmp]);
 
   nWorker := nil;
@@ -2015,7 +2031,7 @@ begin
     begin
       if RecordCount < 1 then
       begin
-        nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nTmp]);
+        nData := Format('未查询到客户编号[ %s ]对应的订单信息1.', [nTmp]);
         Exit;
       end;
 
@@ -2109,7 +2125,7 @@ begin
 
   if FListA.Count < 1 then
   begin
-    nData := Format('未查询到客户编号[ %s ]对应的订单信息.', [nTmp]);
+    nData := Format('未查询到客户编号[ %s ]对应的订单信息2.', [FIn.FData]);
     Exit;
   end;
 
@@ -2666,8 +2682,8 @@ begin
         if Eof then Continue;
         //订单丢失则不予处理
 
-        nSetDate := nBills[nIdx].FMData.FDate;
-        //nSetDate
+        nSetDate := Now;
+        //获取当前服务器时间
 
         if nBills[nIdx].FYTID = '' then
         begin
@@ -3235,7 +3251,7 @@ begin
 
               SF('DTM_Vehicle', nBills[nIdx].FTruck),
 
-              SF('DTM_InDate', Date2StrOracle(nDateIn), sfVal),
+              SF('DTM_InDate', Date2StrOracle(Now), sfVal),                     //获取当前系统时间
               SF('DTM_CDate', DateTime2StrOracle(nDateIn),sfVal),
               SF('DTM_TDate', DateTime2StrOracle(nDateOut),sfVal),
               SF('DTM_Material', nBills[nIdx].FStockNo),

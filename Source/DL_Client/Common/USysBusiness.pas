@@ -800,8 +800,8 @@ begin
   else nW := Format(' And (%s)', [nWhere]);
 
   nStr := 'C_ID=Select C_ID,C_Name From %s ' +
-          'Where IsNull(C_XuNi, '''')<>''%s'' %s Order By C_PY';
-  nStr := Format(nStr, [sTable_Customer, sFlag_Yes, nW]);
+          'Where 1=1 %s Order By C_PY';
+  nStr := Format(nStr, [sTable_Customer, nW]);
 
   AdjustStringsItem(nList, True);
   FDM.FillStringsData(nList, nStr, -1, '.', DSA(['C_ID']));

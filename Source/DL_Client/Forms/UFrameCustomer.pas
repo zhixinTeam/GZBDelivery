@@ -39,6 +39,7 @@ type
     N5: TMenuItem;
     m_bindWechartAccount: TMenuItem;
     N6: TMenuItem;
+    N7: TMenuItem;
     procedure EditIDPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -51,8 +52,10 @@ type
     procedure N4Click(Sender: TObject);
     procedure m_bindWechartAccountClick(Sender: TObject);
     procedure N6Click(Sender: TObject);
+    procedure N7Click(Sender: TObject);
   private
     { Private declarations }
+    FQueryXuni: string;
   protected
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
@@ -84,10 +87,14 @@ begin
   //xxxxx
 
   if nWhere = '' then
-       Result := Result + ' Where C_XuNi<>''$Yes'''
+       Result := Result + ' Where 1=1 '
   else Result := Result + ' Where (' + nWhere + ')';
 
-  Result := MacroValue(Result, [MI('$Cus', sTable_Customer),
+  if FQueryXuni = sFlag_Yes then
+       Result := Result + ' And (IsNull(C_XuNi, '''')=''$Yes'')'
+  else Result := Result + ' And (IsNull(C_XuNi, '''')=''$NO'')';
+
+  Result := MacroValue(Result, [MI('$Cus', sTable_Customer),MI('$NO', sFlag_No),
             MI('$Sale', sTable_Salesman), MI('$Yes', sFlag_Yes)]);
   //xxxxx
 end;
@@ -234,7 +241,14 @@ begin
     20: FWhere := '1=1';
   end;
 
-  InitFormData(FWhere);
+  try
+    if TComponent(Sender).Tag = 10 then
+      FQueryXuni := sFlag_Yes;
+
+    InitFormData(FWhere);
+  finally
+    FQueryXuni := sFlag_No;
+  end;
 end;
 
 procedure TfFrameCustomer.N4Click(Sender: TObject);
@@ -396,6 +410,29 @@ begin
     FDM.ADOConn.RollbackTrans;
     ShowMsg('取消商城账户关联 失败', '未知错误');
   end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017/5/12
+//Parm: 参数描述
+//Desc: 将某客户设为特殊工程
+procedure TfFrameCustomer.N7Click(Sender: TObject);
+var nStr: string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要取消的记录', sHint);
+    Exit;
+  end;
+
+  nStr := 'Update %s Set C_Index=1 where C_ID=''%s''';
+  nStr := Format(nStr,[sTable_Customer,SQLQuery.FieldByName('C_ID').AsString]);
+  FDM.ExecuteSQL(nStr);
+
+  nStr := '客户[ %s ]已设置为特殊工程.';
+  nStr := Format(nStr, [SQLQuery.FieldByName('C_Name').AsString]);
+  ShowMsg(nStr, sHint);
 end;
 
 initialization

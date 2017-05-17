@@ -495,6 +495,7 @@ begin
 
     Values['TransID'] := FListC.Values['XCB_TransID'];
     Values['TransName'] := FListC.Values['XCB_TransName'];
+    Values['AddrID']   := FListC.Values['XCB_Sublader'];
     Values['WorkAddr'] := FListC.Values['XCB_WorkAddr'];
     Values['SaleID'] := FListC.Values['XCB_OperMan'];
     Values['SaleMan'] := '?';
@@ -584,6 +585,12 @@ begin
   //销售补单需要选择批次号
   {$ENDIF}
 
+  if TWorkerBusinessCommander.CallMe(cBC_GetLineGroupByCustom,
+     FListA.Values['CusID'], FListA.Values['AddrID'], @nOut) and
+     (nOut.FData <> '')then
+    FListA.Values['LineGroup'] := nOut.FData;
+  //获取特殊工地的分组信息
+
   Result := True;
   //verify done
 end;
@@ -659,6 +666,7 @@ begin
               SF('L_SaleMan', FListA.Values['SaleMan']),
               SF('L_TransID', FListA.Values['TransID']),
               SF('L_TransName', FListA.Values['TransName']),
+              SF('L_LineGroup', FListA.Values['LineGroup']),
 
               SF('L_Type', FListC.Values['Type']),
               SF('L_StockNo', FListC.Values['StockNO']),

@@ -1236,9 +1236,9 @@ begin
       if BillInLine(FTruckPool[i].FBill, FTrucks, True) >= 0 then Continue;
       //6.交货单已经在队列中
 
-      if (FTruckPool[i].FLineGoup <> '') and (FTruckPool[i].FLineGoup <> 'A') then
+      if (FTruckPool[i].FLineGoup <> '') and (FTruckPool[i].FLineGoup <> 'Z') then
       begin
-        if (FLineGroup <> '') and (FLineGroup <> 'A') and
+        if (FLineGroup <> '') and (FLineGroup <> 'Z') and
            (FLineGroup <> FTruckPool[i].FLineGoup) then Continue;
       end;
       //7.车辆指定通道类型不匹配
@@ -1473,9 +1473,9 @@ begin
     if FRealCount >= FQueueMax then Continue;
     //2.通道车辆已满
 
-    if (nLine.FLineGroup <> '') and (nLine.FLineGroup <> 'A') then
+    if (nLine.FLineGroup <> '') and (nLine.FLineGroup <> 'Z') then
     begin
-      if ((FLineGroup <> '') And (FLineGroup <> 'A')) And
+      if ((FLineGroup <> '') And (FLineGroup <> 'Z')) And
          (nLine.FLineGroup <> FLineGroup) then Continue;
     end;
     //分组不同
