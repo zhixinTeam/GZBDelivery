@@ -38,17 +38,6 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       TabOrder = 19
       OnClick = BtnExitClick
     end
-    object chbType: TcxCheckBox
-      Left = 23
-      Top = 36
-      Align = alLeft
-      Caption = #20020#26102#19994#21153
-      ParentFont = False
-      TabOrder = 0
-      Transparent = True
-      OnClick = chbTypeClick
-      Width = 121
-    end
     object editProvider: TcxButtonEdit
       Left = 75
       Top = 62
@@ -248,6 +237,15 @@ inherited fFormPurchaseContract: TfFormPurchaseContract
       Style.Edges = [bLeft, bTop, bRight, bBottom]
       TabOrder = 17
       ViewStyle = vsReport
+    end
+    object chbType: TcxCheckBox
+      Left = 23
+      Top = 36
+      Caption = #20020#26102#21512#21516
+      ParentFont = False
+      TabOrder = 0
+      Transparent = True
+      Width = 121
     end
     object dxLayout1Group_Root: TdxLayoutGroup
       ShowCaption = False

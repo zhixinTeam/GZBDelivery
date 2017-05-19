@@ -47,8 +47,6 @@ type
     BtnExit: TButton;
     dxLayout1Item2: TdxLayoutItem;
     dxLayout1Group1: TdxLayoutGroup;
-    chbType: TcxCheckBox;
-    dxLayout1Item3: TdxLayoutItem;
     editProvider: TcxButtonEdit;
     dxLayout1Item4: TdxLayoutItem;
     editMateriel: TcxButtonEdit;
@@ -90,6 +88,8 @@ type
     dxLayout1Item20: TdxLayoutItem;
     dxLayout1Group8: TdxLayoutGroup;
     dxLayout1Group7: TdxLayoutGroup;
+    chbType: TcxCheckBox;
+    dxLayout1Item3: TdxLayoutItem;
     procedure BtnExitClick(Sender: TObject);
     procedure BtnOKClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
