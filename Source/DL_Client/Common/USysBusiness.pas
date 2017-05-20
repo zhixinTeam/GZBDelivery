@@ -159,6 +159,8 @@ procedure CapturePicture(const nTunnel: PPTTunnelItem; const nList: TStrings);
 //抓拍指定通道
 function GetTruckLastTime(const nTruck: string): Integer;
 //车辆上次过磅记录
+function GetTruckRealLabel(const nTruck: string): string;
+//获取车辆绑定的电子标签
 function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
 //打开读卡器道闸
 function RemoteImportPounds(const nData: string): Boolean;
@@ -2491,6 +2493,25 @@ begin
          Result := Trunc((nNow - nPDate) * 24 * 60 * 60)
     else Result := Trunc((nNow - nMDate) * 24 * 60 * 60);
   end;
+end;
+
+//Date: 2017/5/18
+//Parm: 车牌号码
+//Desc: 获取车辆在用的电子标签
+function GetTruckRealLabel(const nTruck: string): string;
+var nStr: string;
+begin
+  Result := '';
+  //默认允许
+
+  nStr := 'Select Top 1 T_Card From %s ' +
+          'Where T_Truck=''%s'' And T_CardUse=''%s'' And T_Card Is not NULL';
+  nStr := Format(nStr, [sTable_Truck, nTruck, sFlag_Yes]);
+  //选择该车提一条有电子标签的记录
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+    Result := Fields[0].AsString;
 end;
 
 //Date: 2017/3/6

@@ -301,7 +301,7 @@ end;
 //Parm: 磅站号[FIn.FData]
 //Desc: 获取指定磅站读卡器上的磁卡号
 function THardwareCommander.PoundCardNo(var nData: string): Boolean;
-var nStr, nPoundID, nReader: string;
+var nStr, nPoundID: string;
     nIdx: Integer;
 begin
   Result := True;
@@ -314,15 +314,14 @@ begin
     for nIdx:=0 to FListA.Count - 1 do
     begin
       nPoundID := FListA[nIdx];
-      FListB.Values[nPoundID] := gHardwareHelper.GetPoundCard(nPoundID, nReader);
+      FListB.Values[nPoundID] := gHardwareHelper.GetPoundCard(nPoundID, FOut.FExtParam);
     end;
 
     FOut.FData := FListB.Text;
-    FOut.FExtParam := nReader;
     Exit;
   end;
 
-  FOut.FData := gHardwareHelper.GetPoundCard(FIn.FData, nReader);
+  FOut.FData := gHardwareHelper.GetPoundCard(FIn.FData, FOut.FExtParam);
   if FOut.FData = '' then Exit;
 
   nStr := 'Select C_Card From $TB Where C_Card=''$CD'' or ' +
@@ -332,7 +331,6 @@ begin
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   if RecordCount > 0 then
   begin
-    FOut.FExtParam := nReader;
     FOut.FData := Fields[0].AsString;
     gHardwareHelper.SetPoundCardExt(FIn.FData, FOut.FData);
     //将远距离卡号对应的近距离卡号绑定
