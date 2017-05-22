@@ -734,6 +734,7 @@ begin
             SF('T_Bill'    , nOut.FData),
             SF('T_Valid'   , sFlag_Yes),
             SF('T_Value'   , FListC.Values['Value'], sfVal),
+            SF('T_LineGroup', FListA.Values['LineGroup']),
             SF('T_VIP'     , FListA.Values['IsVIP']),
             SF('T_HKBills' , nOut.FData + '.')
             ], sTable_ZTTrucks, '', True);
