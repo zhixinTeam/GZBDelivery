@@ -485,6 +485,9 @@ begin
       nHint := ReadPoundCard(nStr, FVirPoundID);
       if (nHint = '') or (Pos(nLabel, nHint) < 1) then
       begin
+        nStr := '未识别电子签,请移动车辆.';
+        PlayVoice(nStr);
+
         nStr := '磅站[ %s.%s ]: 车辆[ %s.%s ]电子标签不匹配[ %s ],禁止上磅';
         nStr := Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName,
                 FUIData.FTruck, nLabel, nHint]);
