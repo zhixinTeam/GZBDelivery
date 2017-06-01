@@ -4894,6 +4894,7 @@ begin
       with FListC do
       begin
         Clear;
+        Values['IsVip'] := FieldByName('M_IsVip').AsString;
         Values['CusID'] := FieldByName('M_CusID').AsString;
         Values['AddrID'] := FieldByName('M_AddrID').AsString;
         Values['LineGroup'] := FieldByName('M_LineGroup').AsString;
@@ -4914,6 +4915,7 @@ begin
        (FListB.Values['AddrID'] = FIn.FExtParam) then
     begin
       FOut.FData := FListB.Values['LineGroup'];
+      FOut.FExtParam := FListB.Values['IsVIP'];
       Exit;
     end;
   end;
@@ -4927,6 +4929,7 @@ begin
     if FListB.Values['AddrID'] <> '' then Continue;
 
     FOut.FData := FListB.Values['LineGroup'];
+    FOut.FExtParam := FListB.Values['IsVIP'];
     Exit;
   end;
   //检测不带工程工地的规则

@@ -346,8 +346,8 @@ end;
 //Desc: 验证能否开单
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
-    nStr,nTruck: string;
     nVal, nRenum: Double;
+    nStr,nTruck,nType: string;
     nOut: TWorkerBusinessCommand;
 begin
   Result := False;
@@ -509,6 +509,7 @@ begin
   begin
     FListC.Text := PackerDecodeStr(FListB[nIdx]);
     nVal := nVal + StrToFloatDef(FListC.Values['Value'], 0);
+    nType:= FListC.Values['Type'];
   end;
   //开单总量，用于校验批次号和订单可用量 
 
@@ -585,11 +586,16 @@ begin
   //销售补单需要选择批次号
   {$ENDIF}
 
-  if TWorkerBusinessCommander.CallMe(cBC_GetLineGroupByCustom,
+  if (nType = sFlag_San) and (FListA.Values['LineGroup'] = '') and
+     TWorkerBusinessCommander.CallMe(cBC_GetLineGroupByCustom,
      FListA.Values['CusID'], FListA.Values['AddrID'], @nOut) and
      (nOut.FData <> '')then
+  begin
     FListA.Values['LineGroup'] := nOut.FData;
-  //获取特殊工地的分组信息
+    if nOut.FExtParam <> '' then
+      FListA.Values['IsVIP']   := nOut.FExtParam;
+  end;
+  //散装并且未指定专库获取特殊工地的分组信息
 
   Result := True;
   //verify done

@@ -16,6 +16,8 @@ type
     dxLayout1Item9: TdxLayoutItem;
     EditCusID: TcxComboBox;
     dxLayout1Item3: TdxLayoutItem;
+    EditIsVip: TcxComboBox;
+    dxLayout1Item4: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -105,6 +107,7 @@ begin
   if RecordCount > 0 then
   begin
     SetCtrlData(EditCusID, FieldByName('M_CusID').AsString);
+    SetCtrlData(EditIsVip, FieldByName('M_IsVip').AsString);
     SetCtrlData(EditAddrID, FieldByName('M_AddrID').AsString);
     SetCtrlData(EditLineType, FieldByName('M_LineGroup').AsString);
   end;
@@ -113,13 +116,14 @@ end;
 procedure TfFormCusBatMap.FormCreate(Sender: TObject);
 begin
   inherited;
+  AdjustCtrlData(Self);
+  LoadFormConfig(Self);
+
   LoadCustomer(EditCusID.Properties.Items, 'C_Index=1');
   //加载客户
   LoadCustomer(EditAddrID.Properties.Items, 'C_XuNi=''Y''');
   //加载工地
 
-  //LoadZTLines(EditLine.Properties.Items);
-  //加载栈台信息
   LoadZTLineGroup(EditLineType.Properties.Items);
   //载入栈台类型列表
 end;
@@ -128,7 +132,8 @@ procedure TfFormCusBatMap.FormClose(Sender: TObject;
   var Action: TCloseAction);
 begin
   inherited;
-  //
+  SaveFormConfig(Self);
+  ReleaseCtrlData(Self);
 end;
 
 procedure TfFormCusBatMap.BtnOKClick(Sender: TObject);
@@ -145,7 +150,8 @@ begin
           SF('M_AddrID', GetCtrlData(EditAddrID)),
           SF('M_AddrName', EditAddrID.Text),
 
-          SF('M_LineGroup', GetCtrlData(EditLineType))
+          SF('M_LineGroup', GetCtrlData(EditLineType)),
+          SF('M_IsVip', GetCtrlData(EditIsVip))
           //SF('M_Line', GetCtrlData(EditLine)),
           //SF('M_LineName', EditLine.Text)
           ], sTable_YT_CusBatMap, nW, FRecord='');
