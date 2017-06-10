@@ -347,7 +347,7 @@ end;
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
     nVal, nRenum: Double;
-    nStr,nTruck,nType: string;
+    nStr,nTruck,nStock: string;
     nOut: TWorkerBusinessCommand;
 begin
   Result := False;
@@ -509,7 +509,7 @@ begin
   begin
     FListC.Text := PackerDecodeStr(FListB[nIdx]);
     nVal := nVal + StrToFloatDef(FListC.Values['Value'], 0);
-    nType:= FListC.Values['Type'];
+    nStock := FListC.Values['StockNo'];
   end;
   //开单总量，用于校验批次号和订单可用量 
 
@@ -586,9 +586,9 @@ begin
   //销售补单需要选择批次号
   {$ENDIF}
 
-  if (nType = sFlag_San) and (FListA.Values['LineGroup'] = '') and
+  if (FListA.Values['LineGroup'] = '') and
      TWorkerBusinessCommander.CallMe(cBC_GetLineGroupByCustom,
-     FListA.Values['CusID'], FListA.Values['AddrID'], @nOut) and
+     FListA.Values['CusID'], nStock + ';' +FListA.Values['AddrID'], @nOut) and
      (nOut.FData <> '')then
   begin
     FListA.Values['LineGroup'] := nOut.FData;

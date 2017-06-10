@@ -1659,7 +1659,7 @@ begin
   {$IFDEF CODECOMMON}
   //生成提货单号
   nBill_id := nSprefix+Copy(nCode, 1, 6) + //YYMMDD
-              + Copy(nCode, 12, Length(nCode) - 11); //XXXX
+              Copy(nCode, 12, Length(nCode) - 11); //XXXX
   {$ENDIF}
 
   {$IFDEF CODEAREA}
@@ -2025,6 +2025,9 @@ begin
         //排序后,取前100条
   nStr := Format(nStr,[nTmp]);
 
+  WriteLog(Format('GetOrderList = > [ 订单信息.%s ]', [nStr]));
+  //查询语句
+
   nWorker := nil;
   try
     with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
@@ -2089,6 +2092,10 @@ begin
     nTmp := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
     nStr := 'Select XCB_FactRemain, XCB_ID From V_CARD_BASE Where XCB_ID In (%s)';
     nStr := Format(nStr, [nTmp]);
+
+    WriteLog(Format('GetOrderList = > [ 剩余量.%s ]', [nStr]));
+    //查询语句
+
     with gDBConnManager.WorkerQuery(nWorker, nStr) do
     if RecordCount > 0 then
     begin
@@ -2128,6 +2135,9 @@ begin
     nData := Format('未查询到客户编号[ %s ]对应的订单信息2.', [FIn.FData]);
     Exit;
   end;
+
+  WriteLog(Format('GetOrderList = > [ 返回值.%s ]', [FListA.Text]));
+  //返回信息
 
   FOut.FData := PackerEncodeStr(FListA.Text);
   Result := True;
@@ -4872,11 +4882,15 @@ end;
 //Parm: 客户编号(FIn.FData);工地编号(FIn.FExtParam)
 //Desc: 根据客户信息获取指定分组
 function TWorkerBusinessCommander.GetLineGroupByCustom(var nData: string): Boolean;
-var nSQL: string;
+var nSQL, nAddID, nStock: string;
     nIdx: Integer;
 begin
   Result := True;
   FOut.FData := '';
+
+  nIdx := Pos(';', FIn.FExtParam);
+  nStock := Copy(FIn.FExtParam, 1, nIdx-1);
+  nAddID := Copy(FIn.FExtParam, nIdx+1, Length(FIn.FExtParam)-nIdx);
 
   nSQL := 'Select * From %s Where M_CusID=''%s''';
   nSQL := Format(nSQL, [sTable_YT_CusBatMap, FIn.FData]);
@@ -4897,6 +4911,7 @@ begin
         Values['IsVip'] := FieldByName('M_IsVip').AsString;
         Values['CusID'] := FieldByName('M_CusID').AsString;
         Values['AddrID'] := FieldByName('M_AddrID').AsString;
+        Values['StockNo']:= FieldByName('M_StockNo').AsString;
         Values['LineGroup'] := FieldByName('M_LineGroup').AsString;
       end;
 
@@ -4911,8 +4926,24 @@ begin
     FListB.Clear;
     FListB.Text := PackerDecodeStr(FListA[nIdx]);
 
+    if (FListB.Values['StockNo'] <> '') and             //规则中含有品种编号
+       (FListB.Values['StockNo'] = nStock) then
+    begin
+      FOut.FData := FListB.Values['LineGroup'];
+      FOut.FExtParam := FListB.Values['IsVIP'];
+      Exit;
+    end;
+  end;
+  //带有品种编号的规则优先
+
+  for nIdx := 0 to FListA.Count - 1 do
+  begin
+    FListB.Clear;
+    FListB.Text := PackerDecodeStr(FListA[nIdx]);
+
+    if FListB.Values['StockNo'] <> '' then Continue;
     if (FListB.Values['AddrID'] <> '') and             //规则中含有工厂工地
-       (FListB.Values['AddrID'] = FIn.FExtParam) then
+       (FListB.Values['AddrID'] = nAddID) then
     begin
       FOut.FData := FListB.Values['LineGroup'];
       FOut.FExtParam := FListB.Values['IsVIP'];
@@ -4926,6 +4957,7 @@ begin
     FListB.Clear;
     FListB.Text := PackerDecodeStr(FListA[nIdx]);
 
+    if FListB.Values['StockNo'] <> '' then Continue;
     if FListB.Values['AddrID'] <> '' then Continue;
 
     FOut.FData := FListB.Values['LineGroup'];

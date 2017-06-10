@@ -177,6 +177,7 @@ const
   cFI_FormWXSendlog     = $1092;                     //微信日志
 
   cFI_FormTransBase     = $1093;                     //短倒办理
+  cFI_FormTransDetail   = $1094;                     //短倒办理
   cFI_FormMaterailTunnel= $1120;                     //原材料验收通道
 
   cFI_FormTodo          = $1131;                     //需干预事件

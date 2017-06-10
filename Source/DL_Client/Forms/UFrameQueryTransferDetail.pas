@@ -40,6 +40,7 @@ type
     procedure N2Click(Sender: TObject);
     procedure BtnDelClick(Sender: TObject);
     procedure N1Click(Sender: TObject);
+    procedure BtnEditClick(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -62,7 +63,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UFormDateFilter, USysPopedom, USysBusiness,
-  UBusinessConst, USysConst, USysDB;
+  UBusinessConst, USysConst, USysDB, UFormBase, UFormTransDetail;
 
 class function TfFrameTransferDetailQuery.FrameID: integer;
 begin
@@ -196,6 +197,17 @@ begin
   end;
 
   PrintDuanDaoReport(SQLQuery.FieldByName('T_ID').AsString, False);
+end;
+
+procedure TfFrameTransferDetailQuery.BtnEditClick(Sender: TObject);
+var nP: TFormCommandParam;
+begin
+  inherited;
+  nP.FCommand := cCmd_EditData;
+  nP.FParamA := SQLQuery.FieldByName('T_ID').AsString;
+  CreateBaseFormItem(cFI_FormTransDetail, '', @nP);
+
+  InitFormData('');
 end;
 
 initialization

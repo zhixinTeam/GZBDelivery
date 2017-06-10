@@ -634,16 +634,43 @@ begin
 
   if m > 0 then
   begin
-    nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+    {$IFDEF GZBJM}
+    nStr := '散装订单超发%.2f吨,请联系开票员处理';
+    nStr := Format(nStr, [m]);
+    PlayVoice(nStr);
+
+
+    nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
              '※.订单编号: %s' + #13#10 +
              '※.提货净重: %.2f吨' + #13#10 +
              '※.需 补 交: %.2f吨' + #13#10+#13#10 +
-             '请到开票室办理补单手续,然后再次称重.';
+             '请到开票室办理补单手续,然后再次称重.若有可用提货单,请点击"是"按钮继续.';
     //xxxxx
-    
-    nHint := Format(nHint, [FInnerData.FCusID, FInnerData.FCusName,
-            FInnerData.FProject, nValue, m]);
 
+    nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
+            FInnerData.FProject, nValue, m]);
+    WriteSysLog(nStr);
+    if not QueryDlg(nStr, sHint) then Exit;
+
+    nStr := '';
+    while true do
+    begin
+      if not ShowInputBox('请输入新的提货单号:', '并单业务', nStr) then Exit;
+      nStr := Trim(nStr);
+
+      if (nStr = '') or  (CompareText(nStr, FInnerData.FProject) = 0) then
+      begin
+        ShowMsg('请输入有效单据', sHint);
+        Continue;
+      end;
+
+      FUIData.FMemo := nStr;
+      FUIData.FKZValue := m;
+
+      nValue := m;
+      Result := True; Break;
+    end;
+    {$ELSE}
     if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
     begin //开票员忽略后，认为司机卸货后再次过磅。
       nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
@@ -664,6 +691,7 @@ begin
 
     nValue := m;
     Result := True;
+    {$ENDIF}
   end else
   begin
     nValue := 0;

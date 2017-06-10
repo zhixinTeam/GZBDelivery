@@ -18,6 +18,8 @@ type
     dxLayout1Item3: TdxLayoutItem;
     EditIsVip: TcxComboBox;
     dxLayout1Item4: TdxLayoutItem;
+    EditStock: TcxComboBox;
+    dxLayout1Item6: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -124,6 +126,8 @@ begin
   LoadCustomer(EditAddrID.Properties.Items, 'C_XuNi=''Y''');
   //加载工地
 
+  LoadStockItems(EditStock.Properties.Items);
+  //载入发货品种
   LoadZTLineGroup(EditLineType.Properties.Items);
   //载入栈台类型列表
 end;
@@ -146,6 +150,9 @@ begin
           SF('M_CusPY', GetPinYinOfStr(EditCusID.Text)),
           SF('M_CusID', GetCtrlData(EditCusID)),
           SF('M_CusName', EditCusID.Text),
+
+          SF('M_StockNo', GetCtrlData(EditStock)),
+          SF('M_StockName', EditStock.Text),
 
           SF('M_AddrID', GetCtrlData(EditAddrID)),
           SF('M_AddrName', EditAddrID.Text),

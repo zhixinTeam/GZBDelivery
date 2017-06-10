@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBZX}
+{$DEFINE GZBJM}
 //特定系统
 
 //葛洲坝松滋
@@ -83,6 +83,10 @@
   //微信支持
   {$DEFINE CODECOMMON}
   //通用喷码
+  {.$DEFINE USECONTRACT}
+  //采购使用合同
+  {$DEFINE MITTruckProber}
+  //服务器操作车检
 {$ENDIF}
 
 //葛洲坝钟祥

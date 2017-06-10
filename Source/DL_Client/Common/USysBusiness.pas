@@ -72,6 +72,8 @@ function LoadCustomer(const nList: TStrings; const nWhere: string = ''): Boolean
 function LoadCustomerInfo(const nCID: string; const nList: TcxMCListBox;
  var nHint: string): TDataSet;
 //载入客户信息
+function LoadStockItems(const nList: TStrings): Boolean;
+//读取发货品种列表
 
 function IsZhiKaNeedVerify: Boolean;
 //纸卡是否需要审核
@@ -807,6 +809,20 @@ begin
 
   AdjustStringsItem(nList, True);
   FDM.FillStringsData(nList, nStr, -1, '.', DSA(['C_ID']));
+
+  AdjustStringsItem(nList, False);
+  Result := nList.Count > 0;
+end;
+
+function LoadStockItems(const nList: TStrings): Boolean;
+var nStr: string;
+begin
+  nStr := 'D_ParamB=Select D_ParamB,D_Value From %s ' +
+          'Where D_Name=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_StockItem]);
+
+  AdjustStringsItem(nList, True);
+  FDM.FillStringsData(nList, nStr, -1, '.', DSA(['D_ParamB']));
 
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;

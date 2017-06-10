@@ -499,6 +499,8 @@ begin
    Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
   nRequest := PackerDecodeStr(fin.FData);
+
+  WriteLog(Format('Out => [%s]', [nOut.FData]));
   nCardData := TStringList.Create;
   nCardItem := TStringList.Create;
   try
@@ -506,6 +508,7 @@ begin
     if Result then
     begin
       nCardData.Text := PackerDecodeStr(nOut.FData);
+      WriteLog(Format('nCardData => [count.%d]', [nCardData.Count]));
       nCardItem.Text := PackerDecodeStr(nCardData.Strings[0]);
       with FPacker.XMLBuilder do
       begin
@@ -520,6 +523,7 @@ begin
           for i := 0 to nCardData.Count-1 do
           begin
             nCardItem.Text := PackerDecodeStr(nCardData.Strings[i]);
+            WriteLog(Format('nCardData[%d] => [%s]', [i, nCardItem.Text]));
             with NodeNew('Item') do
             begin
               if Pos('´ü', nCardItem.Values['XCB_CementName']) > 0 then

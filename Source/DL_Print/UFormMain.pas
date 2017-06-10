@@ -38,6 +38,8 @@ type
     { Private declarations }
     FTrayIcon: TTrayIcon;
     {*状态栏图标*}
+    FIsBusy: Boolean;
+    //打印机忙
     FBillList: TStrings;
     FSyncLock: TCriticalSection;
     //同步锁
@@ -84,13 +86,14 @@ begin
   gPath := ExtractFilePath(Application.ExeName);
   InitGlobalVariant(gPath, gPath+sConfig, gPath+sForm, gPath+sDB);
   
-  gSysLoger := TSysLoger.Create(gPath + 'Logs\');
+  gSysLoger := TSysLoger.Create(gPath + 'Logs\', sAutoStartKey);
   gSysLoger.LogEvent := ShowLog;
 
   FTrayIcon := TTrayIcon.Create(Self);
   FTrayIcon.Hint := Caption;
   FTrayIcon.Visible := True;
-  
+
+  FIsBusy := False;
   FBillList := TStringList.Create;
   FSyncLock := TCriticalSection.Create;
   //new item 
@@ -320,10 +323,6 @@ var nStr: string;
 begin
   Result := False;
 
-  {$IFDEF GZBZX}
-  if Length(nPrinter) < 1 then Exit;
-  {$ENDIF}
-
   nStr := 'Select * From %s oo Inner Join %s od on oo.O_ID=od.D_OID Where D_ID=''%s''';
   nStr := Format(nStr, [sTable_Order, sTable_OrderDtl, nOrder]);
 
@@ -456,7 +455,7 @@ procedure TfFormMain.Timer2Timer(Sender: TObject);
 var nPos: Integer;
     nBill,nHint,nPrinter,nMoney, nType: string;
 begin
-  while True do
+  if not FIsBusy then
   begin
     FSyncLock.Enter;
     try
@@ -496,15 +495,24 @@ begin
       System.Delete(nPrinter, 1, nPos);
     end else nPrinter := '';
 
-    WriteLog('开始打印: ' + nBill);
-    if nType = 'P' then
-         PrintOrderReport(nBill, nHint, nPrinter) else
-    if nType = 'S' then
-         PrintBillReport(nBill, nHint, nPrinter, nMoney) else
-    if nType = 'D' then
-         PrintDDReport(nBill, nHint, nPrinter)
-    else PrintPoundReport(nBill, nHint, nPrinter);
-    WriteLog('打印结束.' + nHint);
+    if nPrinter = '' then Exit;
+    //未指定打印机
+
+    try
+      FIsBusy := True;
+
+      WriteLog('开始打印: ' + nBill);
+      if nType = 'P' then
+           PrintOrderReport(nBill, nHint, nPrinter) else
+      if nType = 'S' then
+           PrintBillReport(nBill, nHint, nPrinter, nMoney) else
+      if nType = 'D' then
+           PrintDDReport(nBill, nHint, nPrinter)
+      else PrintPoundReport(nBill, nHint, nPrinter);
+      WriteLog('打印结束.' + nHint);
+    finally
+      FIsBusy := False;
+    end;
   end;
 end;
 

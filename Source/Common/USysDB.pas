@@ -1575,6 +1575,7 @@ const
   sSQL_NewYTCusBatMap = 'Create Table $Table(R_ID $Inc, ' +
        'M_CusID varChar(32), M_CusPY varChar(128), M_CusName varChar(256), ' +
        'M_AddrID varChar(32), M_AddrName varChar(256), ' +
+       'M_StockNo varChar(32), M_StockName varChar(256), ' +
        'M_Line varChar(32), M_LineName varChar(64), M_LineGroup varChar(32),' +
        'M_IsVip Char(1), M_BatCode varChar(32), M_Memo varChar(128))';
   {-----------------------------------------------------------------------------
@@ -1583,6 +1584,7 @@ const
    *.M_CusID,M_CusPY,M_CusName: 客户ID, 拼音, 名称
    *.M_AddrID, M_AddrName: 工地ID, 工地名称
    *.M_Line, M_LineName, M_LineGroup: 放灰库,放灰库名称,通道分组
+   *.M_StockNo, M_StockName: 品种编号, 品种名称
    *.M_IsVip: 专库专用(Y、是;N、否)
    *.M_BatCode: 指定批次
    *.M_Memo: 备注

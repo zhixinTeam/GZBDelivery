@@ -85,7 +85,7 @@ begin
 
   gMemDataManager := TMemDataManager.Create;
 
-  gSysLoger := TSysLoger.Create(gPath + 'Logs\');
+  gSysLoger := TSysLoger.Create(gPath + 'Logs\', sAutoStartKey);
   gSysLoger.LogEvent := ShowLog;
 
   FTrayIcon := TTrayIcon.Create(Self);
