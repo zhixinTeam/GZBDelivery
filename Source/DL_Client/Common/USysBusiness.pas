@@ -2745,7 +2745,8 @@ end;
 //Desc: 处理三合一读卡器信息
 function DealManualEvent(const nEID, nResult: string): Boolean;
 var nStr,nSQL: string;
-    nList: TStrings;
+    m, f, nValue: Double;
+    nList, nListB: TStrings;
     nBills: TLadingBillItems;
 begin
   Result := True;
@@ -2763,6 +2764,7 @@ begin
     if RecordCount > 0 then
     begin
       nList := TStringList.Create;
+      nListB:= TStringList.Create;
       try
         SplitStr(FieldByName('E_Memo').AsString, nList, 0, ';', False);
 
@@ -2770,19 +2772,35 @@ begin
           nBills) then
           Exit;
 
-        while True do
+        nStr := nBills[0].FProject;
+        //原始大票号
+
+        if not (YT_ReadCardInfo(nStr) and
+          YT_VerifyCardInfo(nStr, sFlag_AllowZeroNum)) then
         begin
-          if not ShowInputBox('请输入新的提货单号:', '散装并单业务', nStr) then Exit;
-          nStr := Trim(nStr);
-
-          if (nStr = '') or  (CompareText(nStr, nBills[0].FProject) = 0) then
-          begin
-            ShowMsg('请重新输入', sHint);
-            Continue;
-          end;
-
-          Break;
+          ShowDlg(nStr, sHint);
+          Exit;
         end;
+
+        nListB.Text := PackerDecodeStr(nStr);
+        //读取订单
+        m := StrToFloat(nListB.Values['XCB_RemainNum']);
+        //订单剩余量
+
+        nValue := StrToFloat(nList.Values['Pound_MValue'])-nBills[0].FPData.FValue;
+
+        f := nValue - nBills[0].FValue;
+        //开单量和净重差额
+        nStr := '提货单号[%s]详情如下:' + #13#10 +
+                '※.提货净重: %s吨' + #13#10 +
+                '※.开 票 量: %s吨' + #13#10 +
+                '※.订单剩余: %s吨' + #13#10 +
+                '※.超发数量: %s吨' + #13#10 +
+                '请核对信息!';
+        nStr := Format(nStr, [nBills[0].FID, FloatToStr(nValue),
+                FloatToStr(nBills[0].FValue),FloatToStr(m),FloatToStr(f)]);
+        WriteLog(nStr);
+        //xxxxx
 
         with nBills[0] do
         begin
@@ -2793,8 +2811,41 @@ begin
             FOperator := gSysParam.FUserID;
           end;
 
-          FMemo := nStr;
-          FKZValue := StrToFloatDef(nList.Values['m'], 0);
+          nStr := '';
+          m := f - m;
+          //可用量是否够用
+          if m > 0 then
+          begin
+            nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+                    '※.订单编号: %s' + #13#10 +
+                    '※.提货净重: %.2f吨' + #13#10 +
+                    '※.需 补 交: %.2f吨' + #13#10+#13#10 +
+                    '请到开票室办理补单手续.若有可用提货单,请点击"是"按钮继续.';
+            //xxxxx
+
+            nStr := Format(nStr, [FCusID, FCusName,
+                    FProject, nValue, m]);
+            WriteLog(nStr);
+            if not QueryDlg(nStr, sHint) then Exit;
+
+            while True do
+            begin
+              if not ShowInputBox('请输入新的提货单号:', '散装并单业务', nStr) then
+                Exit;
+              nStr := Trim(nStr);
+
+              if (nStr = '') or  (CompareText(nStr, nBills[0].FProject) = 0) then
+              begin
+                ShowMsg('请重新输入', sHint);
+                Continue;
+              end;
+
+              FMemo := nStr;
+              FKZValue := m;
+              Break;
+            end;
+          end;
+
           //散装并单信息
 
           FPoundID := sFlag_Yes;

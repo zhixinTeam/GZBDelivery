@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBZX}
 //特定系统
 
 //葛洲坝松滋

@@ -1646,6 +1646,11 @@ begin
     Exit;
   end;
 
+  {$IFDEF GZBZX}
+  FOut.FData := '';
+  Exit;
+  {$ENDIF}
+
   nStr := 'Select B_Prefix, B_IDLen From %s ' +
           'Where B_Group=''%s'' And B_Object=''%s''';
   nStr := Format(nStr, [sTable_SerialBase, sFlag_BusGroup, sFlag_BillNo]);

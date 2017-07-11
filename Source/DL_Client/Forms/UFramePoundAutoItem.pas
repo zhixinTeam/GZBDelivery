@@ -773,13 +773,20 @@ begin
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
           ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF))))then
       begin
+        {$IFDEF GZBJM}
+        nHint := '车辆[n1]%s净重与开票量误差较大,请联系管理员处理';
+        nHint := Format(nHint, [FTruck]);
+        PlayVoice(nHint);
+
         nHint := '车辆[ %s ]实际装车量误差较大,详情如下:' + #13#10 +
                 '※.开单量: %.2f吨' + #13#10 +
                 '※.装车量: %.2f吨' + #13#10 +
                 '※.误差量: %.2f公斤' + #13#10 +
                 '请确认是否可以过磅';
         nHint := Format(nHint, [FTruck, FInnerData.FValue, nNet, nVal]);
-
+        WriteSysLog(nHint);
+        if not QueryDlg(nHint, sHint) then Exit;
+        {$ELSE}
         if not VerifyManualEventRecord(FID + sFlag_ManualC, nHint) then
         begin
           AddManualEventRecord(FID + sFlag_ManualC, FTruck, nHint,
@@ -792,6 +799,7 @@ begin
           PlayVoice(nHint);
           Exit;
         end;
+        {$ENDIF}
       end;
 
       FUIData.FMemo := '';
