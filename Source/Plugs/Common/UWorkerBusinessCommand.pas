@@ -2110,7 +2110,7 @@ end;
 
 //获取采购合同列表，用于网上下单
 function TWorkerBusinessCommander.GetPurchaseContractList(var nData:string):Boolean;
-var nStr:string;
+var nStr:string; dSet:TDataSet;
 begin
   Result := False;
   //nStr := 'select * from %s where provider_code=''%s'' and con_status>0 and con_quantity-con_finished_quantity>0.00001';
@@ -2121,8 +2121,26 @@ begin
   begin
     if RecordCount < 1 then
     begin
-      nData := Format('未查询到供应商[ %s ]对应的订单信息.', [FIn.FData]);
-      Exit;
+      nStr := 'select B_ID as pcId, ' +
+              'B_ProID as provider_code, ' +
+              'B_ProName as provider_name, ' +
+              'B_ID as con_code, ' +
+              'B_StockNo as con_materiel_Code, ' +
+              'B_StockName as con_materiel_name, ' +
+              '0 as con_price, ' +
+              'B_Value as con_quantity, ' +
+              'B_SentValue as con_finished_quantity, ' +
+              'B_Date as con_date, ' +
+              'B_Memo as con_remark' + ' from %s where B_ProID=''%s'' and B_BStatus=''%s''';
+      nStr := format(nStr,[sTable_OrderBase,Trim(FIn.FData),sFlag_Yes]);
+      dSet := gDBConnManager.WorkerQuery(FDBConn, nStr);
+      //荆门无合同表 执行申请表查询
+      if dSet.RecordCount < 1 then
+      begin
+        nStr := format(nStr,[sTable_OrderBase,Trim(FIn.FData)]);
+        nData := Format('未查询到供应商[ %s ]对应的订单信息.', [FIn.FData]);
+        Exit;
+      end;
     end;
 
     FListA.Clear;
