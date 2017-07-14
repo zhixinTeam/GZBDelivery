@@ -496,11 +496,11 @@ var nOut: TWorkerBusinessCommand;
   i:Integer;
   nRequest,nResponse:string;
 begin
-   Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
+  Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
-  nRequest := PackerDecodeStr(fin.FData);
+  nRequest := nData;
 
-  WriteLog(Format('Out => [%s]', [nOut.FData]));
+//  WriteLog(Format('Out => [%s]', [nOut.FData]));
   nCardData := TStringList.Create;
   nCardItem := TStringList.Create;
   try
@@ -555,7 +555,7 @@ begin
   nData := FPacker.XMLBuilder.WriteToString;
   nResponse := FPacker.XMLBuilder.WriteToString;
   WriteLog('TBusWorkerBusinessWebchat.GetOrderList request='+nRequest);
-  WriteLog('TBusWorkerBusinessWebchat.GetOrderList request='+nResponse);
+  WriteLog('TBusWorkerBusinessWebchat.GetOrderList Response='+nResponse);
 end;
 
 //获取采购合同列表
@@ -570,7 +570,7 @@ begin
               @nOut, cBC_GetPurchaseContractList, Trim(FIn.FRemoteUL));
   nCardData := TStringList.Create;
   nCardItem := TStringList.Create;
-  nRequest := PackerDecodeStr(fin.FData);
+  nRequest := nData;
   try
     BuildDefaultXMLPack;
     if Result then
@@ -618,7 +618,7 @@ begin
   nData := FPacker.XMLBuilder.WriteToString;
   nResponse := FPacker.XMLBuilder.WriteToString;
   WriteLog('TBusWorkerBusinessWebchat.GetPurchaseContractList request='+nRequest);
-  WriteLog('TBusWorkerBusinessWebchat.GetPurchaseContractList request='+nResponse);
+  WriteLog('TBusWorkerBusinessWebchat.GetPurchaseContractList response='+nResponse);
 end;
 
 //获取客户注册信息

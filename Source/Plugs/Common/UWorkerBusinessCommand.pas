@@ -4342,10 +4342,16 @@ begin
   nDBWorker := nil;
   try
     //nStr := 'Select * From v_notify_print Where CNO_Del=''0'' ';
-    nStr := 'select  cf_notify_outwork.*,pf_analy_outwork.*, ' +
+    nStr := 'select cno.CNO_ID,cno.CNO_NOTIFYID,cno.CNO_CEMENTCODE,'+
+            'cno.CNO_CEMENTYEAR,cno.CNO_PACKCODE,cno.CNO_CEMENT,cno.CNO_DEPOSITARY,'+
+            'cno.CNO_COUNT,cno.CNO_REMAINCOUNT,cno.CNO_PACKDATE,cno.CNO_SETDATE,cno.CNO_OPERMAN,'+
+            'cno.CNO_CLIENTID,cno.CNO_STATUS,cno.CNO_DEL,cno.CNO_CREATOR,'+
+            'cno.CNO_CDATE,cno.CNO_MENDER,cno.CNO_MDATE,cno.CNO_FIRM,'
+            +'to_char(substr(cno.CNO_REMARK,1,500)) as CNO_REMARK,'+
+            'pf_analy_outwork.*, ' +
             'hf_analy_outwork.*,pcd_name,pf_analy_native.*,' +
             'PCM_ID,pcm_molding ' +
-            'from cf_notify_outwork ' +
+            'from cf_notify_outwork cno ' +
             'left join  pf_analy_outwork on trim(cno_cementcode) = trim(paw_analy) ' +
             'left join hf_analy_outwork on cno_cementcode=haw_analy ' +
             'left join pb_code_material mater1 on mater1.pcm_id=paw_cement ' +
@@ -4836,9 +4842,14 @@ begin
 
     Result := True;
   except
-    if FDBConn.FConn.InTransaction then
-      FDBConn.FConn.RollbackTrans;
-    raise;
+  	on E:Exception do
+  	begin
+	  	writelog('SyncYT_BatchCodeInfo exception:'+e.Message+',sql1=['+FListA[nIdx]+']');
+	  	writelog('SyncYT_BatchCodeInfo exception:'+e.Message+',sql2=['+FListB.Values['Index_' + IntToStr(nIdx)]+']');
+	    if FDBConn.FConn.InTransaction then
+	      FDBConn.FConn.RollbackTrans;
+	    raise;  	
+  	end;
   end;
 end;
 
