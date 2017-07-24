@@ -2,22 +2,22 @@ inherited fFormZTLine: TfFormZTLine
   Left = 536
   Top = 401
   Caption = #35013#36710#32447#37197#32622
-  ClientHeight = 247
+  ClientHeight = 248
   ClientWidth = 550
   Position = poMainFormCenter
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
     Width = 550
-    Height = 247
+    Height = 248
     inherited BtnOK: TButton
       Left = 404
-      Top = 214
+      Top = 215
       TabOrder = 13
     end
     inherited BtnExit: TButton
       Left = 474
-      Top = 214
+      Top = 215
       TabOrder = 14
     end
     object EditName: TcxTextEdit [2]
@@ -51,7 +51,7 @@ inherited fFormZTLine: TfFormZTLine
     end
     object CheckValid: TcxCheckBox [5]
       Left = 11
-      Top = 214
+      Top = 215
       Hint = 'T.Z_Valid'
       Caption = #36890#36947#26377#25928
       ParentFont = False
@@ -132,13 +132,14 @@ inherited fFormZTLine: TfFormZTLine
       Left = 81
       Top = 111
       Hint = 'T.Z_Group'
+      ParentFont = False
       TabOrder = 5
       Width = 121
     end
     object cxLabel1: TcxLabel [14]
       Left = 296
       Top = 107
-      Caption = #27880': '#35813#21442#25968#24433#21709#36827#38431#21015#30340#25209#27425#21495'.'
+      Caption = #27880': '#35813#21442#25968#24433#21709#36827#38431#21015#30340#21457#36135#21333#20998#32452
       ParentFont = False
       Transparent = True
     end
@@ -190,7 +191,7 @@ inherited fFormZTLine: TfFormZTLine
             Hidden = True
             LayoutDirection = ldHorizontal
             ShowBorder = False
-            object dxLayout1Group7: TdxLayoutGroup
+            object dxLayout1Group6: TdxLayoutGroup
               ShowCaption = False
               Hidden = True
               ShowBorder = False
@@ -205,7 +206,7 @@ inherited fFormZTLine: TfFormZTLine
                 ControlOptions.ShowBorder = False
               end
             end
-            object dxLayout1Group5: TdxLayoutGroup
+            object dxLayout1Group7: TdxLayoutGroup
               ShowCaption = False
               Hidden = True
               ShowBorder = False
@@ -216,6 +217,7 @@ inherited fFormZTLine: TfFormZTLine
                 ControlOptions.ShowBorder = False
               end
               object dxLayout1Item9: TdxLayoutItem
+                Caption = 'cxLabel1'
                 ShowCaption = False
                 Control = cxLabel1
                 ControlOptions.ShowBorder = False

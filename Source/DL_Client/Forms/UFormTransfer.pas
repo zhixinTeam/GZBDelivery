@@ -86,12 +86,21 @@ begin
 end;
 
 procedure TfFormTransfer.BtnOKClick(Sender: TObject);
-var nStr: string;
-    nIdx: Integer;
+var nIdx: Integer;
     nList: TStrings;
     nP: TFormCommandParam;
+    nStr, nStock, nStockName: string;
 begin
-  nIdx := Integer(EditMID.Properties.Items.Objects[EditMID.ItemIndex]);
+  if EditMID.ItemIndex >=0 then
+  begin
+    nIdx := Integer(EditMID.Properties.Items.Objects[EditMID.ItemIndex]);
+    nStock := gMateItems[nIdx].FID;
+    nStockName := gMateItems[nIdx].FName;
+  end  else
+  begin
+    nStock := Trim(EditMID.Text);
+    nStockName := Trim(EditMate.Text);
+  end;  
 
   nList := TStringList.Create;
   try
@@ -100,8 +109,8 @@ begin
       Values['Truck'] := Trim(EditTruck.Text);
       Values['SrcAddr'] := Trim(EditSrcAddr.Text);
       Values['DestAddr']  := Trim(EditDstAddr.Text);
-      Values['StockNo'] := gMateItems[nIdx].FID;
-      Values['StockName'] := gMateItems[nIdx].FName;
+      Values['StockNo'] := nStock;
+      Values['StockName'] := nStockName;
     end;
 
     nStr := SaveDDBases(PackerEncodeStr(nList.Text));

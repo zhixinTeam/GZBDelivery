@@ -1016,8 +1016,17 @@ begin
   else Timer_SaveFail.Enabled := True;
 
   if FBarrierGate then
+  begin
+    {$IFDEF ERROPENONEDOOR}
+    if not nRet then
+    begin
+      OpenDoorByReader(FLastReader, sFlag_Yes);
+      Exit;
+    end;  
+    {$ENDIF}
     OpenDoorByReader(FLastReader, sFlag_No);
-  //打开副道闸
+    //打开副道闸
+  end;
 end;
 
 procedure TfFrameAutoPoundItem.TimerDelayTimer(Sender: TObject);

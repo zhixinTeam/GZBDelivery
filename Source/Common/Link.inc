@@ -67,6 +67,8 @@
   //微信支持
   {$DEFINE CODEAREA}
   //喷码打印销售区域
+  {$DEFINE ERROPENONEDOOR}
+  //过磅失败倒车下磅
 {$ENDIF}
 
 //葛洲坝荆门

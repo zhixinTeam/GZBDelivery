@@ -48,7 +48,9 @@ object FDM: TFDM
     Style.TextColor = 4227072
     Style.IsFontAssigned = True
     StyleDisabled.Color = clWindow
+    StyleFocused.BorderStyle = ebsOffice11
     StyleFocused.Color = clInfoBk
+    StyleHot.BorderStyle = ebsOffice11
     Left = 24
     Top = 128
     PixelsPerInch = 96

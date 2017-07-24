@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormZTLine;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -44,16 +45,18 @@ type
     dxLayout1Group12: TdxLayoutGroup;
     EditLineGroup: TcxComboBox;
     dxLayout1Item6: TdxLayoutItem;
-    dxLayout1Item9: TdxLayoutItem;
     cxLabel1: TcxLabel;
+    dxLayout1Item9: TdxLayoutItem;
+    dxLayout1Group6: TdxLayoutGroup;
     dxLayout1Group7: TdxLayoutGroup;
-    dxLayout1Group5: TdxLayoutGroup;
     procedure BtnOKClick(Sender: TObject);
     procedure EditStockIDPropertiesChange(Sender: TObject);
   protected
     { Protected declarations }
     FID: string;
     //标识
+    procedure WriteSysLog(const nID:string);
+    //记录操作日志
     procedure InitFormData(const nID: string);
     procedure GetData(Sender: TObject; var nData: string);
     function SetData(Sender: TObject; const nData: string): Boolean;
@@ -75,7 +78,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UDataModule, UFormInputbox, USysGrid,
-  UFormCtrl, USysDB, USysConst ,USysLoger, USysBusiness;
+  UFormCtrl, USysDB, USysConst ,USysLoger, USysBusiness, UAdjustForm;
 
 type
   TLineStockItem = record
@@ -83,11 +86,24 @@ type
     FName : string;
   end;
 
+  TFormInfoItem = record
+    FID       : string;
+    FName     : string;
+    FGroup    : string;
+    FStockID  : string;
+    FStockName: string;
+
+    FType     : string;
+    FMax      : string;
+    FPeer     : string;
+  end;
+
 var
   gStockItems: array of TLineStockItem;
   //品种列表
    gCheckValid: boolean;
   //通道钩选属性
+  gOldInfo: TFormInfoItem;
 
 function ShowAddZTLineForm: Boolean;
 begin
@@ -144,6 +160,16 @@ begin
   if nID <> '' then
   begin
     EditID.Properties.ReadOnly := True;
+    {$IFDEF GZBZX}
+    EditName.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditStockID.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditStockName.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditType.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditLineGroup.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditMax.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    EditPeer.Properties.ReadOnly := not gSysParam.FIsAdmin;
+    {$ENDIF}
+
     nStr := 'Select * From %s Where Z_ID=''%s''';
     nStr := Format(nStr, [sTable_ZTLines, nID]);
 
@@ -151,10 +177,25 @@ begin
     begin
       EditStockID.Text := FDM.SqlTemp.FieldByName('Z_StockNo').AsString;
       LoadDataToCtrl(FDM.SqlTemp, Self, '', SetData);
+
+      with gOldInfo do
+      begin
+        FID     := EditID.Text;
+        FName   := EditName.Text;
+        FGroup  := GetCtrlData(EditLineGroup);
+
+        FStockID:= EditStockID.Text;
+        FStockName:=EditStockName.Text;
+        
+        FType   := EditType.Text;
+        FPeer   := EditPeer.Text;
+        FMax    := EditMax.Text;
+      end;  
     end;
   end;
 
-  nStr := 'Select D_Value,D_ParamB From %s Where D_Name=''%s''';
+  nStr := 'Select D_Value,D_ParamB From %s Where D_Name=''%s'' ' +
+          'And D_Index>=0 Order By D_Index DESC';
   nStr := Format(nStr, [sTable_SysDict, sFlag_StockItem]);
 
   EditStockID.Properties.Items.Clear;
@@ -211,6 +252,12 @@ begin
   begin
     Result := True;
     CheckValid.Checked := nData <> sFlag_No;
+  end else
+
+  if Sender = EditLineGroup then
+  begin
+    Result := True;
+    SetCtrlData(EditLineGroup, Trim(nData));
   end;
 end;
 
@@ -284,6 +331,63 @@ begin
   end;
 end;
 
+procedure TfFormZTLine.WriteSysLog(const nID: string);
+var nEvent: string;
+begin
+  if nID='' then Exit;
+  with gOldInfo do
+  begin
+    if FID<>EditID.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FID, EditID.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FName<>EditName.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FName, EditName.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FStockName<>EditStockName.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FStockName, EditStockName.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FPeer<>EditPeer.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FPeer, EditPeer.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FType<>EditType.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FType, EditType.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FMax<>EditMax.Text then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FMax, EditMax.Text]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+
+    if FGroup<>GetCtrlData(EditLineGroup) then
+    begin
+      nEvent := '通道 [ %s ] 信息由  [ %s ] 变为 [ %s ] ';
+      nEvent := Format(nEvent, [EditID.Text, FGroup, GetCtrlData(EditLineGroup)]);
+      FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
+    end;
+  end;  
+end;
+
 procedure TfFormZTLine.BtnOKClick(Sender: TObject);
 var nIdx: Integer;
     nList: TStrings;
@@ -325,6 +429,7 @@ begin
        nEvent := Format(nEvent, [EditID.Text]);
        FDM.WriteSysLog(sFlag_TruckQueue, 'UFromZTline',nEvent);
   end;
+  WriteSysLog(FID);
   //--写入操作通道日志
   ShowMsg('通道已保存,请等待刷新', sHint);
 end;
