@@ -614,6 +614,7 @@ begin
   nWeborder := FListA.Values['WebOrderID'];
   //unpack Order
 
+  {$IFNDEF MultiOrderOfTruck}
   //begin判断该车牌号是否有未完成业务
   nStr := 'select O_ID from %s where O_Truck=''%s'' and O_Card<>'''' ';
   nStr := Format(nStr,[sTable_Order, FListA.Values['Truck']]);
@@ -630,6 +631,7 @@ begin
     end;
   end;
   //end判断该车牌号是否有未完成业务
+  {$ENDIF}
   
   TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, FListA.Values['Truck'],
     '', @nOut);

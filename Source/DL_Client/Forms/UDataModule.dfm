@@ -39,6 +39,7 @@ object FDM: TFDM
     DesignInfo = 4456576
   end
   object edtStyle: TcxDefaultEditStyleController
+    Style.BorderStyle = ebsOffice11
     Style.Edges = [bBottom]
     Style.Font.Charset = GB2312_CHARSET
     Style.Font.Color = clBlack
@@ -47,6 +48,7 @@ object FDM: TFDM
     Style.Font.Style = []
     Style.TextColor = 4227072
     Style.IsFontAssigned = True
+    StyleDisabled.BorderStyle = ebsOffice11
     StyleDisabled.Color = clWindow
     StyleFocused.BorderStyle = ebsOffice11
     StyleFocused.Color = clInfoBk

@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFramePurchaseOrder;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -305,6 +306,10 @@ var
   nWebOrderId:string;
   nXmlStr,nData,nSql:string;
 begin
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   nWebOrderId := '';
   //查询网上商城订单
   nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
@@ -339,6 +344,10 @@ procedure TfFramePurchaseOrder.SendMsgToWebMall(const nOid: string);
 var
   nXmlStr,nData:string;
 begin
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
         +'<DATA>'
         +'<head>'

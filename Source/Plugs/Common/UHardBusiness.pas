@@ -557,6 +557,10 @@ var nBills: TLadingBillItems;
     nIdx:Integer;
     nNetWeight:Double;
 begin
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   nNetWeight := 0;
   if nBillType=sFlag_Sale then
   begin
@@ -641,6 +645,10 @@ var
   nIdx:Integer;
   FNetWeight:Double;
 begin
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   FNetWeight := 0;
   nWebOrderId := AWebOrderID;
   nDBConn := nil;

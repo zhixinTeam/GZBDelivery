@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBZX}
+{$DEFINE GZBJM}
 //特定系统
 
 //葛洲坝松滋
@@ -67,8 +67,10 @@
   //微信支持
   {$DEFINE CODEAREA}
   //喷码打印销售区域
-  {$DEFINE ERROPENONEDOOR}
+  {.$DEFINE ERROPENONEDOOR}
   //过磅失败倒车下磅
+  {$DEFINE MultiOrderOfTruck}
+  //允许车辆办理多张采购单
 {$ENDIF}
 
 //葛洲坝荆门
@@ -89,6 +91,8 @@
   //采购使用合同
   {$DEFINE MITTruckProber}
   //服务器操作车检
+  {$DEFINE EnableWebMall}
+  //使用网上商城
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -113,5 +117,7 @@
   //车辆循环进厂
   {$DEFINE USECONTRACT}
   //采购使用合同
+  {$DEFINE EnableWebMall}
+  //使用网上商城
 {$ENDIF}
 

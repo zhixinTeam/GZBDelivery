@@ -416,7 +416,10 @@ var
   i:Integer;
   nItem:TLadingBillItem;
 begin
-
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   //加载提货单信息
   if not GetLadingBills(nBillno, sFlag_BillDel, nBills) then
   begin
@@ -489,6 +492,10 @@ var
   nWebOrderId:string;
   nXmlStr,nData,nSql:string;
 begin
+  {$IFNDEF EnableWebMall}
+  Exit;
+  {$ENDIF}
+  
   nWebOrderId := '';
   //查询网上商城订单
   nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';

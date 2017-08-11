@@ -518,6 +518,16 @@ begin
 
       nCode := Dbc2Sbc(nCode); 
       {$ENDIF}
+
+      {$IFDEF GZBJM}
+      //荆门喷码规则: 出厂日期6位+ P + 化验批次11位＋3位流水号
+      nCode := FieldByName('L_ID').AsString;
+      System.Delete(nCode, 1, nPrefixLen);
+      //日期(YYMMDD) + 流水(XXX)
+
+      nStr := 'P' + FieldByName('L_HYDan').AsString;
+      System.Insert(nStr, nCode, 7);
+      {$ENDIF}
     end;
   end;
 
