@@ -527,6 +527,7 @@ begin
 
       nStr := 'P' + FieldByName('L_HYDan').AsString;
       System.Insert(nStr, nCode, 7);
+      nCode := Dbc2Sbc(nCode);
       {$ENDIF}
     end;
   end;
