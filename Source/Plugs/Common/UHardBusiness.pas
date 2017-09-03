@@ -12,7 +12,7 @@ uses
   UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue,
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
-  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100,umitconst;
+  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UMITConst;
 
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
@@ -43,7 +43,7 @@ function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
 implementation
 
 uses
-  ULibFun, USysDB, USysLoger, UTaskMonitor,UWorkerBusinessCommand;
+  ULibFun, USysDB, USysLoger, UTaskMonitor, UWorkerBusinessCommand;
 
 const
   sPost_In   = 'in';
@@ -560,8 +560,7 @@ begin
   {$IFNDEF EnableWebMall}
   Exit;
   {$ENDIF}
-  
-  nNetWeight := 0;
+
   if nBillType=sFlag_Sale then
   begin
     //加载提货单信息

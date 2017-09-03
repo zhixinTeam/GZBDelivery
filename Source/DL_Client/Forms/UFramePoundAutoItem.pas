@@ -87,6 +87,8 @@ type
     //虚拟地磅编号
     FBarrierGate: Boolean;
     //是否采用道闸
+    FPoundMinNetWeight: Double;
+    //净重最小值(除销售以外业务使用)
     FEmptyPoundInit, FDoneEmptyPoundInit: Int64;
     //空磅计时,过磅保存后空磅
     FEmptyPoundIdleLong, FEmptyPoundIdleShort: Int64;
@@ -248,8 +250,10 @@ begin
   begin
     FVirPoundID  := Values['VirPoundID'];
     FBarrierGate := Values['BarrierGate'] = sFlag_Yes;
-    FEmptyPoundIdleLong := StrToInt64Def(Values['EmptyIdleLong'], 60);
-    FEmptyPoundIdleShort:= StrToInt64Def(Values['EmptyIdleShort'], 5);
+    
+    FEmptyPoundIdleLong   := StrToInt64Def(Values['EmptyIdleLong'], 60);
+    FEmptyPoundIdleShort  := StrToInt64Def(Values['EmptyIdleShort'], 5);
+    FPoundMinNetWeight    := StrToFloatDef(Values['MinNetWeight'], 0);
   end;
 end;
 
@@ -768,6 +772,7 @@ begin
     begin
       if (FType = sFlag_Dai) then
         GetPoundAutoWuCha(FPoundDaiZ, FPoundDaiF, FInnerData.FValue);
+      //xxxxx
 
       if ((FType = sFlag_Dai) and (
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
@@ -848,10 +853,12 @@ end;
 //------------------------------------------------------------------------------
 //Desc: 原材料或临时
 function TfFrameAutoPoundItem.SavePoundData: Boolean;
-var nNextStatus: string;
+var nStr: string;
+    nVal: Double;
 begin
   Result := False;
   //init
+
   if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) then
   begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
@@ -859,9 +866,31 @@ begin
       WriteLog('皮重应小于毛重');
       Exit;
     end;
+
+    if FPoundMinNetWeight > 0 then
+    begin
+      nVal := FUIData.FMData.FValue - FUIData.FPData.FValue;
+      //净重
+
+      if nVal < FPoundMinNetWeight then
+      begin
+        nStr := '净重[%.2f<%.2f(下限)]不满足业务.';
+        nStr := Format(nStr, [nVal, FPoundMinNetWeight]);
+        WriteLog(nStr);
+
+        nStr := '车辆[ %s ]净重[%.2f<%.2f(下限)]无效,不保存本次称重.';
+        nStr := Format(nStr, [FUIData.FTruck, nVal, FPoundMinNetWeight]);
+        WriteSysLog(nStr);
+
+        nStr := '车辆[ %s ]本次称重无效,请下磅.';
+        nStr := Format(nStr, [FUIData.FTruck]);
+        PlayVoice(nStr);
+        Exit;
+      end;
+    end;
   end;
 
-  nNextStatus := FBillItems[0].FNextStatus;
+  nStr := FBillItems[0].FNextStatus;
   //暂存下一状态
 
   SetLength(FBillItems, 1);
@@ -879,8 +908,8 @@ begin
   end;
 
   if FCardUsed = sFlag_Provide then
-       Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel)
-  else Result := SaveDuanDaoItems(nNextStatus, FBillItems, FPoundTunnel);
+       Result := SavePurchaseOrders(nStr, FBillItems,FPoundTunnel)
+  else Result := SaveDuanDaoItems(nStr, FBillItems, FPoundTunnel);
   //保存称重
 
   if not Result then

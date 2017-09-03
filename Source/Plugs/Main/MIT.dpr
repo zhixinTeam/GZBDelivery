@@ -27,7 +27,8 @@ uses
   UFormParamSAP in '..\Forms\UFormParamSAP.pas' {fFormParamSAP},
   UFormPerform in '..\Forms\UFormPerform.pas' {fFormPerform},
   UFormServiceURL in '..\Forms\UFormServiceURL.pas' {fFormServiceURL},
-  UFramePlugs in '..\Forms\UFramePlugs.pas' {fFramePlugs: TFrame};
+  UFramePlugs in '..\Forms\UFramePlugs.pas' {fFramePlugs: TFrame},
+  UFrameStatus in '..\Forms\UFrameStatus.pas' {fFrameStatus: TFrame};
 
 {$R *.res}
 {$R RODLFile.RES}

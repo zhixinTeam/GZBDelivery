@@ -22,6 +22,7 @@ const
   cFI_FrameConfig     = $0006;                       //基本设置
   cFI_FrameParam      = $0007;                       //参数配置
   cFI_FramePlugs      = $0008;                       //插件管理
+  cFI_FrameStatus     = $0009;                       //对象状态
 
   {*Form ID*}
   cFI_FormPack        = $0050;                       //参数包
@@ -40,14 +41,6 @@ const
   cCmd_AddData        = $1003;                       //添加数据
   cCmd_EditData       = $1005;                       //修改数据
   cCmd_ViewData       = $1006;                       //查看数据
-
-  cSendWeChatMsgType_AddBill=1; //开提货单
-  cSendWeChatMsgType_OutFactory=2; //车辆出厂
-  cSendWeChatMsgType_Report=3; //报表
-  cSendWeChatMsgType_DelBill=4; //删提货单
-
-  c_WeChatStatusCreateCard=0;  //订单已办卡
-  c_WeChatStatusFinished=1;  //订单已完成  
 
 type
   TSysParam = record

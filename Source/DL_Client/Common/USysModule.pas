@@ -57,7 +57,7 @@ procedure FreeSystemObject;
 implementation
 
 uses
-  UMgrChannel, UChannelChooser, UDataModule, USysDB, USysMAC, SysUtils,
+  ULibFun, UMgrChannel, UChannelChooser, UDataModule, USysDB, USysMAC, SysUtils,
   USysLoger, USysConst,UMemDataPool, UFormBase;
 
 //Desc: 初始化系统对象
@@ -191,6 +191,20 @@ begin
     //xxxxx
   end;
 
+  //----------------------------------------------------------------------------
+  gSysParam.FFactory := '';
+  nStr := 'Select D_Value From %s where D_Name=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_FactoryID]);
+
+  with FDM.QueryTemp(nStr) do
+   if RecordCount > 0 then
+    gSysParam.FFactory := Trim(Fields[0].AsString);
+  //xxxxx
+
+  if gSysParam.FFactory = '' then
+    ShowMsg('请设置工厂ID', sHint);
+  //xxxxx
+           
   CreateBaseFormItem(cFI_FormTodo);
   //待处理事项
 end;

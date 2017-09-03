@@ -46,6 +46,8 @@ type
     //执行业务
     procedure WriteLog(const nEvent: string);
     //记录日志
+    class procedure InitLadingBillItem(var nItem: TLadingBillItem);
+    //初始化数据
   end;
 
   TWorkerBusinessCommander = class(TMITDBWorker)
@@ -299,6 +301,14 @@ end;
 procedure TMITDBWorker.WriteLog(const nEvent: string);
 begin
   gSysLoger.AddLog(TMITDBWorker, FunctionName, nEvent);
+end;
+
+//Desc: 初始化提货结构数据
+class procedure TMITDBWorker.InitLadingBillItem(var nItem: TLadingBillItem);
+var nDef: TLadingBillItem;
+begin
+  FillChar(nDef, SizeOf(nDef), #0);
+  nItem := nDef;
 end;
 
 //------------------------------------------------------------------------------
@@ -1692,7 +1702,7 @@ begin
   if nDs.RecordCount<1 then
   begin
     SetLength(nBills, 1);
-    ZeroMemory(@nBills[0],0);
+    InitLadingBillItem(nBills[0]);
     FOut.FData := CombineBillItmes(nBills);
     Exit;
   end;
@@ -1837,21 +1847,16 @@ end;
 //Desc: 网上订单可下单数量查询
 function TWorkerBusinessCommander.GetBillSurplusTonnage(var nData:string):boolean;
 var nStr,nCusID: string;
-    nVal,nCredit,nPrice: Double;
+    nVal,nPrice: Double;
     nStockNo:string;
 begin
-  nCusID := '';
-  nStockNo := '';
-  nPrice := 1;
-  nCredit := 0;
-  nVal := 0;
   Result := False;
-  nCusID := Fin.FData;
-  if nCusID='' then Exit;  
+  nCusID := FIn.FData;
+  if nCusID = '' then Exit;
   //未传递客户号
 
   nStockNo := Fin.FExtParam;
-  if nStockNo='' then Exit;
+  if nStockNo = '' then Exit;
   //未传递产品编号
 
   //产品销售价格表擦查询单价
@@ -1970,7 +1975,6 @@ end;
 function TWorkerBusinessCommander.GetOrderList(var nData:string):Boolean;
 var nWorker: PDBWorker;
     nTmp,nStr:string;
-    nIdx:Integer;
 begin
   Result := False;
   nTmp := Trim(FIn.FData);
@@ -2707,7 +2711,7 @@ begin
                   SF('XLB_PrintNum', '0', sfVal),
                   SF('XLB_IsCarry', '0'),
                   SF('XLB_IsOut', '0'),
-                  SF('XLB_IsCheck', '1'),
+                  SF('XLB_IsCheck', '0'),
                   SF('XLB_IsDoor', '0'),
                   SF('XLB_IsBack', '0'),
                   SF('XLB_IsInvo', '0'),
@@ -3631,7 +3635,7 @@ begin
                   //SF('XLB_DoorTime', DateTime2StrOracle(nSetDate), sfVal),
                   SF('XLB_IsCarry', '0'),
                   SF('XLB_IsOut', '0'),
-                  SF('XLB_IsCheck', '1'),
+                  SF('XLB_IsCheck', '0'),
                   SF('XLB_IsDoor', '0'),
                   SF('XLB_IsBack', '0'),
                   //SF('XLB_Gather', '1'),
@@ -4350,7 +4354,7 @@ end;
 //Desc: 同步云天批次号信息
 function TWorkerBusinessCommander.SyncYT_BatchCodeInfo(var nData: string): Boolean;
 var nStr: string;
-    nIdx: Integer;
+    nIdx,nInt: Integer;
     nDBWorker: PDBWorker;
 begin
   FListA.Clear;
@@ -4849,21 +4853,35 @@ begin
     gDBConnManager.ReleaseConnection(nDBWorker);
   end;
 
+  nInt := -1;
+  //init
+
   if FListA.Count > 0 then
   try
     FDBConn.FConn.BeginTrans;
 
     for nIdx:=0 to FListA.Count - 1 do
-    if gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]) < 1 then
-      gDBConnManager.WorkerExec(FDBConn, PackerDecodeStr(FListB.Values['Index_' + IntToStr(nIdx)]));
-    FDBConn.FConn.CommitTrans;
+    begin
+      nInt := nIdx;
+      if gDBConnManager.WorkerExec(FDBConn, FListA[nIdx]) < 1 then
+       gDBConnManager.WorkerExec(FDBConn,
+        PackerDecodeStr(FListB.Values['Index_' + IntToStr(nIdx)]));
+      //xxxxx
+    end;
 
+    FDBConn.FConn.CommitTrans;
     Result := True;
   except
   	on E:Exception do
   	begin
-	  	writelog('SyncYT_BatchCodeInfo exception:'+e.Message+',sql1=['+FListA[nIdx]+']');
-	  	writelog('SyncYT_BatchCodeInfo exception:'+e.Message+',sql2=['+FListB.Values['Index_' + IntToStr(nIdx)]+']');
+      if nInt > -1 then
+      begin
+	  	  writelog('SyncYT_BatchCodeInfo exception:' + e.Message +
+                 ',sql1=[' + FListA[nInt] + ']');
+	  	  writelog('SyncYT_BatchCodeInfo exception:' + e.Message +
+                 ',sql2=[' + FListB.Values['Index_' + IntToStr(nInt)] + ']');
+      end;
+
 	    if FDBConn.FConn.InTransaction then
 	      FDBConn.FConn.RollbackTrans;
 	    raise;  	

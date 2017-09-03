@@ -17,7 +17,8 @@ uses
   UWorkerBusinessCommand, UWorkerBusinessBill,
   UWorkerBusinessDuanDao, UWorkerBusinessOrders,
   {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}{$IFDEF DEBUG}UFormTest,{$ENDIF}
-  UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection;
+  UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection,
+  UBaseObject;
 
 procedure InitSystemObject(const nMainForm: THandle);
 procedure RunSystemObject;
@@ -153,6 +154,9 @@ begin
   if gSysParam.FParam <> '' then
     gParamManager.GetParamPack(gSysParam.FParam, True);
   //参数管理器
+
+  gCommonObjectManager := TCommonObjectManager.Create;
+  //通用对象状态管理
 
   TBusinessWorkerSweetHeart.RegWorker(gParamManager.URLLocal.Text);
   //for channel manager
