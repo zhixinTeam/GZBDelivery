@@ -2001,26 +2001,25 @@ begin
       nStr := 'Select Count(*) From %s Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CodeInfo,
               FListC.Values['XCB_CementCodeID']]);
+      //xxxxx
 
       with gDBConnManager.WorkerQuery(FDBConn, nStr) do
       begin
-        if Fields[0].AsInteger > 0 then
-        begin
-          nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
-          nSQL := Format(nSQL, [sTable_YT_CodeInfo,
-                  FValue, FListC.Values['XCB_CementCodeID']]);
-          FListA.Add(nSQL);
-        end else
+        if Fields[0].AsInteger < 1 then
         begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListC.Values['XCB_CementCodeID']),
             SF('C_Code', FListC.Values['XCB_CementCode']),
             SF('C_Stock', FListC.Values['XCB_Cement']),
-            SF('C_Freeze', FValue, sfVal),
-            SF('C_HasDone', '0', sfVal)
-            ], sTable_YT_CodeInfo, '', True);
-          FListA.Add(nSQL);
-        end;
+            SF('C_Freeze', '0', sfVal),
+            SF('C_HasDone', '0', sfVal)], sTable_YT_CodeInfo, '', True);
+          gDBConnManager.WorkerExec(FDBConn, nSQL);
+        end; //先增加记录,避免多条更新时重复添加
+
+        nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+        nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                FValue, FListC.Values['XCB_CementCodeID']]);
+        FListA.Add(nSQL);
       end;
       {$ENDIF}
 
@@ -2327,27 +2326,27 @@ begin
         if FListB.Values['XCB_CementCodeID'] <> '' then
         begin
           nStr := 'Select Count(*) From %s Where C_ID=''%s''';
-          nStr := Format(nStr, [sTable_YT_CodeInfo, FListB.Values['XCB_CementCodeID']]);
+          nStr := Format(nStr, [sTable_YT_CodeInfo,
+                  FListB.Values['XCB_CementCodeID']]);
+          //xxxxx
 
           with gDBConnManager.WorkerQuery(FDBConn, nStr) do
           begin
-            if Fields[0].AsInteger > 0 then
-            begin
-              nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
-              nSQL := Format(nSQL, [sTable_YT_CodeInfo,
-                      FKZValue, FListB.Values['XCB_CementCodeID']]);
-              FListA.Add(nSQL);
-            end else
+            if Fields[0].AsInteger < 1 then
             begin
               nSQL := MakeSQLByStr([
                 SF('C_ID', FListB.Values['XCB_CementCodeID']),
                 SF('C_Code', FListB.Values['XCB_CementCode']),
                 SF('C_Stock', FListB.Values['XCB_Cement']),
-                SF('C_Freeze', FKZValue, sfVal),
-                SF('C_HasDone', '0', sfVal)
-                ], sTable_YT_CodeInfo, '', True);
-              FListA.Add(nSQL);
-            end;
+                SF('C_Freeze', '0', sfVal),
+                SF('C_HasDone', '0', sfVal)], sTable_YT_CodeInfo, '', True);
+              gDBConnManager.WorkerExec(FDBConn, nSQL);
+            end; //先增加记录,避免多条更新时重复添加
+
+            nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+            nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                    FKZValue, FListB.Values['XCB_CementCodeID']]);
+            FListA.Add(nSQL);
           end;
         end; //更新水泥编号冻结量
         {$ENDIF}
@@ -2389,26 +2388,26 @@ begin
       nStr := 'Select Count(*) From %s Where C_ID=''%s''';
       nStr := Format(nStr, [sTable_YT_CodeInfo,
               FListC.Values['XCB_CementCodeID']]);
+      //xxxxx
 
       with gDBConnManager.WorkerQuery(FDBConn, nStr) do
       begin
-        if Fields[0].AsInteger > 0 then
-        begin
-          nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
-          nSQL := Format(nSQL, [sTable_YT_CodeInfo,
-                  nVal, FListC.Values['XCB_CementCodeID']]);
-          FListA.Add(nSQL);
-        end else
+        if Fields[0].AsInteger < 1 then
         begin
           nSQL := MakeSQLByStr([
             SF('C_ID', FListC.Values['XCB_CementCodeID']),
             SF('C_Code', FListC.Values['XCB_CementCode']),
             SF('C_Stock', FListC.Values['XCB_Cement']),
-            SF('C_Freeze', nVal, sfVal),
+            SF('C_Freeze', '0', sfVal),
             SF('C_HasDone', '0', sfVal)
             ], sTable_YT_CodeInfo, '', True);
-          FListA.Add(nSQL);
-        end;
+          gDBConnManager.WorkerExec(FDBConn, nSQL);
+        end; //先增加记录,避免多条更新时重复添加
+
+        nSQL := 'Update %s Set C_Freeze=C_Freeze+%.2f Where C_ID=''%s''';
+        nSQL := Format(nSQL, [sTable_YT_CodeInfo,
+                nVal, FListC.Values['XCB_CementCodeID']]);
+        FListA.Add(nSQL);
       end;
       {$ENDIF}
     end;
