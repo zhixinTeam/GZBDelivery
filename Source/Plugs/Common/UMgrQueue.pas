@@ -1467,6 +1467,9 @@ begin
   for nIdx:=FOwner.Lines.Count - 1 downto 0 do
   with PLineItem(FOwner.Lines[nIdx])^ do
   begin
+    if FLineID = nLine.FLineID then Continue;
+    //0.排除待对比通道
+    
     if (not FIsValid) or (FIsVIP <> nLine.FIsVIP) then Continue;
     //1.通道无效,或通道类型不匹配
 

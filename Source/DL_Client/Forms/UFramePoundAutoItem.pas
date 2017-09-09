@@ -782,6 +782,7 @@ begin
         nHint := '车辆[n1]%s净重与开票量误差较大,请联系管理员处理';
         nHint := Format(nHint, [FTruck]);
         PlayVoice(nHint);
+        {$ENDIF}
 
         nHint := '车辆[ %s ]实际装车量误差较大,详情如下:' + #13#10 +
                 '※.开单量: %.2f吨' + #13#10 +
@@ -789,6 +790,8 @@ begin
                 '※.误差量: %.2f公斤' + #13#10 +
                 '请确认是否可以过磅';
         nHint := Format(nHint, [FTruck, FInnerData.FValue, nNet, nVal]);
+
+        {$IFDEF GZBJM}
         WriteSysLog(nHint);
         if not QueryDlg(nHint, sHint) then Exit;
         {$ELSE}

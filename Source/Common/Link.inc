@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBZX}
 //特定系统
 
 //葛洲坝松滋
@@ -93,6 +93,8 @@
   //服务器操作车检
   {$DEFINE EnableWebMall}
   //使用网上商城
+  {.$DEFINE JMSecurityCode}
+  //荆门专用防违流喷码
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -119,5 +121,7 @@
   //采购使用合同
   {$DEFINE EnableWebMall}
   //使用网上商城
+  {.$DEFINE NoSecurityCodeQuery}
+  //关闭防违流查询
 {$ENDIF}
 

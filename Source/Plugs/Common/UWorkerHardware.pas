@@ -519,7 +519,7 @@ begin
       nCode := Dbc2Sbc(nCode); 
       {$ENDIF}
 
-      {$IFDEF GZBJM}
+      {$IFDEF JMSecurityCode}
       //荆门喷码规则: 出厂日期6位+ P + 化验批次11位＋3位流水号
       nCode := FieldByName('L_ID').AsString;
       System.Delete(nCode, 1, nPrefixLen);

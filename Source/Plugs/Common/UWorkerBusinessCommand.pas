@@ -1656,7 +1656,7 @@ begin
     Exit;
   end;
 
-  {$IFDEF GZBZX}
+  {$IFDEF NoSecurityCodeQuery}
   FOut.FData := '';
   Exit;
   {$ENDIF}
