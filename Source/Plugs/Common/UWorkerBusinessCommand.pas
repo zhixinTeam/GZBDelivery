@@ -1262,11 +1262,11 @@ begin
              nVal := Fields[0].AsFloat
         else nVal := 0;
 
-        {$IFDEF DEBUG}
-        nStr := '单据:[%s]=>云天系统剩余量[%f]';
+        {.$IFDEF DEBUG}
+        nStr := '单据:[ %s ]云天系统剩余量[ %.2f ]';
         nStr := Format(nStr, [Values['XCB_ID'], Fields[0].AsFloat]);
         WriteLog(nStr);
-        {$ENDIF}
+        {.$ENDIF}
       end;
 
       if nVal > 0 then

@@ -642,19 +642,23 @@ begin
     nStr := '散装订单超发%.2f吨,请联系开票员处理';
     nStr := Format(nStr, [m]);
     PlayVoice(nStr);
+    {$ENDIF}
 
-
-    nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+    nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
              '※.订单编号: %s' + #13#10 +
              '※.提货净重: %.2f吨' + #13#10 +
              '※.需 补 交: %.2f吨' + #13#10+#13#10 +
-             '请到开票室办理补单手续,然后再次称重.若有可用提货单,请点击"是"按钮继续.';
+             '请到开票室办理补单手续,然后再次称重.';
     //xxxxx
 
-    nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
+    nHint := Format(nHint, [FInnerData.FCusID, FInnerData.FCusName,
             FInnerData.FProject, nValue, m]);
-    WriteSysLog(nStr);
-    if not QueryDlg(nStr, sHint) then Exit;
+    //xxxxx
+
+    {$IFDEF GZBJM}
+    WriteSysLog(nHint);
+    nHint := nHint + '若有可用提货单,请点击"是"按钮继续.';
+    if not QueryDlg(nHint, sHint) then Exit;
 
     nStr := '';
     while true do
