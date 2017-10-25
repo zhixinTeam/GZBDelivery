@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBZX}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝松滋
@@ -71,6 +71,8 @@
   //过磅失败倒车下磅
   {$DEFINE MultiOrderOfTruck}
   //允许车辆办理多张采购单
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
 {$ENDIF}
 
 //葛洲坝荆门
@@ -95,6 +97,8 @@
   //使用网上商城
   {.$DEFINE JMSecurityCode}
   //荆门专用防违流喷码
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -123,5 +127,7 @@
   //使用网上商城
   {.$DEFINE NoSecurityCodeQuery}
   //关闭防违流查询
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
 {$ENDIF}
 
