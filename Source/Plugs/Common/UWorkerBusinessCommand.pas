@@ -1244,8 +1244,11 @@ begin
     end;
     //单据锁定,无法提货
 
-    if nData <> ''  then Exit;
-    //已有错误,不再校验冻结量
+    if nData <> ''  then
+    begin
+      WriteLog(nData);
+      Exit;
+    end; //已有错误,不再校验冻结量
 
     //--------------------------------------------------------------------------
     nWorker := nil;
