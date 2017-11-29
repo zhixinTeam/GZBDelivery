@@ -1,0 +1,2 @@
+hd_fac_order_no合单用的大票号  -1代表没有合单
+spare备用字段
