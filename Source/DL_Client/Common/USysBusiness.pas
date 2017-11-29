@@ -315,6 +315,11 @@ function LoadZTLineGroup(const nList: TStrings; const nWhere: string = ''): Bool
 //读取栈台分组信息
 function LoadZTLines(const nList: TStrings; const nWhere: string = ''): Boolean;
 //读取栈台信息
+function AddManualEventRecordOver(nEID, nKey, nEvent:string;
+    nFrom: string = '磅房'; nSolution: string=sFlag_Solution_YN;
+    nDepartmen: string=sFlag_DepDaTing; nReset: Boolean = False;
+    nMemo: string=''): Boolean;
+//添加自动并单处理事项记录（直接已处理状态）
 
 implementation
 
@@ -2858,6 +2863,54 @@ begin
       end;
     end;
   end;
+end;
+
+//Date: 2017/11/28
+//Parm: 参数描述
+//lih: 添加自动并单事件处理（直接已处理）
+function AddManualEventRecordOver(nEID, nKey, nEvent:string;
+    nFrom: string; nSolution: string; nDepartmen: string;
+    nReset: Boolean; nMemo: string): Boolean;
+var nSQL, nStr: string;
+    nUpdate: Boolean;
+begin
+  Result := False;
+  //init
+
+  if Trim(nSolution) = '' then
+  begin
+    WriteLog('请选择处理方案.');
+    Exit;
+  end;
+
+  nSQL := 'Select * From %s Where E_ID=''%s''';
+  nSQL := Format(nSQL, [sTable_ManualEvent, nEID]);
+  with FDM.QuerySQL(nSQL) do
+  if RecordCount > 0 then
+  begin
+    nStr := '事件记录:[ %s ]已存在';
+    nStr := Format(nStr, [nEID]);
+    WriteLog(nStr);
+
+    if not nReset then Exit;
+
+    nUpdate := True;
+  end else nUpdate := False;
+
+  nStr := SF('E_ID', nEID);
+  nSQL := MakeSQLByStr([
+          SF('E_ID', nEID),
+          SF('E_Key', nKey),
+          SF('E_Result', sFlag_Yes),
+          SF('E_From', nFrom),
+          SF('E_Memo', nMemo),
+          
+          SF('E_Event', nEvent), 
+          SF('E_Solution', nSolution),
+          SF('E_Departmen', nDepartmen),
+          SF('E_Date', sField_SQLServer_Now, sfVal)
+          ], sTable_ManualEvent, nStr, (not nUpdate));
+  FDM.ExecuteSQL(nSQL);
 end;
 
 //Desc: 读取栈台分组列表到nList中,包含附加数据

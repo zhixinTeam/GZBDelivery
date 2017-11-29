@@ -674,8 +674,8 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
   end
   object Timer1: TTimer
     OnTimer = Timer1Timer
-    Left = 654
-    Top = 258
+    Left = 656
+    Top = 257
   end
   object PMenu1: TPopupMenu
     AutoHotkeys = maManual

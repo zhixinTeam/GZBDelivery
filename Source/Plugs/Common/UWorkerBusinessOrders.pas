@@ -801,6 +801,8 @@ begin
   Result := False;
   nTruck := '';
 
+  FListB.Text := FIn.FExtParam;
+  //磁卡列表
   nStr := AdjustListStrFormat(FIn.FData, '''', True, ',', False);
   //采购单列表
 
@@ -833,9 +835,39 @@ begin
         nTruck := nStr;
       //xxxxx
 
+      nStr := FieldByName('O_Card').AsString;
+      //正在使用的磁卡
+        
+      if (nStr <> '') and (FListB.IndexOf(nStr) < 0) then
+        FListB.Add(nStr);
       Next;
     end;
   end;
+
+  nStr := AdjustListStrFormat2(FListB, '''', True, ',', False);
+  //磁卡列表
+  nSQL := 'Select O_ID,O_Card,O_Truck From %s Where O_Card In (%s)';
+  nSQL := Format(nSQL, [sTable_Order, nStr]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+  if RecordCount > 0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      nStr := FieldByName('O_Truck').AsString;
+      if (nTruck <> '') and (nStr <> nTruck) then
+      begin
+        nData := '车辆[ %s ]正在使用该卡.';
+        nData := Format(nData, [nStr]);
+        Exit;
+      end;
+
+      Next;
+    end;
+  end;
+
 
   FDBConn.FConn.BeginTrans;
   try

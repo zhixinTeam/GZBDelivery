@@ -395,7 +395,6 @@ begin
       end;
     end;
   end;
-
   //----------------------------------------------------------------------------
   SetLength(FStockItems, 0);
   SetLength(FMatchItems, 0);
@@ -553,6 +552,7 @@ begin
   FListB.Text := PackerDecodeStr(nOut.FData);
   nRenum := StrToFloatDef(FListB.Values['XCB_RemainNum'], 0);
   //订单剩余量
+  WriteLog('销售卡片编号：' + FListA.Values['Project'] + ' 剩余量：' + FListB.Values['XCB_RemainNum']);
 
   if FloatRelation(nRenum, nVal, rtLess, cPrecision) then
   begin
@@ -689,10 +689,11 @@ begin
               SF('L_HYDan', FListA.Values['HYDan']),
               SF('L_Memo', FListA.Values['Memo']),
               SF('L_Man', FIn.FBase.FFrom.FUser),
-              SF('L_Date', sField_SQLServer_Now, sfVal)
+              SF('L_Date', sField_SQLServer_Now, sfVal),
+              SF('L_HdOrderId', FListA.Values['HdOrderId'])
               ], sTable_Bill, '', True);
       gDBConnManager.WorkerExec(FDBConn, nStr);
-
+      
       if FListA.Values['BuDan'] = sFlag_Yes then //补单
       begin
         nStr := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
@@ -833,14 +834,14 @@ begin
     FDBConn.FConn.RollbackTrans;
     raise;
   end;
-
+  
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
 
     if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nSQL,
       sFlag_BillNew, @nOut) then
-      raise Exception.Create(nOut.FData);
+      raise Exception.Create(nOut.FData);    
     //xxxxx
   except
     FListB.Clear;
@@ -864,7 +865,7 @@ begin
         nVal := FieldByName('L_Value').AsFloat;
         nCode := FieldByName('L_Seal').AsString;
       end;
-
+      
       nStr := 'Select R_ID,T_HKBills,T_Bill From %s ' +
               'Where T_HKBills Like ''%%%s%%''';
       nStr := Format(nStr, [sTable_ZTTrucks, FListB[nIdx]]);
@@ -935,7 +936,7 @@ begin
     raise;
   end;
   //同步提货单
-
+  
   if FListA.Values['BuDan'] = sFlag_Yes then //补单
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
@@ -1697,7 +1698,7 @@ begin
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
           'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,' +
-          'L_IsEmpty, L_LineGroup '+
+          'L_IsEmpty, L_LineGroup, L_HdOrderId '+
           'From $Bill b ';
   //xxxxx
 
@@ -1765,7 +1766,9 @@ begin
       FMData.FValue := FieldByName('L_MValue').AsFloat;
 
       FLineGroup:= FieldByName('L_LineGroup').AsString;
-      FYSValid  := FieldByName('L_IsEmpty').AsString;  
+      FYSValid  := FieldByName('L_IsEmpty').AsString;
+
+      FHdOrderId:= FieldByName('L_HdOrderId').AsString;
       FSelected := True;
 
       Inc(nIdx);
@@ -2371,17 +2374,19 @@ begin
         nData := nOut.FData;
         Exit;
       end; //验证批次号有效性和可提量
-
+      
       FListC.Text := PackerDecodeStr(nOut.FData);
       nSQL := MakeSQLByStr([
               SF('L_Seal', FListC.Values['XCB_CementCodeID']),
-              SF('L_HYDan', FListC.Values['XCB_CementCode'])
+              SF('L_HYDan', FListC.Values['XCB_CementCode']),
+              SF('L_HdOver', sFlag_Yes)
               ], sTable_Bill, SF('L_ID', FID), False);
       FListA.Add(nSQL);
 
       nSQL := MakeSQLByStr([
               SF('L_Seal', FListC.Values['XCB_CementCodeID']),
-              SF('L_HYDan', FListC.Values['XCB_CementCode'])
+              SF('L_HYDan', FListC.Values['XCB_CementCode']),
+              SF('L_HdOver', sFlag_Yes)
               ], sTable_Bill, SF('L_ID', nTmp), False);
       FListA.Add(nSQL);
 
@@ -2818,7 +2823,7 @@ begin
         //bill list
 
         TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
-          sFlag_BillPick, @nOut)
+          sFlag_BillPick, @nOut)  
       end;  
     end;  
   end;

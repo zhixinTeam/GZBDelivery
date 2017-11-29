@@ -615,7 +615,7 @@ begin
         +'   <remark/>'
         +'</DATA>';
     nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName,nNetWeight]);
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nNetWeight]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
 
@@ -831,8 +831,10 @@ begin
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
     else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
-
-    ModifyWebOrderStatus(FID);
+    if nCardType = sFlag_Provide then
+      ModifyWebOrderStatus(FZhiKa)
+    else
+      ModifyWebOrderStatus(FID);
   end;  
   //¥Ú”°±®±Ì
 

@@ -3564,7 +3564,7 @@ begin
   nSQL := 'select * From %s Where XCB_ID in (%s)';
   nSQL := Format(nSQL, ['XS_Card_Base', nStr]);
   //查询订单表
-
+  
   nWorker := nil;
   try
     with gDBConnManager.SQLQuery(nSQL, nWorker, sFlag_DB_YT) do
@@ -3575,7 +3575,7 @@ begin
         nData := Format(nData, [CombinStr(FListA, ',', False)]);
         Exit;
       end;
-
+      
       FListA.Clear;
       FListA.Add('begin');
       //init sql list
@@ -3752,7 +3752,7 @@ begin
           //插入同步事物表
         end
       end;
-
+      
       FDBConn.FConn.BeginTrans;
       try
         nStr := 'commit;' + #13#10 +
@@ -3767,6 +3767,7 @@ begin
 
         for nIdx := 0 to FListB.Count - 1 do
           gDBConnManager.WorkerExec(FDBConn, FListB[nIdx]);
+
         //xxxxx
 
         FDBConn.FConn.CommitTrans;

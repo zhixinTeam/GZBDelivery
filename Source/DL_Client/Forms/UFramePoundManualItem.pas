@@ -719,7 +719,7 @@ begin
   begin
     ShowMsg('车辆未站稳,请稍后', sHint);
     Exit;
-  end;
+  end; 
 
   if (Length(FBillItems) > 0) and (FCardUsed = sFlag_Sale) then
   begin
@@ -946,8 +946,8 @@ end;
 //Parm: 净重[in];超发量[out]
 //Desc: 计算净重比订单超发了多少,没超发为0.
 function TfFrameManualPoundItem.VerifySanValue(var nValue: Double): Boolean;
-var nStr: string;
-    f,m: Double;
+var nStr, nHint, nOverStr: string;
+    f,m,hRemNum,hDiffNum: Double;
 begin
   Result := False;
   nStr := FInnerData.FProject;
@@ -981,17 +981,25 @@ begin
 
   if m > 0 then
   begin
-    nStr := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
+    {$IFDEF GZBJM}
+    nStr := '散装订单超发%.2f吨,请联系开票员处理';
+    nStr := Format(nStr, [m]);
+    PlayVoice(nStr);
+    {$ENDIF}
+    nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
              '※.订单编号: %s' + #13#10 +
              '※.提货净重: %.2f吨' + #13#10 +
              '※.需 补 交: %.2f吨' + #13#10+#13#10 +
              '请到开票室办理补单手续,然后再次称重.若有可用提货单,请点击"是"按钮继续.';
     //xxxxx
     
-    nStr := Format(nStr, [FInnerData.FCusID, FInnerData.FCusName,
+    nHint := Format(nHint, [FInnerData.FCusID, FInnerData.FCusName,
             FInnerData.FProject, nValue, m]);
-    WriteSysLog(nStr);
-    if not QueryDlg(nStr, sHint) then Exit;
+
+    {$IFDEF GZBJM}
+    WriteSysLog(nHint);
+    nHint := nHint + '若有可用提货单,请点击"是"按钮继续.';
+    if not QueryDlg(nHint, sHint) then Exit;
 
     nStr := '';
     while true do
@@ -1011,6 +1019,75 @@ begin
       nValue := m;
       Result := True; Break;
     end;
+    {$ELSE}
+    if (FInnerData.FHdOrderId <> '-1') and (FInnerData.FHdOrderId <> '') then
+    begin
+      nStr := FInnerData.FHdOrderId;
+
+      if not (YT_ReadCardInfo(nStr) and
+         YT_VerifyCardInfo(nStr, sFlag_AllowZeroNum)) then
+      begin
+        PlayVoice('读取合单订单失败,请联系管理员处理');
+        WriteSysLog(nStr);
+        Exit;
+      end;
+
+      FListA.Text := PackerDecodeStr(nStr);
+      //读取订单
+      hRemNum := StrToFloat(FListA.Values['XCB_RemainNum']);
+      //合单订单剩余量
+      nStr := FInnerData.FHdOrderId;
+      WriteSysLog(FloatToStr(m)+'   '+nStr+'合单订单剩余量：'+ FloatToStr(hRemNum));
+
+      hDiffNum := m - hRemNum;
+      if hDiffNum > 0 then
+      begin
+        if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
+        begin //开票员忽略后，认为司机卸货后再次过磅。
+          nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+          nStr := Format(nStr, [FPoundTunnel.FID,m,
+                  FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
+
+          AddManualEventRecord(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+            sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nStr);
+
+          nStr := '散装订单超发%.2f吨,请联系开票员处理';
+          nStr := Format(nStr, [m]);
+          PlayVoice(nStr);
+          Exit;
+        end;
+      end else
+      begin
+        nOverStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+        nOverStr := Format(nOverStr, [FPoundTunnel.FID,m,
+                FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
+
+        AddManualEventRecordOver(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+            sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nOverStr);
+      end;
+
+    end else
+    if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
+    begin //开票员忽略后，认为司机卸货后再次过磅。
+      nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+      nStr := Format(nStr, [FPoundTunnel.FID,m,
+              FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
+
+      AddManualEventRecord(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+        sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nStr);
+
+      nStr := '散装订单超发%.2f吨,请联系开票员处理';
+      nStr := Format(nStr, [m]);
+      PlayVoice(nStr);
+      Exit;
+    end;
+
+    FUIData.FMemo := nStr;
+    FUIData.FKZValue := m;
+
+    nValue := m;
+    Result := True;
+    {$ENDIF}
   end else
   begin
     nValue := 0;

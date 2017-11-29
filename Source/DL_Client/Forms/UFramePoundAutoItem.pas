@@ -602,8 +602,8 @@ end;
 //Parm: 净重[in];超发量[out]
 //Desc: 计算净重比订单超发了多少,没超发为0.
 function TfFrameAutoPoundItem.VerifySanValue(var nValue: Double): Boolean;
-var nStr, nHint: string;
-    f,m: Double;
+var nStr, nHint, nOverStr: string;
+    f,m,hRemNum,hDiffNum: Double;
 begin
   Result := False;
   nStr := FInnerData.FProject;
@@ -679,6 +679,53 @@ begin
       Result := True; Break;
     end;
     {$ELSE}
+    if (FInnerData.FHdOrderId <> '-1') and (FInnerData.FHdOrderId <> '') then
+    begin
+      nStr := FInnerData.FHdOrderId;
+
+      if not (YT_ReadCardInfo(nStr) and
+         YT_VerifyCardInfo(nStr, sFlag_AllowZeroNum)) then
+      begin
+        PlayVoice('读取合单订单失败,请联系管理员处理');
+        WriteSysLog(nStr);
+        Exit;
+      end;
+
+      FListA.Text := PackerDecodeStr(nStr);
+      //读取订单
+      hRemNum := StrToFloat(FListA.Values['XCB_RemainNum']);
+      //合单订单剩余量
+      nStr := FInnerData.FHdOrderId;
+      WriteSysLog(FloatToStr(m)+'   '+nStr+'合单订单剩余量：'+ FloatToStr(hRemNum));
+
+      hDiffNum := m - hRemNum;
+      if hDiffNum > 0 then
+      begin
+        if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
+        begin //开票员忽略后，认为司机卸货后再次过磅。
+          nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+          nStr := Format(nStr, [FPoundTunnel.FID,m,
+                  FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
+
+          AddManualEventRecord(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+            sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nStr);
+
+          nStr := '散装订单超发%.2f吨,请联系开票员处理';
+          nStr := Format(nStr, [m]);
+          PlayVoice(nStr);
+          Exit;
+        end;
+      end else
+      begin
+        nOverStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';
+        nOverStr := Format(nOverStr, [FPoundTunnel.FID,m,
+                FUIData.FPData.FValue, FUIData.FMData.FValue,FUIData.FCard]);
+
+        AddManualEventRecordOver(FInnerData.FID + sFlag_ManualD, FInnerData.FTruck, nHint,
+            sFlag_DepBangFang, sFlag_Solution_YNI, sFlag_DepDaTing, True, nOverStr);
+      end;
+
+    end else
     if not VerifyManualEventRecord(FInnerData.FID + sFlag_ManualD, nHint, 'I') then
     begin //开票员忽略后，认为司机卸货后再次过磅。
       nStr := 'MStation=%s;m=%.2f;Pound_PValue=%.2f;Pound_MValue=%.2f;Pound_Card=%s';

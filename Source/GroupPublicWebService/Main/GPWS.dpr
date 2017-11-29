@@ -11,13 +11,11 @@ uses
   Forms,
   ULibFun,
   UMITConst,
-  {$IFDEF GenRODL}
   MIT_Service_Intf in '..\Common\MIT_Service_Intf.pas',
   MIT_Service_Invk in '..\Common\MIT_Service_Invk.pas',
   SrvConnection_Impl in '..\Common\SrvConnection_Impl.pas',
   SrvBusiness_Impl in '..\Common\SrvBusiness_Impl.pas',
   SrvWebchat_Impl in '..\Common\SrvWebchat_Impl.pas',
-  {$ENDIF}
   UROModule in '..\Forms\UROModule.pas' {ROModule: TDataModule},
   UDataModule in '..\Forms\UDataModule.pas' {FDM: TDataModule},
   UFormMain in '..\Forms\UFormMain.pas' {fFormMain},

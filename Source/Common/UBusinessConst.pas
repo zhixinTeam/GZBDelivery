@@ -193,6 +193,7 @@ type
     Fworkaddr   : string;          //工地名称
     Ftransname  : string;          //运输单位
     Foutfact    : TDateTime;       //出厂日期
+    FHdOrderId  : string;          //合单订单号
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -362,6 +363,12 @@ begin
         FMemo   := Values['Memo']; 
         FYSValid:= Values['YSValid'];
         FHKRecord:= Values['HKRecord'];
+
+        FAREA := Values['AREA'];
+        FWORKADDR := Values['WORKADDR'];
+        FTRANSNAME := Values['TRANSNAME'];
+        Foutfact := Str2DateTime(Values['OUTDATE']);
+        FHdOrderId := Values['HdOrderId'];
       end;
 
       Inc(nInt);
@@ -449,6 +456,7 @@ begin
         Values['WORKADDR']   := FWORKADDR;
         Values['TRANSNAME']   := FTRANSNAME;
         Values['OUTDATE']   := DateTime2Str(Foutfact);
+        Values['HdOrderId']    := FHdOrderId;
       end;
 
       nListA.Add(PackerEncodeStr(nListB.Text));

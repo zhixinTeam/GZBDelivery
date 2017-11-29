@@ -55,6 +55,7 @@ function GetReviceWS(UseWSDL: Boolean; Addr: string; HTTPRIO: THTTPRIO): ReviceW
 const
   defWSDL = 'http://www.hnzxtech.cn/wxplatform/ws/revicews?wsdl';
   defURL  = 'http://www.hnzxtech.cn/wxplatform/ws/revicews';
+
   defSvc  = 'ReviceWSImplService';
   defPrt  = 'ReviceWSImplPort';
 var

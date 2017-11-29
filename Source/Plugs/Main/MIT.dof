@@ -101,7 +101,7 @@ DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=Bus_MIT_1
-HostApplication=
+HostApplication=D:\GZBDelivery\bin\bus_mit\MIT.exe
 Launcher=
 UseLauncher=0
 DebugCWD=

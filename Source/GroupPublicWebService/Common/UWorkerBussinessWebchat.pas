@@ -58,6 +58,8 @@ type
     FGoodsname:string;
     Ftracknumber:string;
     FData:string;
+    FHd_order_no:string;
+    Fspare:string;
   end;
   
   TWebResponse_get_shoporders=class(TWebResponseBaseInfo)
@@ -533,7 +535,10 @@ begin
               NodeNew('SetDate').ValueAsString := nCardItem.Values['XCB_SetDate'];
               NodeNew('BillNumber').ValueAsString := nCardItem.Values['XCB_CardId'];
               NodeNew('StockNo').ValueAsString := nCardItem.Values['XCB_Cement'];
-              NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + ' ' + nType;
+              if nCardItem.Values['XCB_CementName'] = '' then
+                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_Cement'] + nType
+              else
+                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + nType;
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
               NodeNew('SaleArea').ValueAsString := nCardItem.Values['XCB_WorkAddr'];
             end;
@@ -693,7 +698,7 @@ var
     try
       for i := Low(nObj.items) to High(nObj.items) do
       begin
-        nStr := 'order_id=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,goodstype=%s,goodsname=%s,tracknumber=%s,data=%s\n';
+        nStr := 'order_id=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,goodstype=%s,goodsname=%s,tracknumber=%s,data=%s,hd_fac_order_no=%s,spare=%s\n';
         nStr := Format(nStr,[nObj.items[i].FOrder_id,
           nObj.items[i].Ffac_order_no,
           nObj.items[i].FOrdernumber,
@@ -701,7 +706,9 @@ var
           nobj.items[i].FGoodstype,
           nObj.items[i].FGoodsname,
           nObj.items[i].Ftracknumber,
-          nobj.items[i].FData]);
+          nobj.items[i].FData,
+          nobj.items[i].FHd_order_no,
+          nobj.items[i].Fspare]);
         nStr := StringReplace(nStr, '\n', #13#10, [rfReplaceAll]);
         nlist.Add(nStr);
       end;
@@ -754,7 +761,7 @@ var
     try
       for i := Low(nObj.items) to High(nObj.items) do
       begin
-        nStr := 'order_id=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,goodstype=%s,goodsname=%s,tracknumber=%s,data=%s\n';
+        nStr := 'order_id=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,goodstype=%s,goodsname=%s,tracknumber=%s,data=%s,hd_fac_order_no=%s,spare=%s\n';
         nStr := Format(nStr,[nObj.items[i].FOrder_id,
           nObj.items[i].Ffac_order_no,
           nObj.items[i].FOrdernumber,
@@ -762,7 +769,9 @@ var
           nobj.items[i].FGoodstype,
           nObj.items[i].FGoodsname,
           nObj.items[i].Ftracknumber,
-          nobj.items[i].FData]);
+          nobj.items[i].FData,
+          nobj.items[i].FHd_order_no,
+          nobj.items[i].Fspare]);
         nStr := StringReplace(nStr, '\n', #13#10, [rfReplaceAll]);
         nlist.Add(nStr);
       end;
@@ -1093,6 +1102,18 @@ begin
 
       nTmp := nNodeTmp.FindNode('data');
       items[nIdx].FData := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('hd_fac_order_no');
+      if Assigned(nTmp) then
+        items[nIdx].FHd_order_no := nTmp.ValueAsString
+      else
+        items[nIdx].FHd_order_no := '';
+
+      nTmp := nNodeTmp.FindNode('spare');
+      if Assigned(nTmp) then
+        items[nIdx].Fspare := nTmp.ValueAsString
+      else
+        items[nIdx].Fspare := '';
     end;
   end;
 end;
