@@ -446,7 +446,8 @@ begin
       end else
 
       //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
-      if (FieldByName('T_InFact').AsString <> '') then
+      //if (FieldByName('T_InFact').AsString <> '') then
+      if FieldByName('T_Valid').AsString = sFlag_Yes then
       begin
         nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
         nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
@@ -1698,7 +1699,7 @@ begin
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
           'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,' +
-          'L_IsEmpty, L_LineGroup, L_HdOrderId '+
+          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_HdOrderId '+
           'From $Bill b ';
   //xxxxx
 
@@ -1768,6 +1769,7 @@ begin
       FLineGroup:= FieldByName('L_LineGroup').AsString;
       FYSValid  := FieldByName('L_IsEmpty').AsString;
 
+      Fworkaddr := FieldByName('L_WorkAddr').AsString;
       FHdOrderId:= FieldByName('L_HdOrderId').AsString;
       FSelected := True;
 

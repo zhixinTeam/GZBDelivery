@@ -607,7 +607,7 @@ begin
         +'	      <TransID></TransID>'
         +'	      <TransName></TransName>'
         +'	      <NetWeight>%f</NetWeight>'
-        +'	      <Searial></Searial>'
+        +'	      <Searial>%s</Searial>'
         +'	      <OutFact></OutFact>'
         +'	      <OutMan></OutMan>'
         +'	  </Item>	'
@@ -615,7 +615,7 @@ begin
         +'   <remark/>'
         +'</DATA>';
     nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nNetWeight]);
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nNetWeight, Fworkaddr]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
 

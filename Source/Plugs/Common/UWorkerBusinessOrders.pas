@@ -614,8 +614,45 @@ begin
   nWeborder := FListA.Values['WebOrderID'];
   //unpack Order
 
-  {$IFNDEF MultiOrderOfTruck}
+  
   //begin判断该车牌号是否有未完成业务
+  {$IFDEF MultiOrderOfTruck}
+  nStr := 'select O_ID from %s where O_Truck=''%s'' and O_CType = ''%s'' and O_Card<>'''' ';  //先查临时卡未完成业务
+  nStr := Format(nStr,[sTable_Order, FListA.Values['Truck'], sFlag_OrderCardL]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      Result := False;
+      FOut.FBase.FResult := False;
+      nStr := '车辆[ %s ]在未完成[ %s ]采购单之前禁止开单.';
+      nData := Format(nStr, [FListA.Values['Truck'], FieldByName('O_ID').AsString]);
+      Fout.FBase.FErrDesc := nData;
+      Exit;
+    end;
+  end;
+
+  nStr := 'select O_ID,O_Card from %s where O_Truck=''%s'' and O_CType = ''%s'' and O_Card<>'''' ';   //再查固定卡未完成业务
+  nStr := Format(nStr,[sTable_Order, FListA.Values['Truck'], sFlag_OrderCardG]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      nStr := 'select D_OID from %s where D_Card = ''%s'' ';
+      nStr := Format(nStr, [sTable_OrderDtl, FieldByName('O_Card').AsString]);
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      if RecordCount>0 then
+      begin
+        Result := False;
+        FOut.FBase.FResult := False;
+        nStr := '车辆[ %s ]在未完成[ %s ]采购单之前禁止开单.';
+        nData := Format(nStr, [FListA.Values['Truck'], FieldByName('D_OID').AsString]);
+        Fout.FBase.FErrDesc := nData;
+        Exit;
+      end;
+    end;
+  end;
+  {$ELSE}
   nStr := 'select O_ID from %s where O_Truck=''%s'' and O_Card<>'''' ';
   nStr := Format(nStr,[sTable_Order, FListA.Values['Truck']]);
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -630,8 +667,9 @@ begin
       Exit;
     end;
   end;
-  //end判断该车牌号是否有未完成业务
   {$ENDIF}
+  //end判断该车牌号是否有未完成业务
+  
   
   TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, FListA.Values['Truck'],
     '', @nOut);

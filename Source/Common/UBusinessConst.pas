@@ -452,6 +452,7 @@ begin
         Values['YSValid']    := FYSValid;
         Values['Memo']       := FMemo;
         Values['HKRecord']   := FHKRecord;
+        
         Values['AREA']   := FAREA;
         Values['WORKADDR']   := FWORKADDR;
         Values['TRANSNAME']   := FTRANSNAME;
