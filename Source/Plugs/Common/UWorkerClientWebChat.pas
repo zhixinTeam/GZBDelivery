@@ -171,10 +171,7 @@ begin
         FChannel := CoSrvWebchat.Create(FMsg, FHttp);
       //xxxxx
 
-      if GetFixedServiceURL = '' then
-           FHttp.TargetURL := gChannelChoolser.ActiveURL
-      else FHttp.TargetURL := GetFixedServiceURL;
-
+      FHttp.TargetURL := GetFixedServiceURL;
       Result := ISrvWebChat(FChannel).Action(GetFlagStr(cWorker_GetMITName),
                                               nData);
       //call mit funciton
@@ -182,13 +179,9 @@ begin
     except
       on E:Exception do
       begin
-        if (GetFixedServiceURL <> '') or
-           (gChannelChoolser.GetChannelURL = FHttp.TargetURL) then
-        begin
-          nData := Format('%s.', [E.Message]);
-          WriteLog('Function:[ ' + FunctionName + ' ]' + E.Message);
-          Exit;
-        end;
+        nData := Format('%s.', [E.Message]);
+        WriteLog('Function:[ ' + FunctionName + ' ]' + E.Message);
+        Exit;
       end;
     end;
   finally

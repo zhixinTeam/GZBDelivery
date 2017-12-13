@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBZX}
 //特定系统
 
 //葛洲坝松滋
@@ -131,5 +131,7 @@
   //关闭防违流查询
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
 {$ENDIF}
 

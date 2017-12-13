@@ -37,7 +37,7 @@ uses
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
   UMgrERelay,   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
   UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp,
-  UMgrRFID102, UMgrVoiceNet, UMemDataPool, UMgrTTCEM100;
+  UMgrRFID102, UMgrVoiceNet, UMgrTTCEM100;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
 begin
@@ -146,9 +146,6 @@ end;
 
 procedure THardwareWorker.InitSystemObject;
 begin
-  gMemDataManager := TMemDataManager.Create;
-  //内存管理
-  
   g02NReader := T02NReader.Create;
   //近距读头
 

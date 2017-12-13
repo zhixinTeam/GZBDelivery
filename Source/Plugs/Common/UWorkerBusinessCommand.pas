@@ -2510,9 +2510,14 @@ var nIdx: Integer;
     nWorker: PDBWorker;
     nBills: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
+
     nDateMin, nSetDate: TDateTime;
     nStr,nSQL,nPID,nSpell, nFreID, nFreType: string;
     nVal,nFreVal, nFrePrice: Double;
+
+    {$IFDEF ASyncWriteData}
+    nItem: TDBASyncItem;
+    {$ENDIF}
 begin
   Result := False;
   FListA.Text := FIn.FData;
@@ -2657,6 +2662,11 @@ begin
         Exit;
       end;
 
+      {$IFDEF ASyncWriteData}
+      gDBConnManager.ASyncInitItem(@nItem, True);
+      nItem.FStartNow := False; //async start
+      {$ENDIF}
+
       FListA.Clear;
       FListA.Add('begin');
       //init sql list
@@ -2763,7 +2773,15 @@ begin
           nSQL := MakeSQLByStr([
                   SF('L_YTID', nBills[nIdx].FYTID)
                   ],sTable_Bill, nSQL, False);
+          //xxxxx
+
+          {$IFDEF ASyncWriteData}
+          nItem.FPairKey := nBills[nIdx].FID;
+          nItem.FSQL := nSQL;
+          gDBConnManager.ASyncAdd(@nItem);
+          {$ELSE}
           gDBConnManager.WorkerExec(FDBConn, nSQL);
+          {$ENDIF}
         end;
 
         //nRID := YT_NewID('XS_LADE_BASE', nWorker);
@@ -3051,6 +3069,11 @@ begin
 
       gDBConnManager.WorkerExec(nWorker, FListA.Text);
       //执行脚本
+
+      {$IFDEF ASyncWriteData}
+      gDBConnManager.ASyncApply(nItem.FSerialNo);
+      //start write
+      {$ENDIF}
 
       //nWorker.FConn.CommitTrans;
       Result := True;
@@ -3479,6 +3502,10 @@ var nIdx: Integer;
     nPrice, nVal: Double;
     nBills: TLadingBillItems;
     nDateMin, nSetDate: TDateTime;
+
+    {$IFDEF ASyncWriteData}
+    nItem: TDBASyncItem;
+    {$ENDIF}
 begin
   Result := False;
   nStr := FIn.FData;
@@ -3575,14 +3602,19 @@ begin
         nData := Format(nData, [CombinStr(FListA, ',', False)]);
         Exit;
       end;
-      
+
       FListA.Clear;
       FListA.Add('begin');
       //init sql list
 
+      {$IFDEF ASyncWriteData}
+      gDBConnManager.ASyncInitItem(@nItem, True);
+      nItem.FStartNow := False; //async start
+      {$ELSE}
       FListB.Clear;
       //init Local sql List
-
+      {$ENDIF}
+      
       for nIdx:=Low(nBills) to High(nBills) do
       begin
         First;
@@ -3701,7 +3733,15 @@ begin
           nSQL := MakeSQLByStr([
                   SF('L_YTID', nBills[nIdx].FYTID)
                   ],sTable_Bill, nSQL, False);
+          //xxxxx
+
+          {$IFDEF ASyncWriteData}
+          nItem.FPairKey := nBills[nIdx].FID;
+          nItem.FSQL := nSQL;
+          gDBConnManager.ASyncAdd(@nItem);
+          {$ELSE}
           FListB.Add(nSQL);
+          {$ENDIF} 
         end else
 
         if FIn.FExtParam = sFlag_BillDel then
@@ -3765,10 +3805,14 @@ begin
         gDBConnManager.WorkerExec(nWorker, FListA.Text);
         //执行脚本
 
+        {$IFDEF ASyncWriteData}
+        gDBConnManager.ASyncApply(nItem.FSerialNo);
+        //start write
+        {$ELSE}
         for nIdx := 0 to FListB.Count - 1 do
           gDBConnManager.WorkerExec(FDBConn, FListB[nIdx]);
-
         //xxxxx
+        {$ENDIF}
 
         FDBConn.FConn.CommitTrans;
         Result := True;

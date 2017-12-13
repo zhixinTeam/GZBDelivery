@@ -73,6 +73,11 @@ begin
   begin
     gDBConnManager.DefaultConnection := ActiveParam.FDB.FID;
     gDBConnManager.MaxConn := ActiveParam.FDB.FNumWorker;
+
+    {$IFDEF ASyncWriteData}
+    gDBConnManager.ASyncInitDB;
+    gDBConnManager.ASyncStart;
+    {$ENDIF}
   end;
   {$ENDIF} //db
 
@@ -116,7 +121,11 @@ begin
   {$ENDIF}//stop sap
 
   {$IFDEF DBPool}
-  gDBConnManager.Disconnection();
+    {$IFDEF ASyncWriteData}
+    gDBConnManager.ASyncStop;
+    {$ENDIF}
+
+    gDBConnManager.Disconnection();
   {$ENDIF} //db
 
   {$IFDEF MicroMsg}

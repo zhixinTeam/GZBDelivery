@@ -1127,7 +1127,7 @@ end;
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
 begin
   {$IFDEF DEBUG}
-  WriteHardHelperLog(Format('À¶¿¨¶Á¿¨Æ÷ %s:%s', [nReader.FTunnel, nReader.FCard]));
+  //WriteHardHelperLog(Format('À¶¿¨¶Á¿¨Æ÷ %s:%s', [nReader.FTunnel, nReader.FCard]));
   {$ENDIF}
 
   gHardwareHelper.SetReaderCard(nHost.FReaderID, nCard.FCard, False);

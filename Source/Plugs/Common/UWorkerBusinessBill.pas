@@ -446,8 +446,8 @@ begin
       end else
 
       //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
-      //if (FieldByName('T_InFact').AsString <> '') then
-      if FieldByName('T_Valid').AsString = sFlag_Yes then
+      //if FieldByName('T_Valid').AsString = sFlag_Yes then
+      if (FieldByName('T_InFact').AsString <> '') then     
       begin
         nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
         nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
@@ -610,6 +610,10 @@ var nStr,nSQL,nHKID, nRID, nBill, nCode: string;
     nIdx,nInt: Integer;
     nVal: Double;
     nWebOrderID:string;
+
+    {$IFDEF ASyncWriteData}
+    nItem: TDBASyncItem;
+    {$ENDIF}
 begin
   Result := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
@@ -617,6 +621,11 @@ begin
 
   FListB.Text := PackerDecodeStr(FListA.Values['Bills']);
   //unpack bill list
+
+  {$IFDEF ASyncWriteData}
+  gDBConnManager.ASyncInitItem(@nItem, True);
+  nItem.FStartNow := False; //async start
+  {$ENDIF}
 
   FDBConn.FConn.BeginTrans;
   try
@@ -769,11 +778,26 @@ begin
       begin
         nSQL := MakeSQLByStr([SF('L_HKRecord', nHKID)],
             sTable_Bill, SF('L_ID', nOut.FData), False);
+        //xxxxx
+
+        {$IFDEF ASyncWriteData}
+        nItem.FPairKey := nOut.FData;
+        nItem.FSQL := nSQL;
+        gDBConnManager.ASyncAdd(@nItem);
+        {$ELSE}
         gDBConnManager.WorkerExec(FDBConn, nSQL);
+        {$ENDIF}
 
         nSQL := 'Update %s Set T_HKRecord=''%s'' Where T_HKBills Like ''%%%s%%''';
-        nSQL := Format(nSQL, [sTable_ZTTrucks, nHKID, nOut.FData]); 
+        nSQL := Format(nSQL, [sTable_ZTTrucks, nHKID, nOut.FData]);
+
+        {$IFDEF ASyncWriteData}
+        nItem.FPairKey := nOut.FData;
+        nItem.FSQL := nSQL;
+        gDBConnManager.ASyncAdd(@nItem);
+        {$ELSE}
         gDBConnManager.WorkerExec(FDBConn, nSQL);
+        {$ENDIF}
       end;
       //更新合卡记录
 
@@ -844,6 +868,11 @@ begin
       sFlag_BillNew, @nOut) then
       raise Exception.Create(nOut.FData);    
     //xxxxx
+
+    {$IFDEF ASyncWriteData}
+    gDBConnManager.ASyncApply(nItem.FSerialNo);
+    //start write
+    {$ENDIF}
   except
     FListB.Clear;
     FListC.Clear;

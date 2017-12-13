@@ -740,9 +740,9 @@ const
    *.D_TPrice:ÔÊÐíµ÷¼Û
   -----------------------------------------------------------------------------}
 
-  sSQL_NewBill = 'Create Table $Table(R_ID $Inc,L_ID varChar(20),' +
-       'L_HKRecord varChar(20),L_YTID varChar(50),' +
+  sSQL_NewBill = 'Create Table $Table(R_ID $Inc,L_ID varChar(20),' +  
        'L_Card varChar(16),L_ZhiKa varChar(25),L_Project varChar(100),' +
+       'L_HKRecord varChar(20),L_YTID varChar(50), L_HdOrderId varChar(50),' +
        'L_Area varChar(50),L_WorkAddr varChar(100),' +
        'L_TransID varChar(32),L_TransName varChar(100),' +
        'L_CusID varChar(25),L_CusName varChar(120),L_CusPY varChar(120),' +
