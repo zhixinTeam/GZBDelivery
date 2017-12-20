@@ -781,9 +781,7 @@ begin
         //xxxxx
 
         {$IFDEF ASyncWriteData}
-        nItem.FPairKey := nOut.FData;
-        nItem.FSQL := nSQL;
-        gDBConnManager.ASyncAdd(@nItem);
+        gDBConnManager.ASyncAddItem(@nItem, nSQL, nOut.FData);
         {$ELSE}
         gDBConnManager.WorkerExec(FDBConn, nSQL);
         {$ENDIF}
@@ -792,9 +790,7 @@ begin
         nSQL := Format(nSQL, [sTable_ZTTrucks, nHKID, nOut.FData]);
 
         {$IFDEF ASyncWriteData}
-        nItem.FPairKey := nOut.FData;
-        nItem.FSQL := nSQL;
-        gDBConnManager.ASyncAdd(@nItem);
+        gDBConnManager.ASyncAddItem(@nItem, nSQL, nOut.FData);
         {$ELSE}
         gDBConnManager.WorkerExec(FDBConn, nSQL);
         {$ENDIF}
@@ -1821,6 +1817,10 @@ var nStr,nSQL,nTmp,nCode,nRID,nBill: string;
     i,nIdx,nInt: Integer;
     nBills: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
+
+    {$IFDEF ASyncWriteData}
+    nItem: TDBASyncItem;
+    {$ENDIF}
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nBills);
@@ -1844,6 +1844,11 @@ begin
   FListA.Clear;
   //用于存储SQL列表
 
+  {$IFDEF ASyncWriteData}
+  gDBConnManager.ASyncInitItem(@nItem, True);
+  nItem.FStartNow := False; //async start
+  {$ENDIF}
+  
   //----------------------------------------------------------------------------
   if FIn.FExtParam = sFlag_TruckIn then //进厂
   begin
@@ -2581,7 +2586,13 @@ begin
               SF('L_OutFact', sField_SQLServer_Now, sfVal),
               SF('L_OutMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
+      //xxxxx
+
+      {$IFDEF ASyncWriteData}
+      gDBConnManager.ASyncAddItem(@nItem, nSQL, FID);
+      {$ELSE}
       FListA.Add(nSQL); //更新交货单
+      {$ENDIF}
 
       if FSeal <> '' then
       begin
@@ -2672,7 +2683,13 @@ begin
                 SF('L_DaiNormal', i, sfVal),
                 SF('L_DaiBuCha', 0, sfVal)
                 ], sTable_Bill, SF('L_ID', FID), False);
+        //xxxxx
+
+        {$IFDEF ASyncWriteData}
+        gDBConnManager.ASyncAddItem(@nItem, nSQL, FID);
+        {$ELSE}
         FListA.Add(nSQL); //更新装车信息
+        {$ENDIF}
 
         FTotal := FTotal - i;
         FNormal := FNormal - i;
@@ -2703,7 +2720,13 @@ begin
                 SF('L_DaiNormal', FNormal, sfVal),
                 SF('L_DaiBuCha', FBuCha, sfVal)
                 ], sTable_Bill, SF('L_ID', FID), False);
+        //xxxxx
+
+        {$IFDEF ASyncWriteData}
+        gDBConnManager.ASyncAddItem(@nItem, nSQL, FID);
+        {$ELSE}
         FListA.Add(nSQL); //更新装车信息
+        {$ENDIF}
       end;
     end;
 
@@ -2720,6 +2743,10 @@ begin
     //xxxxx
 
     FDBConn.FConn.CommitTrans;
+    {$IFDEF ASyncWriteData}
+    gDBConnManager.ASyncApply(nItem.FSerialNo);
+    //start write
+    {$ENDIF}
     Result := True;
   except
     FDBConn.FConn.RollbackTrans;

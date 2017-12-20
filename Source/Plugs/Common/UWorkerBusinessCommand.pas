@@ -462,7 +462,7 @@ begin
    cBC_GetOrderInfo        : Result := GetOrderInfo(nData); //查询云天系统订单信息
    cBC_GetOrderList        : Result := GetOrderList(nData); //查询云天系统订单列表
    cBC_GetPurchaseContractList : Result := GetPurchaseContractList(nData); //查询采购合同列表
-   
+
    cBC_WeChat_getCustomerInfo : Result := getCustomerInfo(nData);   //微信平台接口：获取客户注册信息
    cBC_WeChat_get_Bindfunc    : Result := get_Bindfunc(nData);   //微信平台接口：客户与微信账号绑定
    cBC_WeChat_send_event_msg  : Result := send_event_msg(nData);   //微信平台接口：发送消息
@@ -2776,9 +2776,7 @@ begin
           //xxxxx
 
           {$IFDEF ASyncWriteData}
-          nItem.FPairKey := nBills[nIdx].FID;
-          nItem.FSQL := nSQL;
-          gDBConnManager.ASyncAdd(@nItem);
+          gDBConnManager.ASyncAddItem(@nItem, nSQL, nBills[nIdx].FID);
           {$ELSE}
           gDBConnManager.WorkerExec(FDBConn, nSQL);
           {$ENDIF}
@@ -3070,20 +3068,34 @@ begin
       gDBConnManager.WorkerExec(nWorker, FListA.Text);
       //执行脚本
 
-      {$IFDEF ASyncWriteData}
-      gDBConnManager.ASyncApply(nItem.FSerialNo);
-      //start write
-      {$ENDIF}
-
       //nWorker.FConn.CommitTrans;
       Result := True;
     except
       on E:Exception do
       begin
-        //nWorker.FConn.RollbackTrans;
-        nData := '同步云天数据时发生错误,描述: ' + E.Message;
-        Exit;
+        nStr := '违反唯一约束';
+        if Pos(nStr, E.Message) > 0 then
+        begin
+          nStr := '车辆[ %s.%s ]同步云天数据违反约束,已忽略.';
+          nStr := Format(nStr, [nBills[0].FTruck, nBills[0].FID]);
+          
+          WriteLog(nStr);
+          Result := True;
+        end else
+        begin
+          //nWorker.FConn.RollbackTrans;
+          nData := '同步云天数据时发生错误,描述: ' + E.Message;
+          Exit;
+        end;
       end;
+    end;
+
+    if Result then
+    begin
+      {$IFDEF ASyncWriteData}
+      gDBConnManager.ASyncApply(nItem.FSerialNo);
+      //start write
+      {$ENDIF}
     end;
   finally
     gDBConnManager.ReleaseConnection(nWorker);
@@ -3736,9 +3748,7 @@ begin
           //xxxxx
 
           {$IFDEF ASyncWriteData}
-          nItem.FPairKey := nBills[nIdx].FID;
-          nItem.FSQL := nSQL;
-          gDBConnManager.ASyncAdd(@nItem);
+          gDBConnManager.ASyncAddItem(@nItem, nSQL, nBills[nIdx].FID);
           {$ELSE}
           FListB.Add(nSQL);
           {$ENDIF} 
@@ -3805,10 +3815,7 @@ begin
         gDBConnManager.WorkerExec(nWorker, FListA.Text);
         //执行脚本
 
-        {$IFDEF ASyncWriteData}
-        gDBConnManager.ASyncApply(nItem.FSerialNo);
-        //start write
-        {$ELSE}
+        {$IFNDEF ASyncWriteData}
         for nIdx := 0 to FListB.Count - 1 do
           gDBConnManager.WorkerExec(FDBConn, FListB[nIdx]);
         //xxxxx
@@ -3820,9 +3827,30 @@ begin
         on E:Exception do
         begin
           FDBConn.FConn.RollbackTrans;
-          nData := '同步云天提货单数据时发生错误,描述: ' + E.Message;
-          Exit;
+          //roll back
+
+          nStr := '违反唯一约束';
+          if Pos(nStr, E.Message) > 0 then
+          begin
+            nStr := '车辆[ %s.%s ]同步云天数据违反约束,已忽略.';
+            nStr := Format(nStr, [nBills[0].FTruck, nBills[0].FID]);
+          
+            WriteLog(nStr);
+            Result := True;
+          end else
+          begin
+            nData := '同步云天提货单数据时发生错误,描述: ' + E.Message;
+            Exit;
+          end;
         end;
+      end;
+
+      if Result then
+      begin
+        {$IFDEF ASyncWriteData}
+        gDBConnManager.ASyncApply(nItem.FSerialNo);
+        //start write
+        {$ENDIF}
       end;
     end;
   finally
