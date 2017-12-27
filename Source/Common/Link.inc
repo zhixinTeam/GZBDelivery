@@ -133,5 +133,7 @@
   //包装阶梯误差
   {$DEFINE ASyncWriteData}
   //特定业务使用异步数据写入
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
 {$ENDIF}
 

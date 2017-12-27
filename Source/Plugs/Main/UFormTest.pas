@@ -18,6 +18,7 @@ type
   private
     { Private declarations }
     FListA,FListB: TStrings;
+    procedure WriteLog(const nMsg: string);
   public
     { Public declarations }
     class function CreateForm(const nPopedom: string = '';
@@ -30,10 +31,11 @@ implementation
 {$R *.dfm}
 uses
   UBusinessWorker, UBusinessPacker, UBusinessConst, UMgrControl, UMgrDBConn,
-  USysDB, ULibFun;
+  UPlugConst, USysDB, USysLoger, ULibFun, DB, ADODB;
 
 var
   gForm: TBaseForm1 = nil;
+
 
 class function TBaseForm1.CreateForm(const nPopedom: string;
   const nParam: Pointer): TFormCreateResult;
@@ -48,7 +50,7 @@ end;
 
 class function TBaseForm1.FormID: integer;
 begin
-  Result := 11;
+  Result := cFI_FormTest1;
 end;
 
 procedure TBaseForm1.FormCreate(Sender: TObject);
@@ -97,12 +99,116 @@ begin
 end;
 
 //------------------------------------------------------------------------------
-procedure TBaseForm1.Button1Click(Sender: TObject);
-var nOut: TWorkerBusinessCommand;
+//Date: 2015-09-16
+//Parm: 表名;数据链路
+//Desc: 生成nTable的唯一记录号
+function YT_NewID(const nTable: string; const nWorker: PDBWorker): string;
 begin
-  if CallBusinessCommand(cBC_CheckStockValid, edit1.Text, '', @nOut) then
+  with nWorker.FExec do
   begin
-    Memo1.lines.Add('done')
+    Close;
+    SQL.Text := '{call GetID(?,?)}';
+
+    Parameters.Clear;
+    Parameters.CreateParameter('P1', ftString , pdInput, Length(nTable), nTable);
+    Parameters.CreateParameter('P2', ftString, pdOutput, 20, '') ;
+    ExecSQL;
+
+    Result := Parameters.ParamByName('P2').Value;
+  end;
+end;
+
+type
+  TMyThread = class(TThread)
+  private
+    FCPU: Integer;
+    FDBSQL: PDBWorker;
+    FDBYT: PDBWorker;
+  protected
+    FMsg: string;
+    procedure Execute; override;
+    procedure SyncLog;
+  public
+    constructor Create(const nCPU: Integer);
+    destructor Destroy; override;
+    procedure StopMe;
+  end;
+
+var
+  gThreads: array of TMyThread;
+
+
+{ TMyThread }
+
+constructor TMyThread.Create;
+begin
+  inherited Create(False);
+  FreeOnTerminate := False;
+  FCPU := nCPU;
+end;
+
+destructor TMyThread.Destroy;
+begin
+
+  inherited;
+end;
+
+procedure TMyThread.StopMe;
+begin
+  Terminate;
+  WaitFor;
+  Free;
+end;
+
+procedure TBaseForm1.WriteLog(const nMsg: string);
+begin
+  Memo1.Lines.Add(nMsg);
+end;
+
+procedure TMyThread.SyncLog;
+begin
+  gForm.WriteLog(FMsg);
+end;
+
+procedure TMyThread.Execute;
+var nStr: string;
+    nInt: Integer;
+begin
+  SetThreadIdealProcessor(Handle, FCPU);
+  while not Terminated do
+  try
+    FDBYT := gDBConnManager.GetConnection(sFlag_DB_YT, nInt);
+    FMsg := Format('%d in --->', [FCPU]);
+    Synchronize(SyncLog);
+
+    nStr := YT_NewID('XS_LADE_BASE', FDBYT);
+    FMsg := Format('%d out <---', [FCPU]);
+    Synchronize(SyncLog);
+
+    nStr := 'insert into t_t2(id,name) values(1,''' + nStr + ''')';
+    gDBConnManager.WorkerExec(FDBYT, nStr);
+  finally
+    gDBConnManager.ReleaseConnection(FDBSQL);
+    gDBConnManager.ReleaseConnection(FDBYT); 
+  end;   
+
+end;
+
+//------------------------------------------------------------------------------
+procedure TBaseForm1.Button1Click(Sender: TObject);
+var nIdx: Integer;
+begin
+  if Length(gThreads) < 1 then
+  begin
+    SetLength(gThreads, 2);
+    for nIdx:=Low(gThreads) to High(gThreads) do
+      gThreads[nIdx] := TMyThread.Create(nIdx mod 4);
+    //xxxxx
+  end else
+  begin
+    for nIdx:=Low(gThreads) to High(gThreads) do
+      gThreads[nIdx].StopMe;
+    SetLength(gThreads, 0);
   end;
 end;
 

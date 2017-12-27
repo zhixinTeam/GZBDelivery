@@ -16,7 +16,7 @@ uses
   UWorkerClientWebChat,
   UWorkerBusinessCommand, UWorkerBusinessBill,
   UWorkerBusinessDuanDao, UWorkerBusinessOrders,
-  {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}{$IFDEF DEBUG}UFormTest,{$ENDIF}
+  {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}
   UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection,
   UBaseObject;
 
@@ -27,10 +27,17 @@ procedure FreeSystemObject;
 
 implementation
 
+{$IFDEF DEBUG}
+uses
+  UPlugConst, UFormTest;
+{$ENDIF}
+
 type
   TMainEventWorker = class(TPlugEventWorker)
   protected
+    {$IFDEF DEBUG}
     procedure GetExtendMenu(const nList: TList); override;
+    {$ENDIF}
     procedure BeforeStartServer; override;
     procedure AfterStopServer; override;
   public
@@ -51,20 +58,20 @@ begin
   end;
 end;
 
+{$IFDEF DEBUG}
 procedure TMainEventWorker.GetExtendMenu(const nList: TList);
-//var nMenu: PPlugMenuItem;
+var nMenu: PPlugMenuItem;
 begin
-{
   New(nMenu);
   nList.Add(nMenu);
 
   nMenu.FModule := ModuleInfo.FModuleID;
-  nMenu.FName := '';
-  nMenu.FCaption := '';
-  nMenu.FFormID := 0;
+  nMenu.FName := 'Form_Test';
+  nMenu.FCaption := '≤‚ ‘¥∞ÃÂ';
+  nMenu.FFormID := cFI_FormTest1;
   nMenu.FDefault := True;
-}
 end;
+{$ENDIF}
 
 procedure TMainEventWorker.BeforeStartServer;
 begin

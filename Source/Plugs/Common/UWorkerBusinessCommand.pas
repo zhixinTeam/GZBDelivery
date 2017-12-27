@@ -2381,6 +2381,9 @@ end;
 //Parm: 表名;数据链路
 //Desc: 生成nTable的唯一记录号
 function YT_NewID(const nTable: string; const nWorker: PDBWorker): string;
+{$IFDEF ChangeYTSerialNo}
+var nStr: string;
+{$ENDIF}
 begin
   with nWorker.FExec do
   begin
@@ -2393,6 +2396,10 @@ begin
     ExecSQL;
 
     Result := Parameters.ParamByName('P2').Value;
+    {$IFDEF ChangeYTSerialNo}
+    nStr := Date2Str(Date(), False);
+    Result := StringReplace(Result, nStr+'1', nStr+'2', [rfIgnoreCase]);
+    {$ENDIF}
   end;
 end;
 
@@ -3073,20 +3080,9 @@ begin
     except
       on E:Exception do
       begin
-        nStr := '违反唯一约束';
-        if Pos(nStr, E.Message) > 0 then
-        begin
-          nStr := '车辆[ %s.%s ]同步云天数据违反约束,已忽略.';
-          nStr := Format(nStr, [nBills[0].FTruck, nBills[0].FID]);
-          
-          WriteLog(nStr);
-          Result := True;
-        end else
-        begin
-          //nWorker.FConn.RollbackTrans;
-          nData := '同步云天数据时发生错误,描述: ' + E.Message;
-          Exit;
-        end;
+        //nWorker.FConn.RollbackTrans;
+        nData := '同步云天数据[SyncYT_Sale]时发生错误,描述: ' + E.Message;
+        Exit;
       end;
     end;
 
@@ -3325,7 +3321,7 @@ begin
       on E:Exception do
       begin
         //nWorker.FConn.RollbackTrans;
-        nData := '同步云天数据时发生错误,描述: ' + E.Message;
+        nData := '同步云天数据[SyncYT_Provide]时发生错误,描述: ' + E.Message;
         Exit;
       end;
     end;
@@ -3494,7 +3490,7 @@ begin
       on E:Exception do
       begin
         //nWorker.FConn.RollbackTrans;
-        nData := '同步云天数据时发生错误,描述: ' + E.Message;
+        nData := '同步云天数据[SyncYT_ProvidePound]时发生错误,描述: ' + E.Message;
         Exit;
       end;
     end;
@@ -3828,20 +3824,8 @@ begin
         begin
           FDBConn.FConn.RollbackTrans;
           //roll back
-
-          nStr := '违反唯一约束';
-          if Pos(nStr, E.Message) > 0 then
-          begin
-            nStr := '车辆[ %s.%s ]同步云天数据违反约束,已忽略.';
-            nStr := Format(nStr, [nBills[0].FTruck, nBills[0].FID]);
-          
-            WriteLog(nStr);
-            Result := True;
-          end else
-          begin
-            nData := '同步云天提货单数据时发生错误,描述: ' + E.Message;
-            Exit;
-          end;
+          nData := '同步云天数据[SyncYT_BillEdit]时发生错误,描述: ' + E.Message;
+          Exit;
         end;
       end;
 
