@@ -3089,7 +3089,7 @@ begin
     if Result then
     begin
       {$IFDEF ASyncWriteData}
-      gDBConnManager.ASyncApply(nItem.FSerialNo);
+      gDBConnManager.ASyncApply(nItem.FSerialNo, 10 * 1000);
       //start write
       {$ENDIF}
     end;
@@ -3832,7 +3832,7 @@ begin
       if Result then
       begin
         {$IFDEF ASyncWriteData}
-        gDBConnManager.ASyncApply(nItem.FSerialNo);
+        gDBConnManager.ASyncApply(nItem.FSerialNo, 10 * 1000);
         //start write
         {$ENDIF}
       end;

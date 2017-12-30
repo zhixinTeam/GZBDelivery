@@ -855,7 +855,9 @@ begin
     FDBConn.FConn.RollbackTrans;
     raise;
   end;
-  
+
+  //----------------------------------------------------------------------------
+  if FListA.Values['BuDan'] <> sFlag_Yes then //更新单据状态
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
@@ -864,11 +866,6 @@ begin
       sFlag_BillNew, @nOut) then
       raise Exception.Create(nOut.FData);    
     //xxxxx
-
-    {$IFDEF ASyncWriteData}
-    gDBConnManager.ASyncApply(nItem.FSerialNo);
-    //start write
-    {$ENDIF}
   except
     FListB.Clear;
     FListC.Clear;
@@ -962,7 +959,8 @@ begin
     raise;
   end;
   //同步提货单
-  
+
+  //----------------------------------------------------------------------------
   if FListA.Values['BuDan'] = sFlag_Yes then //补单
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
@@ -977,6 +975,11 @@ begin
     gDBConnManager.WorkerExec(FDBConn, nStr);
     raise;
   end;
+
+  {$IFDEF ASyncWriteData}
+  gDBConnManager.ASyncApply(nItem.FSerialNo);
+  //start write
+  {$ENDIF}
 
   {$IFDEF MicroMsg}
   with FListC do
