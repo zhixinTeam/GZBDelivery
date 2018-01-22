@@ -115,9 +115,12 @@ type
 
     //防伪码校验
     function CheckSecurityCodeValid(var nData: string): Boolean;
-
+    
     //工厂待装查询
     function GetWaitingForloading(var nData: string):Boolean;
+    
+    //进出厂量查询（采购进厂量、销售出厂量）
+    function GetInOutFactoryTatol(var nData:string):Boolean;
 
     //网上订单可下单数量查询
     function GetBillSurplusTonnage(var nData:string):boolean;
@@ -472,6 +475,7 @@ begin
    cBC_WeChat_complete_shoporders  : Result := complete_shoporders(nData);   //微信平台接口：修改订单状态
    cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);   //微信平台接口：根据订单号获取订单信息
    cBC_WeChat_get_shopPurchasebyNO : Result := get_shopPurchasebyNO(nData);
+   cBC_WeChat_InOutFactoryTotal : Result := GetInOutFactoryTatol(nData);//进出厂量查询（采购进厂量、销售出厂量）
    else
     begin
       Result := False;
@@ -1842,6 +1846,55 @@ begin
     FOut.FData := PackerEncodeStr(FListC.Text);
   finally
     SyncLock.Leave;
+  end;
+end;
+
+//进出厂量查询（采购进厂量、销售出厂量） lih 2018-01-16
+function TWorkerBusinessCommander.GetInOutFactoryTatol(var nData:string):Boolean;
+var
+  nStr,nExtParam:string;
+  nType,nStartDate,nEndDate:string;
+  nPos:Integer;
+begin
+  Result := False;
+  nType := Trim(fin.FData);
+  nExtParam := Trim(FIn.FExtParam);
+  if (nType='') or (nExtParam='') then Exit;
+
+  nPos := Pos('and',nExtParam);
+  if nPos > 0 then
+  begin
+    nStartDate := Copy(nExtParam,1,nPos-1)+' 00:00:00';
+    nEndDate := Copy(nExtParam,nPos+3,Length(nExtParam)-nPos-2)+' 23:59:59';
+  end;
+
+  nStr := 'EXEC SP_InOutFactoryTotal '''+nType+''','''+nStartDate+''','''+nEndDate+''' ';
+
+  //WriteLog(nStr);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '未查询到客户编号[ %s ]对应的订单信息.';
+      Exit;
+    end;
+
+    FListA.Clear;
+    FListB.Clear;
+    First;
+
+    while not Eof do
+    begin
+      FListB.Values['StockName'] := FieldByName('StockName').AsString;
+      FListB.Values['TruckCount'] := FieldByName('TruckCount').AsString;
+      FListB.Values['StockValue'] := FieldByName('StockValue').AsString;
+
+      FListA.Add(PackerEncodeStr(FListB.Text));
+      Next;
+    end;
+
+    FOut.FData := PackerEncodeStr(FListA.Text);
+    Result := True;
   end;
 end;
 

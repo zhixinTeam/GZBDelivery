@@ -1,6 +1,6 @@
 object fFormMain: TfFormMain
-  Left = 387
-  Top = 122
+  Left = 344
+  Top = 61
   Width = 892
   Height = 606
   Caption = #19994#21153#20013#38388#20214

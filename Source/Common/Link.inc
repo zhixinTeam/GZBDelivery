@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBZX}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝松滋
@@ -73,6 +73,12 @@
   //允许车辆办理多张采购单
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
+  {$DEFINE EnableWebMall}
+  //使用网上商城
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
 {$ENDIF}
 
 //葛洲坝荆门

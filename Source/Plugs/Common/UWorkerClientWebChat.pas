@@ -167,11 +167,13 @@ begin
     with nChannel^ do
     while True do
     try
+      WriteLog(GetFixedServiceURL);
       if not Assigned(FChannel) then
         FChannel := CoSrvWebchat.Create(FMsg, FHttp);
       //xxxxx
 
       FHttp.TargetURL := GetFixedServiceURL;
+      WriteLog(FHttp.TargetURL);
       Result := ISrvWebChat(FChannel).Action(GetFlagStr(cWorker_GetMITName),
                                               nData);
       //call mit funciton

@@ -240,7 +240,7 @@ begin
         Exit;
       end
       else FHttp.TargetURL := GetFixedServiceURL;
-
+      WriteLog(FHttp.TargetURL);
       Result := ISrvBusiness(FChannel).Action(GetFlagStr(cWorker_GetMITName),
                                               nData);
       //call mit funciton

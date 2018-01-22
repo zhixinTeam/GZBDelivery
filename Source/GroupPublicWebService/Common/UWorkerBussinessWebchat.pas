@@ -83,6 +83,9 @@ type
     function GetWaitingForloading(var nData:string):Boolean;
     //工厂待装查询
 
+    function GetInOutFactoryTatol(var nData:string):Boolean;
+    //进出厂量查询（采购进厂量、销售出厂量）
+
     function GetBillSurplusTonnage(var nData:string):Boolean;
     //网上订单可下单数量查询
 
@@ -253,6 +256,8 @@ begin
     cBC_WeChat_complete_shoporders : Result := complete_shoporders(nData); //微信平台接口：订单完成
     cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);  //微信平台接口：根据订单号获取订单信息
     cBC_WeChat_get_shopPurchasebyNO : Result := get_shoporderbyno(nData);
+
+    cBC_WeChat_InOutFactoryTotal : Result := GetInOutFactoryTatol(nData); //进出厂量统计
    else
     begin
       Result := False;
@@ -393,6 +398,74 @@ begin
   nData := FPacker.XMLBuilder.WriteToString;
 end;
 
+//进出厂量查询（采购进厂量、销售出厂量） lih 2018-01-16
+function TBusWorkerBusinessWebchat.GetInOutFactoryTatol(var nData:string):Boolean;
+var nOut: TWorkerBusinessCommand;
+    nItems: TInOutFactListItems;
+    nIdx: Integer;
+    nDValue,nSValue,nTotalValue: Double;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
+            @nOut, cBC_WeChat_InOutFactoryTotal, Trim(FIn.FRemoteUL));
+  //xxxxxx
+
+  BuildDefaultXMLPack;
+  if Result then
+  begin
+    with FPacker.XMLBuilder do
+    begin
+      AnalyseInOutFactListItems(nOut.FData, nItems);
+
+      for nIdx := Low(nItems) to High(nItems) do
+      with nItems[nIdx] do
+      begin
+        if Pos('袋', FStockName) > 0 then
+          nDValue := nDValue + FStockValue
+        else
+          nSValue := nSValue + FStockValue;
+        nTotalValue := nTotalValue + FStockValue;
+      end;
+      
+      with Root.NodeNew('head') do
+      begin
+        NodeNew('DValue').ValueAsString := FormatFloat('0.00', nDValue);
+        NodeNew('SValue').ValueAsString := FormatFloat('0.00', nSValue);
+        NodeNew('TotalValue').ValueAsString := FormatFloat('0.00', nTotalValue);
+      end;
+
+      with Root.NodeNew('Items') do
+      begin
+        for nIdx := Low(nItems) to High(nItems) do
+        with NodeNew('Item'), nItems[nIdx] do
+        begin
+          NodeNew('StockName').ValueAsString := FStockName;
+          NodeNew('TruckCount').ValueAsString := IntToStr(FTruckCount);
+          NodeNew('StockValue').ValueAsString := FormatFloat('0.00',FStockValue);
+        end;  
+      end;
+
+      with Root.NodeNew('EXMG') do
+      begin
+        NodeNew('MsgTxt').ValueAsString     := '业务执行成功';
+        NodeNew('MsgResult').ValueAsString  := sFlag_Yes;
+        NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+      end;
+    end;
+  end
+  else begin
+    with FPacker.XMLBuilder do
+    begin
+      with Root.NodeNew('EXMG') do
+      begin
+        NodeNew('MsgTxt').ValueAsString     := nOut.FData;
+        NodeNew('MsgResult').ValueAsString  := sFlag_No;
+        NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+      end;
+    end;
+  end;
+  nData := FPacker.XMLBuilder.WriteToString;
+end;
+
 //------------------------------------------------------------------------------
 //Date: 2016-9-23
 //Parm: 客户编号，产品编号
@@ -500,6 +573,7 @@ var nOut: TWorkerBusinessCommand;
 begin
   Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
+  WriteLog('TBusWorkerBusinessWebchat.GetOrderList: ' + Trim(FIn.FRemoteUL));
   nRequest := nData;
 
 //  WriteLog(Format('Out => [%s]', [nOut.FData]));
@@ -536,9 +610,9 @@ begin
               NodeNew('BillNumber').ValueAsString := nCardItem.Values['XCB_CardId'];
               NodeNew('StockNo').ValueAsString := nCardItem.Values['XCB_Cement'];
               if nCardItem.Values['XCB_CementName'] = '' then
-                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_Cement'] + nType
+                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_Cement'] //+ nType
               else
-                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'] + nType;
+                NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'];//+ nType
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
               NodeNew('SaleArea').ValueAsString := nCardItem.Values['XCB_WorkAddr'];
             end;
