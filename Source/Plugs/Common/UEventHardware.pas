@@ -36,8 +36,8 @@ uses
   SysUtils, USysLoger, UHardBusiness, UMgrTruckProbe, UMgrParam,
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
   UMgrERelay,   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
-  UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp,
-  UMgrRFID102, UMgrVoiceNet, UMgrTTCEM100;
+  UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp, UMgrRFID102, UMgrVoiceNet,
+  UMgrTTCEM100, UMgrTTCEK720;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
 begin
@@ -120,6 +120,15 @@ begin
       gProberManager := TProberManager.Create;
       gProberManager.LoadConfig(nCfg + 'TruckProber.xml');
     end;
+
+    {$IFDEF PurELabelAutoCard}
+    nStr := 'K720ÍøÂç·¢¿¨»ú';
+    if not Assigned(gK720ReaderManager) then
+    begin
+      gK720ReaderManager := TK720ReaderManager.Create;
+      gK720ReaderManager.LoadConfig(nCfg + cTTCE_K720_Config);
+    end;
+    {$ENDIF}
   except
     on E:Exception do
     begin
@@ -216,6 +225,14 @@ begin
   {$IFDEF MITTruckProber}
   gProberManager.StartProber;
   {$ENDIF}
+
+  {$IFDEF PurELabelAutoCard}
+  if Assigned(gK720ReaderManager) then
+  begin
+    gK720ReaderManager.OnCardProc := WhenTTCE_K720_ReadCard;
+    gK720ReaderManager.StartReader;
+  end;
+  {$ENDIF}
 end;
 
 procedure THardwareWorker.AfterStopServer;
@@ -271,6 +288,10 @@ begin
 
   {$IFDEF MITTruckProber}
   gProberManager.StopProber;
+  {$ENDIF}
+
+  {$IFDEF PurELabelAutoCard}
+  gK720ReaderManager.StopReader;
   {$ENDIF}
 end;
 

@@ -366,6 +366,7 @@ begin
 
     with gDBConnManager.WorkerQuery(FDBConn, nStr) do
     begin
+      {$IFDEF TruckParkReady}
       if RecordCount < 1 then
       begin
         nData := '没有车辆[ %s ]的档案,无法开单.';
@@ -379,7 +380,7 @@ begin
         nData := Format(nData, [nTruck]);
         Exit;
       end;
-
+      
       if FieldByName('T_NoVerify').AsString <> sFlag_Yes then
       begin
         nIdx := Trunc((FieldByName('T_Now').AsDateTime -
@@ -393,6 +394,15 @@ begin
           Exit;
         end;
       end;
+      {$ELSE}
+      if RecordCount > 0 then
+        if FieldByName('T_Valid').AsString = sFlag_No then
+        begin
+          nData := '车辆[ %s ]被管理员禁止开单.';
+          nData := Format(nData, [nTruck]);
+          Exit;
+        end;
+      {$ENDIF}
     end;
   end;
   //----------------------------------------------------------------------------
@@ -1614,30 +1624,33 @@ begin
 
     nStr := 'Select Count(*) From %s Where C_Card=''%s''';
     nStr := Format(nStr, [sTable_Card, FIn.FExtParam]);
-
+    WriteLog('SaveBillCard: ' + nStr);
+    
     with gDBConnManager.WorkerQuery(FDBConn, nStr) do
-    if Fields[0].AsInteger < 1 then
     begin
-      nStr := MakeSQLByStr([SF('C_Card', FIn.FExtParam),
-              SF('C_Status', sFlag_CardUsed),
-              SF('C_Used', sFlag_Sale),
-              SF('C_Freeze', sFlag_No),
-              SF('C_Man', FIn.FBase.FFrom.FUser),
-              SF('C_Date', sField_SQLServer_Now, sfVal)
-              ], sTable_Card, '', True);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-    end else
-    begin
-      nStr := Format('C_Card=''%s''', [FIn.FExtParam]);
-      nStr := MakeSQLByStr([SF('C_Status', sFlag_CardUsed),
-              SF('C_Used', sFlag_Sale),
-              SF('C_Freeze', sFlag_No),
-              SF('C_Man', FIn.FBase.FFrom.FUser),
-              SF('C_Date', sField_SQLServer_Now, sfVal)
-              ], sTable_Card, nStr, False);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
+      WriteLog('SaveBillCard: ' + IntToStr(Fields[0].AsInteger));
+      if Fields[0].AsInteger < 1 then
+      begin
+        nStr := MakeSQLByStr([SF('C_Card', FIn.FExtParam),
+                SF('C_Status', sFlag_CardUsed),
+                SF('C_Used', sFlag_Sale),
+                SF('C_Freeze', sFlag_No),
+                SF('C_Man', FIn.FBase.FFrom.FUser),
+                SF('C_Date', sField_SQLServer_Now, sfVal)
+                ], sTable_Card, '', True);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end else
+      begin
+        nStr := Format('C_Card=''%s''', [FIn.FExtParam]);
+        nStr := MakeSQLByStr([SF('C_Status', sFlag_CardUsed),
+                SF('C_Used', sFlag_Sale),
+                SF('C_Freeze', sFlag_No),
+                SF('C_Man', FIn.FBase.FFrom.FUser),
+                SF('C_Date', sField_SQLServer_Now, sfVal)
+                ], sTable_Card, nStr, False);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+      end;
     end;
-
     FDBConn.FConn.CommitTrans;
     Result := True;
   except
@@ -1727,7 +1740,7 @@ begin
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
           'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,' +
-          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_HdOrderId '+
+          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId '+
           'From $Bill b ';
   //xxxxx
 
@@ -1798,7 +1811,9 @@ begin
       FYSValid  := FieldByName('L_IsEmpty').AsString;
 
       Fworkaddr := FieldByName('L_WorkAddr').AsString;
-      FHdOrderId:= FieldByName('L_HdOrderId').AsString;
+      Ftransname := FieldByName('L_TransName').AsString;
+
+      FHdOrderId := FieldByName('L_HdOrderId').AsString;
       FSelected := True;
 
       Inc(nIdx);
@@ -2182,7 +2197,9 @@ begin
                 FValue +FKZValue, FKZValue]);
         WriteLog(nStr);
 
-        nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal)
+        nSQL := MakeSQLByStr([SF('L_Value', FValue, sfVal),
+              SF('L_HdOrderId', FHdOrderId),
+              SF('L_HdOver', sFlag_Yes)
               ], sTable_Bill, SF('L_ID', FID), False);
         FListA.Add(nSQL); //更新提货量
 
@@ -2286,6 +2303,7 @@ begin
                 SF('L_ZhiKa', FListB.Values['XCB_ID']),
                 SF('L_Project', FListB.Values['XCB_CardId']),
                 SF('L_Area', FListB.Values['pcb_name']),
+                SF('L_WorkAddr', FListB.Values['XCB_WorkAddr']),
                 SF('L_CusID', FListB.Values['XCB_Client']),
                 SF('L_CusName', FListB.Values['XCB_ClientName']),
                 SF('L_CusPY', GetPinYinOfStr(FListB.Values['XCB_ClientName'])),
@@ -2318,7 +2336,8 @@ begin
                 SF('L_TransID', FListB.Values['XCB_TransID']),
                 SF('L_TransName', FListB.Values['XCB_TransName']),
                 SF('L_Man', FIn.FBase.FFrom.FUser),
-                SF('L_Date', sField_SQLServer_Now, sfVal)
+                SF('L_Date', sField_SQLServer_Now, sfVal),
+                SF('L_HdOver', sFlag_Yes)
                 ], sTable_Bill, '', True);
         FListA.Add(nSQL); //交货单
 
@@ -2417,15 +2436,13 @@ begin
       FListC.Text := PackerDecodeStr(nOut.FData);
       nSQL := MakeSQLByStr([
               SF('L_Seal', FListC.Values['XCB_CementCodeID']),
-              SF('L_HYDan', FListC.Values['XCB_CementCode']),
-              SF('L_HdOver', sFlag_Yes)
+              SF('L_HYDan', FListC.Values['XCB_CementCode'])
               ], sTable_Bill, SF('L_ID', FID), False);
       FListA.Add(nSQL);
 
       nSQL := MakeSQLByStr([
               SF('L_Seal', FListC.Values['XCB_CementCodeID']),
-              SF('L_HYDan', FListC.Values['XCB_CementCode']),
-              SF('L_HdOver', sFlag_Yes)
+              SF('L_HYDan', FListC.Values['XCB_CementCode'])
               ], sTable_Bill, SF('L_ID', nTmp), False);
       FListA.Add(nSQL);
 

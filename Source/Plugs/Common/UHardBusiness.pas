@@ -9,13 +9,15 @@ interface
 
 uses
   Windows, Classes, Controls, SysUtils, UMgrDBConn, UMgrParam, DB,
-  UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue,
+  UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue, UMITConst,
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
-  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UMITConst;
+  UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
+  UMgrTTCEK720, UMgrVoiceNet;
 
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
+procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
 //有新卡号到达读头
@@ -556,6 +558,7 @@ var nBills: TLadingBillItems;
     nXmlStr,nData:string;
     nIdx:Integer;
     nNetWeight:Double;
+    nTransName:string;
 begin
   {$IFNDEF EnableWebMall}
   Exit;
@@ -584,6 +587,8 @@ begin
   for nIdx := Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
+    nTransName := Ftransname;
+    if nTransName = '' then nTransName := '-1';
     nNetWeight := FValue;
     nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
         +'<DATA>'
@@ -605,7 +610,7 @@ begin
         +'	      <MakeDate></MakeDate>'
         +'	      <MakeMan></MakeMan>'
         +'	      <TransID></TransID>'
-        +'	      <TransName></TransName>'
+        +'	      <TransName>%s</TransName>'
         +'	      <NetWeight>%f</NetWeight>'
         +'	      <Searial>%s</Searial>'
         +'	      <OutFact></OutFact>'
@@ -615,7 +620,7 @@ begin
         +'   <remark/>'
         +'</DATA>';
     nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nNetWeight, Fworkaddr]);
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nTransName, nNetWeight, Fworkaddr]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
 
@@ -717,10 +722,14 @@ begin
             +'</head>'
             +'</DATA>';
   nXmlStr := Format(nXmlStr,[nWebOrderId,nStatus,FNetWeight]);
-  nXmlStr := PackerEncodeStr(nXmlStr);
 
+  nXmlStr := PackerEncodeStr(nXmlStr);
+  if nStatus = 1 then gSysLoger.AddLog(nXmlStr);
   nData := Do_ModifyWebOrderStatus(nXmlStr);
-  gSysLoger.AddLog(nData);
+  if nStatus = 1 then
+    gSysLoger.AddLog('出厂更新微信状态结果：' + nData)
+  else
+    gSysLoger.AddLog(nData);
 
   if ndata<>'' then
   begin
@@ -1104,10 +1113,126 @@ begin
   end;
 end;
 
+//播放语音
+procedure PlayVoice(const nText:string);
+begin
+  gNetVoiceHelper.PlayVoice(nText);
+end;
+
+function SavePurchBillAutoOutCard(const nCard, nECard, nTunnel: string):Boolean;
+var
+  nTruck, nStr :string;
+  nLen, nIdx: Integer;
+  nWebOrderItem: TPurWebOrderItems;
+  nList: TStrings;
+  nOrder: string;
+  nRet: Boolean;
+begin
+  Result := False;
+  
+  nTruck := GetTruckNoByELabel(nECard);
+  if nTruck = '' then
+  begin
+    nStr := '%s采购电子标签无效';
+    nStr := Format(nStr, [nECard]);
+    WriteHardHelperLog(nStr);
+    PlayVoice(nStr);
+    Exit;
+  end;
+
+  if Length(nTruck) < 3 then
+  begin
+    nStr := '车牌号%s长度非法';
+    nStr := Format(nStr, [nTruck]);
+    WriteHardHelperLog(nStr);
+    PlayVoice(nStr);
+    Exit;
+  end;
+
+  if not TruckMultipleCard(nTruck, nStr) then
+  begin
+    WriteHardHelperLog(nStr);
+    PlayVoice(nStr);
+    Exit;
+  end;
+
+  if not GetPurchWebOrders(nTruck) then
+  begin
+    nStr := '%s获取网上下单信息失败';
+    nStr := Format(nStr, [nTruck]);
+    WriteHardHelperLog(nStr);
+    PlayVoice(nStr);
+    Exit;
+  end;
+
+  nLen := Length(gPurWebOrderItems);
+  if nLen > 0 then
+  for nIdx := 0 to nLen - 1 do
+  begin
+    nWebOrderItem := gPurWebOrderItems[nIdx];
+    if not CheckOrderValidate(nWebOrderItem) then
+    begin
+      nStr := '%s校验采购合同有效性失败';
+      nStr := Format(nStr, [nTruck]);
+      WriteHardHelperLog(nStr);
+      PlayVoice(nStr);
+      Exit;
+    end;
+
+    nList := TStringList.Create;
+    try
+      with nList, nWebOrderItem do
+      begin
+        Values['SQID'] := Ffac_order_no;
+        Values['Area'] := '';
+        Values['Truck'] := Ftracknumber;
+        Values['Project'] := Ffac_order_no;
+        Values['CardType'] := sFlag_OrderCardL; 
+
+        Values['ProviderID'] := FProvID;
+        Values['ProviderName'] := FProvName;
+        Values['StockNO'] := FGoodsID;
+        Values['StockName'] := FGoodsname;
+        Values['Value'] := FData;
+    
+        Values['WebOrderID'] := FOrdernumber;
+      end;
+
+      nOrder := SaveOrder(PackerEncodeStr(nList.Text));
+      if nOrder='' then
+      begin
+        nStr := '%s保存采购单失败';
+        nStr := Format(nStr, [nTruck]);
+        WriteHardHelperLog(nStr);
+        Exit;
+      end;
+
+      SaveWebOrderMatch(nOrder, nWebOrderItem.FOrdernumber);
+    finally
+      nList.Free;
+    end;
+
+    nRet := SaveOrderCard(nOrder, nCard);
+    if nRet then
+    begin
+      if not gK720ReaderManager.SendCardOutF(nTunnel) then
+      begin
+        nStr := '车辆%s自动发卡失败';
+        nStr := Format(nStr, [nTruck]);
+        WriteHardHelperLog(nStr);
+        PlayVoice(nStr);
+        Exit;
+      end;
+    end;
+  end;
+end;
+
 //Date: 2014-10-25
 //Parm: 读头数据
 //Desc: 华益读头磁卡动作
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
+var
+  nTruck :string;
 begin
   {$IFDEF DEBUG}
   WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
@@ -1122,6 +1247,17 @@ begin
       g02NReader.SetReaderCard(nReader.FHost, nReader.FCard);
      end;
   end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
+
+  if Assigned(nReader.FOptions) then
+  begin
+    {$IFDEF PurELabelAutoCard}
+    if CompareText('NET', nReader.FOptions.Values['SendCard']) = 0 then
+    begin
+      gELabelItem.FCard := nReader.FCard;
+      gELabelItem.FTunnel := nReader.FTunnel;
+    end;
+    {$ENDIF}
+  end;
 end;
 
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
@@ -1159,6 +1295,34 @@ begin
     end;
   finally
     gM100ReaderManager.DealtWithCard(nItem, nRetain)
+  end;
+end;
+
+//lih 2018-02-03
+//处理网络自动发卡
+procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
+var
+  nStr, nCard, nECard, nETunnel: string;
+begin
+  {$IFDEF DEBUG}
+  nStr := '网络发卡机'  + nItem.FID + ' ::: ' + nItem.FCard;
+  WriteHardHelperLog(nStr);
+  {$ENDIF}
+
+  if nCard <> nItem.FCard then
+  begin
+    nCard := nItem.FCard;
+
+    if nECard <> gELabelItem.FCard then
+    begin
+      nECard := gELabelItem.FCard;
+      nETunnel := gELabelItem.FTunnel;
+      if not SavePurchBillAutoOutCard(nCard, nECard, nETunnel) then
+      begin
+        WriteHardHelperLog('通道[' + nETunnel + ']ELabel: [' + nECard + ']保存失败！');
+        Exit;
+      end;
+    end;
   end;
 end;
 

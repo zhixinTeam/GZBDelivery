@@ -33,6 +33,9 @@ type
     VIP1: TMenuItem;
     VIP2: TMenuItem;
     N8: TMenuItem;
+    N9: TMenuItem;
+    N10: TMenuItem;
+    N11: TMenuItem;
     procedure EditNamePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -46,6 +49,8 @@ type
     procedure VIP1Click(Sender: TObject);
     procedure VIP2Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
+    procedure N9Click(Sender: TObject);
+    procedure N10Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -282,6 +287,38 @@ begin
     FDM.ExecuteSQL(nStr);
     InitFormData(FWhere);
     ShowMsg('设置车辆有效皮重成功', sHint);
+  end;
+end;
+
+procedure TfFrameTrucks.N9Click(Sender: TObject);
+var nStr: string;
+begin
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := 'Update %s Set T_CardUsePurch=''%s'' Where R_ID=%s';
+    nStr := Format(nStr, [sTable_Truck, sFlag_Yes,
+      SQLQuery.FieldByName('R_ID').AsString]);
+    //xxxxxx
+
+    FDM.ExecuteSQL(nStr);
+    InitFormData(FWhere);
+    ShowMsg('启用采购电子标签成功', sHint);
+  end;
+end;
+
+procedure TfFrameTrucks.N10Click(Sender: TObject);
+var nStr: string;
+begin
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := 'Update %s Set T_CardUsePurch=''%s'' Where R_ID=%s';
+    nStr := Format(nStr, [sTable_Truck, sFlag_No,
+      SQLQuery.FieldByName('R_ID').AsString]);
+    //xxxxxx
+
+    FDM.ExecuteSQL(nStr);
+    InitFormData(FWhere);
+    ShowMsg('停用采购电子标签成功', sHint);
   end;
 end;
 

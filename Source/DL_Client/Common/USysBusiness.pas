@@ -321,6 +321,9 @@ function AddManualEventRecordOver(nEID, nKey, nEvent:string;
     nMemo: string=''): Boolean;
 //添加自动并单处理事项记录（直接已处理状态）
 
+function ReadWxHdOrderId(const nLID:string):string;
+//读取微信合单号
+
 implementation
 
 //Desc: 记录日志
@@ -2985,6 +2988,75 @@ begin
       nWCValZ := FieldByName('P_DaiWuChaZ').AsFloat;
       nWCValF := FieldByName('P_DaiWuChaF').AsFloat;
     end;    
+  end;
+end;
+
+//读取微信合单号
+function ReadWxHdOrderId(const nLID:string):string;
+var
+  nSQL, nXmlStr, nData, nWebOrderID:string;
+  nListA,nListB:TStringList;
+  i:Integer;
+  nWebOrderCount:Integer;
+  nOut: TWorkerBusinessCommand;
+begin
+  Result := '';
+  nSQL := 'Select WOM_WebOrderID From %s Where WOM_LID=''%s''';
+  nSQL := Format(nSQL, [sTable_WebOrderMatch, nLID]);
+
+  with FDM.QueryTemp(nSQL) do
+  if RecordCount > 0 then
+  begin
+    nWebOrderID := FieldByName('WOM_WebOrderID').AsString;
+    nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
+            +'<DATA>'
+            +'<head>'
+            +'<Factory>%s</Factory>'
+            +'      <NO>%s</NO>'
+            +'      <status>0</status>'  //-1  开卡    0  开卡成功
+            +'</head>'
+            +'</DATA>';
+
+    nXmlStr := Format(nXmlStr,[gSysParam.FFactory, nWebOrderID]);
+    WriteLog(nXmlStr);
+    nXmlStr := PackerEncodeStr(nXmlStr);
+
+    if CallBusinessCommand(cBC_WeChat_get_shoporderbyno, nXmlStr, '', @nOut, False) then
+      nData := nOut.FData
+    else begin
+      ShowMsg('未查询到网上商城订单详细信息，请检查订单号是否正确',sHint);
+      Writelog('未查询到网上商城订单详细信息，请检查订单号是否正确');
+      Exit;
+    end;
+    //解析网城订单信息
+    nData := PackerDecodeStr(nData);
+    Writelog('get_shoporderbyno res:'+nData);
+    nListA := TStringList.Create;
+    nListB := TStringList.Create;
+    try
+      nListA.Text := nData;
+      for i := nListA.Count-1 downto 0 do
+      begin
+        if Trim(nListA.Strings[i])='' then
+        begin
+          nListA.Delete(i);
+        end;
+      end;
+
+      nWebOrderCount := nListA.Count;
+      for i := 0 to nWebOrderCount-1 do
+      begin
+        nListB.CommaText := nListA.Strings[i];
+        Result := nListB.Values['hd_fac_order_no'];
+      end;
+    finally
+      nListB.Free;
+      nListA.Free;
+    end;
+  end else
+  begin
+    ShowMsg(nLID + '未查询到网上提货单号', sHint);
+    WriteLog(nLID + '未查询到网上提货单号');
   end;
 end;
 

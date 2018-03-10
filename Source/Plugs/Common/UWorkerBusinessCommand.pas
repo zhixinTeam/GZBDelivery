@@ -161,6 +161,18 @@ type
     //修改订单状态
     function complete_shoporders(var nData:string):Boolean;
 
+    //根据车号获取销售微信下单信息
+    function Get_ShopOrderByTruckNo(var nData:string):Boolean;
+
+    //根据车号获取采购微信下单信息
+    function Get_ShopPurchByTruckNo(var nData:string):Boolean;
+
+    //获取微信端提报车辆信息
+    function Get_DeclareTruck(var nData:string):Boolean;
+
+    //修改微信端提报车辆信息（审核信息）
+    function Update_DeclareTruck(var nData:string):Boolean;
+
   public
     constructor Create; override;
     destructor destroy; override;
@@ -476,6 +488,11 @@ begin
    cBC_WeChat_get_shoporderbyno : Result := get_shoporderbyno(nData);   //微信平台接口：根据订单号获取订单信息
    cBC_WeChat_get_shopPurchasebyNO : Result := get_shopPurchasebyNO(nData);
    cBC_WeChat_InOutFactoryTotal : Result := GetInOutFactoryTatol(nData);//进出厂量查询（采购进厂量、销售出厂量）
+
+   cBC_WeChat_Get_ShopOrderByTruckNo : Result := Get_ShopOrderByTruckNo(nData);   //微信平台接口：根据车号获取销售微信下单信息
+   cBC_WeChat_Get_ShopPurchByTruckNo : Result := Get_ShopPurchByTruckNo(nData);   //微信平台接口：根据车号获取采购微信下单信息
+   cBC_WeChat_Get_DeclareTruck : Result := Get_DeclareTruck(nData);      //微信平台接口：获取微信端提报车辆信息
+   cBC_WeChat_Update_DeclareTruck : Result := Update_DeclareTruck(nData);      //微信平台接口：修改微信端提报车辆信息（审核信息）
    else
     begin
       Result := False;
@@ -2072,8 +2089,10 @@ begin
         '  xcb.XCB_Firm,' +                         //所属厂区
         '  pbf.pbf_name as XCB_FirmName,' +         //工厂名称
         '  pcb.pcb_id, pcb.pcb_name, ' +            //销售片区
-        '  '''' as XCB_TransID, ' +                 //运输单位编号
-        '  '''' as XCB_TransName ' +                //运输单位
+        //'  '''' as XCB_TransID, ' +                 //运输单位编号
+        //'  '''' as XCB_TransName ' +                //运输单位
+        '  xcg.xob_id as XCB_TransID, ' +             //运输单位编号
+        '  xcg.XOB_Name as XCB_TransName ' +          //运输单位
         'from XS_Card_Base xcb' +
         '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
         '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
@@ -2082,6 +2101,8 @@ begin
         '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
         '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
         '  Left Join v_Card_Base1 vcb on vcb.XCB_ID=xcb.XCB_ID ' +
+        '  Left Join XS_Card_Freight xcf on xcf.Xcf_Card=xcb.xcb_ID ' +
+        '  Left Join XS_Compy_Base xcg on xcg.xob_id=xcf.xcf_tran ' +
         //未删除、可用数量大于0、卡片启用并且处于已审核状态、未锁定
         ' where  xcb.xcb_del=''0'''
               +' and xcb.XCB_Status=''1'''
@@ -2331,6 +2352,50 @@ begin
             cBC_WeChat_complete_shoporders);
   if Result then
        FOut.FData := sFlag_Yes
+  else nData := nOut.FData;
+end;
+
+//根据车号获取销售微信下单信息
+function TWorkerBusinessCommander.Get_ShopOrderByTruckNo(var nData:string):Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_Get_ShopOrderByTruckNo);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
+end;
+
+//根据车号获取采购微信下单信息
+function TWorkerBusinessCommander.Get_ShopPurchByTruckNo(var nData:string):Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_Get_ShopPurchByTruckNo);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
+end;
+
+//获取微信端提报车辆信息
+function TWorkerBusinessCommander.Get_DeclareTruck(var nData:string):Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_Get_DeclareTruck);
+  if Result then
+       FOut.FData := nOut.FData
+  else nData := nOut.FData;
+end;
+
+//修改微信端提报车辆信息（审核信息）
+function TWorkerBusinessCommander.Update_DeclareTruck(var nData:string):Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessWebchat, FIn.FData, '', @nOut,
+            cBC_WeChat_Update_DeclareTruck);
+  if Result then
+       FOut.FData := nOut.FData
   else nData := nOut.FData;
 end;
 
@@ -4476,7 +4541,6 @@ begin
 
   nDBWorker := nil;
   try
-    //nStr := 'Select * From v_notify_print Where CNO_Del=''0'' ';
     nStr := 'select cno.CNO_ID,cno.CNO_NOTIFYID,cno.CNO_CEMENTCODE,'+
             'cno.CNO_CEMENTYEAR,cno.CNO_PACKCODE,cno.CNO_CEMENT,cno.CNO_DEPOSITARY,'+
             'cno.CNO_COUNT,cno.CNO_REMAINCOUNT,cno.CNO_PACKDATE,cno.CNO_SETDATE,cno.CNO_OPERMAN,'+
@@ -4494,8 +4558,20 @@ begin
             '          and a.pcd_type=''701'' and a.pcd_del=''0'' ' +
             'left join pf_analy_native on PAW_Cement=PAN_Intensity ' +
             'where paw_del=''0'' ';
+    {$IFDEF GZBSZ}
+    nStr := 'select cno.CNO_ID,cno.CNO_NOTIFYID,cno.CNO_CEMENTCODE,'+
+            'cno.CNO_CEMENTYEAR,cno.CNO_PACKCODE,cno.CNO_CEMENT,cno.CNO_DEPOSITARY,'+
+            'cno.CNO_COUNT,cno.CNO_REMAINCOUNT,cno.CNO_PACKDATE,cno.CNO_SETDATE,cno.CNO_OPERMAN,'+
+            'cno.CNO_CLIENTID,cno.CNO_STATUS,cno.CNO_DEL,cno.CNO_CREATOR,'+
+            'cno.CNO_CDATE,cno.CNO_MENDER,cno.CNO_MDATE,cno.CNO_FIRM,'+
+            'to_char(substr(cno.CNO_REMARK,1,500)) as CNO_REMARK,'+
+            'v_pf_outwork.* '+
+            'From cf_notify_outwork cno '+
+            'Left join v_pf_outwork on trim(cno_cementcode) = trim(paw_analy) '+
+            'Where paw_del=''0'' ';
+    {$ENDIF}
     //已删除的批次号不同步
-
+    
     if FIn.FData <> '' then
     begin
       nStr := nStr + ' And Paw_analy=''%s''';
@@ -4533,7 +4609,7 @@ begin
                 SF('CNO_MDate', FieldByName('CNO_MDate').AsString),
                 SF('CNO_Firm', FieldByName('CNO_Firm').AsString),
                 SF('CNO_Remark', FieldByName('CNO_Remark').AsString),
-
+                
                 SF('PAW_ID', FieldByName('PAW_ID').AsString),
                 SF('PAW_Analy', FieldByName('PAW_Analy').AsString),
                 SF('PAW_Cement', FieldByName('PAW_Cement').AsString),

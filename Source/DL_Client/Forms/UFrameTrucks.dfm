@@ -1,5 +1,6 @@
 inherited fFrameTrucks: TfFrameTrucks
   Width = 686
+  Height = 519
   inherited ToolBar1: TToolBar
     Width = 686
     inherited BtnAdd: TToolButton
@@ -15,7 +16,7 @@ inherited fFrameTrucks: TfFrameTrucks
   inherited cxGrid1: TcxGrid
     Top = 202
     Width = 686
-    Height = 165
+    Height = 317
     inherited cxView1: TcxGridDBTableView
       PopupMenu = PMenu1
     end
@@ -112,7 +113,7 @@ inherited fFrameTrucks: TfFrameTrucks
     AutoHotkeys = maManual
     OnPopup = PMenu1Popup
     Left = 6
-    Top = 262
+    Top = 261
     object N1: TMenuItem
       Caption = '-'
       Enabled = False
@@ -142,6 +143,17 @@ inherited fFrameTrucks: TfFrameTrucks
       OnClick = N7Click
     end
     object N6: TMenuItem
+      Caption = '-'
+    end
+    object N9: TMenuItem
+      Caption = #21551#29992#37319#36141#30005#23376#26631#31614
+      OnClick = N9Click
+    end
+    object N10: TMenuItem
+      Caption = #20572#29992#37319#36141#30005#23376#26631#31614
+      OnClick = N10Click
+    end
+    object N11: TMenuItem
       Caption = '-'
     end
     object VIP1: TMenuItem

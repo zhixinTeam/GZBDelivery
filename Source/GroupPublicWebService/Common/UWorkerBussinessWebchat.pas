@@ -68,6 +68,49 @@ type
     function ParseWebResponse(var nData:string):Boolean;override;
   end;
 
+  stTruckShopOrderItem = record
+    FOrder_id:string;
+    FOrder_Type:string;
+    Ffac_order_no:string;
+    FOrdernumber:string;
+    FGoodsID:string;
+    FGoodsname:string;
+    Ftracknumber:string;
+    FData:string;
+    FHd_order_no:string;
+    Fspare:string;
+    FDriverName:string;
+    FNamePinYin:string;
+    FDriverPhone:string;
+    FToAddress:string;
+    FIdNumber:string;
+  end;
+
+  TWebResponse_get_truckshoporders=class(TWebResponseBaseInfo)
+  public
+    items:array of stTruckShopOrderItem;
+    function ParseWebResponse(var nData:string):Boolean;override;
+  end;
+
+  stDeclareTruckItem = record
+    FUniqueIdentifier:string;
+    FSerialNo:string;
+    FCarNumber:string;
+    FDrivingLicensePath:string;
+    FCustName:string;
+    FCustPhone:string;
+    FTare:string;
+  end;
+
+  TWebResponse_get_DeclareTruck=class(TWebResponseBaseInfo)
+  public
+    items:array of stDeclareTruckItem;
+    function ParseWebResponse(var nData:string):Boolean;override;
+  end;
+
+  TWebResponse_update_DeclareTruck=class(TWebResponseBaseInfo)
+  end;
+
   TBusWorkerBusinessWebchat = class(TBusinessWorkerBase)
   private
     FIn: TWorkerWebChatData;
@@ -121,6 +164,18 @@ type
 
     function complete_shoporders(var nData:string):Boolean;
     //修改订单状态
+
+    function Get_ShopOrderByTruckNo(var nData:string):Boolean;
+    //根据车号获取销售微信下单信息
+    
+    function Get_ShopPurchByTruckNo(var nData:string):Boolean;
+    //根据车号获取采购微信下单信息
+    
+    function Get_DeclareTruck(var nData:string):Boolean;
+    //获取微信端提报车辆信息
+    
+    function Update_DeclareTruck(var nData:string):Boolean;
+    //修改微信端提报车辆信息（审核信息）
     
   public
     class function FunctionName: string; override;
@@ -258,7 +313,13 @@ begin
     cBC_WeChat_get_shopPurchasebyNO : Result := get_shoporderbyno(nData);
 
     cBC_WeChat_InOutFactoryTotal : Result := GetInOutFactoryTatol(nData); //进出厂量统计
-   else
+
+    cBC_WeChat_Get_ShopOrderByTruckNo : Result := Get_ShopOrderByTruckNo(nData);   //微信平台接口：根据车号获取销售微信下单信息
+    cBC_WeChat_Get_ShopPurchByTruckNo : Result := Get_ShopPurchByTruckNo(nData);   //微信平台接口：根据车号获取采购微信下单信息
+    cBC_WeChat_Get_DeclareTruck : Result := Get_DeclareTruck(nData);         //微信平台接口：获取微信端提报车辆信息
+    cBC_WeChat_Update_DeclareTruck : Result := Update_DeclareTruck(nData);      //微信平台接口：修改微信端提报车辆信息（审核信息）
+    
+  else
     begin
       Result := False;
       nData := '无效的指令代码(Invalid Command).';
@@ -570,6 +631,7 @@ var nOut: TWorkerBusinessCommand;
   nType: string;
   i:Integer;
   nRequest,nResponse:string;
+  nDSType: string;
 begin
   Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
               @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
@@ -603,8 +665,14 @@ begin
             with NodeNew('Item') do
             begin
               if Pos('袋', nCardItem.Values['XCB_CementName']) > 0 then
-                   nType := '袋装'
-              else nType := '散装';
+              begin
+                nType := '袋装';
+                nDSType := 'D';
+              end
+              else begin
+                nType := '散装';
+                nDSType := 'S';
+              end;
 
               NodeNew('SetDate').ValueAsString := nCardItem.Values['XCB_SetDate'];
               NodeNew('BillNumber').ValueAsString := nCardItem.Values['XCB_CardId'];
@@ -613,8 +681,10 @@ begin
                 NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_Cement'] //+ nType
               else
                 NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'];//+ nType
+              NodeNew('StockType').ValueAsString :=  nDSType;
               NodeNew('MaxNumber').ValueAsString := nCardItem.Values['XCB_RemainNum'];
               NodeNew('SaleArea').ValueAsString := nCardItem.Values['XCB_WorkAddr'];
+              NodeNew('TransName').ValueAsString := nCardItem.Values['XCB_TransName'];
             end;
           end;
         end;
@@ -1048,6 +1118,240 @@ begin
   end;  
 end;
 
+//根据车号获取销售微信下单信息
+function TBusWorkerBusinessWebchat.Get_ShopOrderByTruckNo(var nData:string):Boolean;
+var
+  nXmlStr:string;
+  nService:ReviceWS;
+  nResponse:string;
+  nObj:TWebResponse_get_truckshoporders;
+  function BuildResData:string;
+  var
+    i:Integer;
+    nStr:string;
+    nList:TStringList;
+  begin
+    nList := TStringList.Create;
+    try
+      for i := Low(nObj.items) to High(nObj.items) do
+      begin
+        nStr := 'order_id=%s,order_type=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,'+
+                'goodsname=%s,tracknumber=%s,data=%s,hd_fac_order_no=%s,spare=%s,'+
+                'drivername=%s,namepinyin=%s,driverphone=%s,toaddress=%s,idnumber=%s\n';
+        nStr := Format(nStr,[nObj.items[i].FOrder_id,
+          nObj.items[i].FOrder_Type,
+          nObj.items[i].Ffac_order_no,
+          nObj.items[i].FOrdernumber,
+          nObj.items[i].FGoodsID,
+
+          nObj.items[i].FGoodsname,
+          nObj.items[i].Ftracknumber,
+          nobj.items[i].FData,
+          nobj.items[i].FHd_order_no,
+          nobj.items[i].Fspare,
+
+          nobj.items[i].FDriverName,
+          nobj.items[i].FNamePinYin,
+          nobj.items[i].FDriverPhone,
+          nobj.items[i].FToAddress,
+          nobj.items[i].FIdNumber]);
+        nStr := StringReplace(nStr, '\n', #13#10, [rfReplaceAll]);
+        nlist.Add(nStr);
+      end;
+      Result := PackerEncodeStr(nlist.Text);
+    finally
+      nList.Free;
+    end;
+  end;
+begin
+  Result := False;
+  nXmlStr := PackerDecodeStr(fin.FData);
+  nObj := TWebResponse_get_truckshoporders.Create;
+  nService := GetReviceWS(True);
+  try
+    nResponse := nService.mainfuncs('Get_ShopOrderByTruckNo',nXmlStr);
+    writelog('TBusWorkerBusinessWebchat.Get_ShopOrderByTruckNo request:'+#13+nXmlStr);
+    FPacker.XMLBuilder.Clear;
+    FPacker.XMLBuilder.ReadFromString(nResponse);
+    writelog('TBusWorkerBusinessWebchat.Get_ShopOrderByTruckNo response:'+#13+nResponse);
+    nObj.FPacker := FPacker;
+    Result := nObj.ParseWebResponse(nResponse);
+    if not Result then
+    begin
+      nData := nObj.FErrmsg;
+      fout.FBase.FErrDesc := nObj.FErrmsg;
+      Exit;
+    end;
+    nData := BuildResData;
+    FOut.FData := nData;
+  finally
+    nObj.Free;
+    nService := nil;
+  end;  
+end;
+  
+//根据车号获取采购微信下单信息
+function TBusWorkerBusinessWebchat.Get_ShopPurchByTruckNo(var nData:string):Boolean;
+var
+  nXmlStr:string;
+  nService:ReviceWS;
+  nResponse:string;
+  nObj:TWebResponse_get_truckshoporders;
+  function BuildResData:string;
+  var
+    i:Integer;
+    nStr:string;
+    nList:TStringList;
+  begin
+    nList := TStringList.Create;
+    try
+      for i := Low(nObj.items) to High(nObj.items) do
+      begin
+        nStr := 'order_id=%s,order_type=%s,fac_order_no=%s,ordernumber=%s,goodsID=%s,'+
+                'goodsname=%s,tracknumber=%s,data=%s,hd_fac_order_no=%s,spare=%s,'+
+                'drivername=%s,namepinyin=%s,driverphone=%s,toaddress=%s,idnumber=%s\n';
+        nStr := Format(nStr,[nObj.items[i].FOrder_id,
+          nObj.items[i].FOrder_Type,
+          nObj.items[i].Ffac_order_no,
+          nObj.items[i].FOrdernumber,
+          nObj.items[i].FGoodsID,
+
+          nObj.items[i].FGoodsname,
+          nObj.items[i].Ftracknumber,
+          nobj.items[i].FData,
+          nobj.items[i].FHd_order_no,
+          nobj.items[i].Fspare,
+
+          nobj.items[i].FDriverName,
+          nobj.items[i].FNamePinYin,
+          nobj.items[i].FDriverPhone,
+          nobj.items[i].FToAddress,
+          nobj.items[i].FIdNumber]);
+        nStr := StringReplace(nStr, '\n', #13#10, [rfReplaceAll]);
+        nlist.Add(nStr);
+      end;
+      Result := PackerEncodeStr(nlist.Text);
+    finally
+      nList.Free;
+    end;
+  end;
+begin
+  Result := False;
+  nXmlStr := PackerDecodeStr(fin.FData);
+  nObj := TWebResponse_get_truckshoporders.Create;
+  nService := GetReviceWS(True);
+  try
+    nResponse := nService.mainfuncs('Get_ShopPurchByTruckNo',nXmlStr);
+    writelog('TBusWorkerBusinessWebchat.Get_ShopPurchByTruckNo request:'+#13+nXmlStr);
+    FPacker.XMLBuilder.Clear;
+    FPacker.XMLBuilder.ReadFromString(nResponse);
+    writelog('TBusWorkerBusinessWebchat.Get_ShopPurchByTruckNo response:'+#13+nResponse);
+    nObj.FPacker := FPacker;
+    Result := nObj.ParseWebResponse(nResponse);
+    if not Result then
+    begin
+      nData := nObj.FErrmsg;
+      fout.FBase.FErrDesc := nObj.FErrmsg;
+      Exit;
+    end;
+    nData := BuildResData;
+    FOut.FData := nData;
+  finally
+    nObj.Free;
+    nService := nil;
+  end;  
+end;
+
+//获取微信端提报车辆信息
+function TBusWorkerBusinessWebchat.Get_DeclareTruck(var nData:string):Boolean;
+var
+  nXmlStr:string;
+  nService:ReviceWS;
+  nResponse:string;
+  nObj:TWebResponse_Get_DeclareTruck;
+  function BuildResData:string;
+  var
+    i:Integer;
+    nStr:string;
+    nList:TStringList;
+  begin
+    nList := TStringList.Create;
+    try
+      for i := Low(nObj.items) to High(nObj.items) do
+      begin
+        nStr := 'uniqueIdentifier=%s,serialNo=%s,carNumber=%s,drivingLicensePath=%s,custName=%s,custPhone=%s,tare=%s';
+        nStr := Format(nStr,[nObj.items[i].FUniqueIdentifier,
+                nObj.items[i].FSerialNo,
+                nObj.items[i].FCarNumber,
+                nObj.items[i].FDrivingLicensePath,
+                nObj.items[i].FCustName,
+                nObj.items[i].FCustPhone,
+                nObj.items[i].FTare]);
+        nlist.Add(nStr);
+      end;
+      Result := PackerEncodeStr(nlist.Text);
+    finally
+      nList.Free;
+    end;
+  end;
+begin
+  Result := False;
+  nXmlStr := PackerDecodeStr(fin.FData);
+  nObj := TWebResponse_Get_DeclareTruck.Create;
+  nService := GetReviceWS(True);
+  try
+    WriteLog('TBusWorkerBusinessWebchat.Get_DeclareTruck request='+nXmlStr);
+    nResponse := nService.mainfuncs('Get_DeclareTruck',nXmlStr);
+    WriteLog('TBusWorkerBusinessWebchat.Get_DeclareTruck response='+nResponse);
+    FPacker.XMLBuilder.Clear;
+    FPacker.XMLBuilder.ReadFromString(nResponse);
+    nObj.FPacker := FPacker;
+    Result := nObj.ParseWebResponse(nResponse);
+    if not Result then
+    begin
+      nData := nObj.FErrmsg;
+      fout.FBase.FErrDesc := nObj.FErrmsg;
+      Exit;
+    end;
+    nData := BuildResData;
+    FOut.FData := nData;
+  finally
+    nObj.Free;
+    nService := nil;
+  end;  
+end;
+
+//修改微信端提报车辆信息（审核信息）
+function TBusWorkerBusinessWebchat.Update_DeclareTruck(var nData:string):Boolean;
+var
+  nXmlStr:string;
+  nService:ReviceWS;
+  nResponse:string;
+  nObj:TWebResponse_Update_DeclareTruck;
+begin
+  Result := False;
+  nXmlStr := PackerDecodeStr(fin.FData);
+  nObj := TWebResponse_Update_DeclareTruck.Create;
+  nService := GetReviceWS(True);
+  try
+    writelog('TBusWorkerBusinessWebchat.Update_DeclareTruck request'+#13+nXmlStr);
+    nResponse := nService.mainfuncs('Update_DeclareTruck',nXmlStr);
+    writelog('TBusWorkerBusinessWebchat.Update_DeclareTruck response'+#13+nResponse);
+    FPacker.XMLBuilder.Clear;
+    FPacker.XMLBuilder.ReadFromString(nResponse);
+    nObj.FPacker := FPacker;
+    Result := nObj.ParseWebResponse(nResponse);
+    if not Result then
+    begin
+      nData := nObj.FErrmsg;
+      fout.FBase.FErrDesc := nObj.FErrmsg;
+      Exit;
+    end;
+  finally
+    nObj.Free;
+    nService := nil;
+  end;  
+end;
 
 { TWebResponseBaseInfo }
 
@@ -1190,6 +1494,163 @@ begin
         items[nIdx].Fspare := '';
     end;
   end;
+end;
+
+{ TWebResponse_get_truckshoporders }
+
+function TWebResponse_get_truckshoporders.ParseWebResponse(
+  var nData: string): Boolean;
+var nNode, nTmp,nNodeTmp: TXmlNode;
+  nIdx,nNodeCount:Integer;  
+begin
+  Result := inherited ParseWebResponse(nData);
+  if Result then
+  begin
+    nNode := FPacker.XMLBuilder.Root.FindNode('Items');
+    if not Assigned(nNode) then
+    begin
+      FErrmsg := '无效参数节点(Items Null).';
+      Result := False;
+      Exit;
+    end;
+    if not (Assigned(nNode) and Assigned(nNode.FindNode('Item'))) then
+    begin
+      FErrmsg := '无效参数节点(Items.Item Null).';
+      Result := False;
+      Exit;
+    end;
+
+    nNodeCount :=nNode.NodeCount;
+    SetLength(items,nNodeCount);
+
+    for nIdx := 0 to nNodeCount-1 do
+    begin
+      nNodeTmp := nNode.Nodes[nIdx];
+
+      nTmp := nNodeTmp.FindNode('order_id');
+      items[nIdx].FOrder_id := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('order_type');
+      items[nIdx].FOrder_type := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('fac_order_no');
+      items[nIdx].Ffac_order_no := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('ordernumber');
+      items[nIdx].FOrdernumber := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('goodsID');
+      items[nIdx].FGoodsID := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('goodsname');
+      items[nIdx].FGoodsname := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('tracknumber');
+      items[nIdx].Ftracknumber := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('data');
+      items[nIdx].FData := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('hd_fac_order_no');
+      if Assigned(nTmp) then
+        items[nIdx].FHd_order_no := nTmp.ValueAsString
+      else
+        items[nIdx].FHd_order_no := '';
+
+      nTmp := nNodeTmp.FindNode('spare');
+      if Assigned(nTmp) then
+        items[nIdx].Fspare := nTmp.ValueAsString
+      else
+        items[nIdx].Fspare := '';
+
+      nTmp := nNodeTmp.FindNode('drivername');
+      if Assigned(nTmp) then
+        items[nIdx].FDriverName := nTmp.ValueAsString
+      else
+        items[nIdx].FDriverName := '';
+
+      nTmp := nNodeTmp.FindNode('namepinyin');
+      if Assigned(nTmp) then
+        items[nIdx].FNamePinYin := nTmp.ValueAsString
+      else
+        items[nIdx].FNamePinYin := '';
+
+      nTmp := nNodeTmp.FindNode('driverphone');
+      if Assigned(nTmp) then
+        items[nIdx].FDriverPhone := nTmp.ValueAsString
+      else
+        items[nIdx].FDriverPhone := '';
+
+      nTmp := nNodeTmp.FindNode('toaddress');
+      if Assigned(nTmp) then
+        items[nIdx].FToAddress := nTmp.ValueAsString
+      else
+        items[nIdx].FToAddress := '';
+
+      nTmp := nNodeTmp.FindNode('idnumber');
+      if Assigned(nTmp) then
+        items[nIdx].FIdNumber := nTmp.ValueAsString
+      else
+        items[nIdx].FIdNumber := '';
+      
+    end;
+  end;
+end;
+
+{ TWebResponse_get_DeclareTruck }
+
+function TWebResponse_get_DeclareTruck.ParseWebResponse(
+  var nData: string): Boolean;
+var nNode, nTmp,nNodeTmp: TXmlNode;
+  nIdx,nNodeCount:Integer;  
+begin
+  Result := inherited ParseWebResponse(nData);
+  if Result then
+  begin
+    nNode := FPacker.XMLBuilder.Root.FindNode('Items');
+    if not Assigned(nNode) then
+    begin
+      FErrmsg := '无效参数节点(Items Null).';
+      Result := False;
+      Exit;
+    end;
+    if not (Assigned(nNode) and Assigned(nNode.FindNode('Item'))) then
+    begin
+      FErrmsg := '无效参数节点(Items.Item Null).';
+      Result := False;
+      Exit;
+    end;
+    
+    nNodeCount :=nNode.NodeCount;
+    SetLength(items,nNodeCount);
+
+    for nIdx := 0 to nNodeCount-1 do
+    begin
+      nNodeTmp := nNode.Nodes[nIdx];
+
+      nTmp := nNodeTmp.FindNode('uniqueIdentifier');
+      items[nIdx].FUniqueIdentifier := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('serialNo');
+      items[nIdx].FSerialNo := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('carNumber');
+      items[nIdx].FCarNumber := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('drivingLicensePath');
+      items[nIdx].FDrivingLicensePath := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('custName');
+      items[nIdx].FCustName := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('custPhone');
+      items[nIdx].FCustPhone := nTmp.ValueAsString;
+
+      nTmp := nNodeTmp.FindNode('tare');
+      items[nIdx].FTare := nTmp.ValueAsString;
+      
+    end;
+  end;  
 end;
 
 initialization

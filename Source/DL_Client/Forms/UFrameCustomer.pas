@@ -288,12 +288,22 @@ begin
   begin
     nBindcustomerid := PackerDecodeStr(nParam.FParamB);
     nWechartAccount := PackerDecodeStr(nParam.FParamC);
+    {$IFDEF GZBSZ}
+    nCus_ID := SQLQuery.FieldByName('C_Param').AsString;
+    nCusName := SQLQuery.FieldByName('C_Name').AsString;
+    if not AddMallUser(nBindcustomerid,nCus_ID,nCusName) then Exit;
+
+    nStr := 'update %s set C_WechartAccount=''%s'' where C_Param=''%s''';
+    nStr := Format(nStr,[sTable_Customer,nWechartAccount,nCus_ID]);
+    {$ELSE}
     nCus_ID := SQLQuery.FieldByName('C_ID').AsString;
     nCusName := SQLQuery.FieldByName('C_Name').AsString;
     if not AddMallUser(nBindcustomerid,nCus_ID,nCusName) then Exit;
 
     nStr := 'update %s set C_WechartAccount=''%s'' where C_ID=''%s''';
     nStr := Format(nStr,[sTable_Customer,nWechartAccount,nCus_ID]);
+    {$ENDIF}
+
     FDM.ADOConn.BeginTrans;
     try
       FDM.ExecuteSQL(nStr);
@@ -393,13 +403,22 @@ begin
     ShowMsg('商城账户不已存在',sHint);
     Exit;
   end;
+  {$IFDEF GZBSZ}
+  nCus_ID := SQLQuery.FieldByName('C_Param').AsString;
+  nCusName := SQLQuery.FieldByName('C_Name').AsString;
 
+  if not DelMallUser(nWechartAccount, nCus_ID) then Exit;
+  nStr := 'update %s set C_WechartAccount='''' where C_Param=''%s''';
+  nStr := Format(nStr,[sTable_Customer,nCus_ID]);
+  {$ELSE}
   nCus_ID := SQLQuery.FieldByName('C_ID').AsString;
   nCusName := SQLQuery.FieldByName('C_Name').AsString;
 
   if not DelMallUser(nWechartAccount, nCus_ID) then Exit;
   nStr := 'update %s set C_WechartAccount='''' where C_ID=''%s''';
   nStr := Format(nStr,[sTable_Customer,nCus_ID]);
+  {$ENDIF}
+  
   FDM.ADOConn.BeginTrans;
   try
     FDM.ExecuteSQL(nStr);
