@@ -685,9 +685,9 @@ begin
 
     SetLength(nByteBuf, 0);
     Socket.ReadBytes(nByteBuf, 3, False);
-    nStr := BytesToString(nByteBuf);
+    nStr := BytesToString(nByteBuf, en8Bit);
 
-    if nStr = Chr(cTTCE_K720_EOT) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then
+    if nStr = Chr(cTTCE_K720_EOT) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL) then
     begin
       nData := '取消命令操作成功';
 
@@ -696,7 +696,7 @@ begin
     end else
     //Cancel Operation
 
-    if nStr = Chr(cTTCE_K720_NAK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL) then
+    if nStr = Chr(cTTCE_K720_NAK) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL) then
     begin
       nData := '读卡器校验BCC失败';
 
@@ -705,10 +705,10 @@ begin
     end;
     //BCC Error
 
-    if nStr <> Chr(cTTCE_K720_ACK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Exit;
+    if nStr <> Chr(cTTCE_K720_ACK) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL) then Exit;
     //If not ACK
     
-    nStr := Chr(cTTCE_K720_ENQ) + cTTCE_K720_ADDH + cTTCE_K720_ADDL;
+    nStr := Chr(cTTCE_K720_ENQ) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL);
     nLen := Str2Buf(nStr, nByteBuf);
     Socket.Write(nByteBuf, nLen, 0);
     //Send ENQ
@@ -719,8 +719,8 @@ begin
 
       SetLength(nByteBuf, 0);
       Socket.ReadBytes(nByteBuf, 3, False);
-      nStr := BytesToString(nByteBuf);
-      if nStr = Chr(cTTCE_K720_STX) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Break;
+      nStr := BytesToString(nByteBuf, en8Bit);
+      if nStr = Chr(cTTCE_K720_STX) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL) then Break;
     end;
     // Get STX
 
@@ -733,14 +733,14 @@ begin
     nLen := StrToInt('$' + nStr);
     //Get Length
 
-    nData := nData + BytesToString(nByteBuf);
+    nData := nData + BytesToString(nByteBuf, en8Bit);
     //Length
 
     SetLength(nByteBuf, 0);
     Socket.ReadBytes(nByteBuf, nLen+2, False);
     //Get Data
 
-    nData := nData + BytesToString(nByteBuf);
+    nData := nData + BytesToString(nByteBuf, en8Bit);
     //Data
 
     nLen := CalcStringBCC(nData, Length(nData), 0);
@@ -800,7 +800,7 @@ begin
 
     SetLength(nByteBuf, 0);
     Socket.ReadBytes(nByteBuf, 3, False);
-    nStr := BytesToString(nByteBuf);
+    nStr := BytesToString(nByteBuf, en8Bit);
 
     if nStr = Chr(cTTCE_K720_EOT) then
     begin
@@ -820,10 +820,10 @@ begin
     end;
     //BCC Error
 
-    if nStr <> Chr(cTTCE_K720_ACK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Exit;
+    if nStr <> Chr(cTTCE_K720_ACK) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL) then Exit;
     //If not ACK
 
-    nStr := Chr(cTTCE_K720_ENQ) + cTTCE_K720_ADDH + cTTCE_K720_ADDL;
+    nStr := Chr(cTTCE_K720_ENQ) + Chr(cTTCE_K720_ADDH) + Chr(cTTCE_K720_ADDL);
     nLen := Str2Buf(nStr, nByteBuf);
     Socket.Write(nByteBuf, nLen, 0);
     //Send ENQ
@@ -982,12 +982,7 @@ begin
   if not SendStandardCmdOne(nCmd, nClient) then Exit;
   if not UnPackRecvData(@nRecvItem, nCmd) then Exit;
 
-  nCardNo := Copy(nRecvItem.FRE_DATAB,1,8);
-  nCardNo := Char(StrToInt('$' + nCardNo[1] + nCardNo[2]))+
-             Char(StrToInt('$' + nCardNo[3] + nCardNo[4]))+
-             Char(StrToInt('$' + nCardNo[5] + nCardNo[6]))+
-             Char(StrToInt('$' + nCardNo[7] + nCardNo[8]));
-
+  nCardNo := Copy(nRecvItem.FRE_DATAB,1,4);
   Result := ParseCardNO(nCardNo, True);
 end;
 
