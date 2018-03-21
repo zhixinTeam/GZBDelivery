@@ -1169,7 +1169,7 @@ begin
   nObj := TWebResponse_get_truckshoporders.Create;
   nService := GetReviceWS(True);
   try
-    nResponse := nService.mainfuncs('Get_ShopOrderByTruckNo',nXmlStr);
+    nResponse := nService.mainfuncs('getShopOrderByDriverNumber',nXmlStr);
     writelog('TBusWorkerBusinessWebchat.Get_ShopOrderByTruckNo request:'+#13+nXmlStr);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);
@@ -1241,7 +1241,7 @@ begin
   nObj := TWebResponse_get_truckshoporders.Create;
   nService := GetReviceWS(True);
   try
-    nResponse := nService.mainfuncs('Get_ShopPurchByTruckNo',nXmlStr);
+    nResponse := nService.mainfuncs('getShopOrderByDriverNumber',nXmlStr);
     writelog('TBusWorkerBusinessWebchat.Get_ShopPurchByTruckNo request:'+#13+nXmlStr);
     FPacker.XMLBuilder.Clear;
     FPacker.XMLBuilder.ReadFromString(nResponse);

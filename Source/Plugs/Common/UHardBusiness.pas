@@ -1223,6 +1223,10 @@ begin
         PlayVoice(nStr);
         Exit;
       end;
+      nStr := '车辆%s发卡成功，请您取卡';
+      nStr := Format(nStr, [nTruck]);
+      WriteHardHelperLog(nStr);
+      PlayVoice(nStr);
     end;
   end;
 end;
@@ -1234,10 +1238,31 @@ procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 var
   nTruck :string;
 begin
-  {$IFDEF DEBUG}
+  //{$IFDEF DEBUG}
   WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
-  {$ENDIF}
+  //{$ENDIF}
 
+  if Assigned(nReader.FOptions) then
+  begin
+    if nReader.FVirtual then
+    begin
+       case nReader.FVType of
+       rt900 :
+        gHardwareHelper.SetReaderCard(nReader.FVReader, 'H' + nReader.FCard, False);
+       rt02n :
+        g02NReader.SetReaderCard(nReader.FHost, nReader.FCard);
+       end;
+    end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
+
+    {$IFDEF PurELabelAutoCard}
+    if (CompareText('NET', nReader.FOptions.Values['SendCard']) = 0) then
+    begin
+      gELabelFCard := nReader.FCard;
+      gELabelFTunnel := nReader.FTunnel;
+      WriteHardHelperLog(Format('华益标签SendCard %s:%s', [gELabelFCard, gELabelFTunnel]));
+    end;
+    {$ENDIF}
+  end else
   if nReader.FVirtual then
   begin
      case nReader.FVType of
@@ -1248,16 +1273,6 @@ begin
      end;
   end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
 
-  if Assigned(nReader.FOptions) then
-  begin
-    {$IFDEF PurELabelAutoCard}
-    if CompareText('NET', nReader.FOptions.Values['SendCard']) = 0 then
-    begin
-      gELabelItem.FCard := nReader.FCard;
-      gELabelItem.FTunnel := nReader.FTunnel;
-    end;
-    {$ENDIF}
-  end;
 end;
 
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
@@ -1304,24 +1319,27 @@ procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
 var
   nStr, nCard, nECard, nETunnel: string;
 begin
-  {$IFDEF DEBUG}
+  //{$IFDEF DEBUG}
   nStr := '网络发卡机'  + nItem.FID + ' ::: ' + nItem.FCard;
   WriteHardHelperLog(nStr);
-  {$ENDIF}
-
+  //{$ENDIF}
+  WriteHardHelperLog('1');
   if nCard <> nItem.FCard then
   begin
     nCard := nItem.FCard;
-
-    if nECard <> gELabelItem.FCard then
+    WriteHardHelperLog('卡号：' + nCard);
+    if gECard <> gELabelFCard then
     begin
-      nECard := gELabelItem.FCard;
-      nETunnel := gELabelItem.FTunnel;
-      if not SavePurchBillAutoOutCard(nCard, nECard, nETunnel) then
+      WriteHardHelperLog('3');
+      gECard := gELabelFCard;//gELabelItem.FCard;
+      nETunnel := gELabelFTunnel;//gELabelItem.FTunnel;
+      if not SavePurchBillAutoOutCard(nCard, gECard, nETunnel) then
       begin
-        WriteHardHelperLog('通道[' + nETunnel + ']ELabel: [' + nECard + ']保存失败！');
+        gECard := '';
+        WriteHardHelperLog('通道[' + nETunnel + ']ELabel: [' + gECard + ']保存失败！');
         Exit;
       end;
+      gECard := '';
     end;
   end;
 end;

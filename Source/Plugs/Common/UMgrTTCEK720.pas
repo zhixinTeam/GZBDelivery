@@ -21,8 +21,8 @@ const
   cTTCE_K720_EOT = $04;                      //取消命令
   cTTCE_K720_STX = $02;                      //块起始符。固定为：0X02
   cTTCE_K720_ETX = $03;                      //块结束符。固定为：0x03
-  cTTCE_K720_ADDH = $31;                     //地址H
-  cTTCE_K720_ADDL = $35;                     //地址L
+  cTTCE_K720_ADDH = $30;                     //地址H
+  cTTCE_K720_ADDL = $30;                     //地址L
   cTTCE_K720_Success = 'P';                  //=0x50。表示命令执行成功
   cTTCE_K720_Failure = 'N';                  //=0x4E。表示命令执行失败
   cTTCE_K720_Config = 'TTCEK720.XML';
@@ -214,6 +214,8 @@ var
   gK720ReaderManager: TK720ReaderManager = nil;
   //全局使用
   gELabelItem: PELabelItem;
+  gELabelFCard,gECard: string;
+  gELabelFTunnel: string;
 
 implementation
 
@@ -640,6 +642,10 @@ begin
     begin
       Result := True;
     end else
+    if nStr = '30323334' then
+    begin
+      Result := True;
+    end else
     begin
       nErr := nStr;
     end;
@@ -681,7 +687,7 @@ begin
     Socket.ReadBytes(nByteBuf, 3, False);
     nStr := BytesToString(nByteBuf);
 
-    if nStr = Chr(cTTCE_K720_EOT) + Chr($31) + Chr($35) then
+    if nStr = Chr(cTTCE_K720_EOT) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then
     begin
       nData := '取消命令操作成功';
 
@@ -690,7 +696,7 @@ begin
     end else
     //Cancel Operation
 
-    if nStr = Chr(cTTCE_K720_NAK) + Chr($31) + Chr($35) then
+    if nStr = Chr(cTTCE_K720_NAK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL) then
     begin
       nData := '读卡器校验BCC失败';
 
@@ -699,10 +705,10 @@ begin
     end;
     //BCC Error
 
-    if nStr <> Chr(cTTCE_K720_ACK) + Chr($31) + Chr($35) then Exit;
+    if nStr <> Chr(cTTCE_K720_ACK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Exit;
     //If not ACK
     
-    nStr := Chr(cTTCE_K720_ENQ) + Chr($31) + Chr($35);
+    nStr := Chr(cTTCE_K720_ENQ) + cTTCE_K720_ADDH + cTTCE_K720_ADDL;
     nLen := Str2Buf(nStr, nByteBuf);
     Socket.Write(nByteBuf, nLen, 0);
     //Send ENQ
@@ -714,7 +720,7 @@ begin
       SetLength(nByteBuf, 0);
       Socket.ReadBytes(nByteBuf, 3, False);
       nStr := BytesToString(nByteBuf);
-      if nStr = Chr(cTTCE_K720_STX) + Chr($31) + Chr($35) then Break;
+      if nStr = Chr(cTTCE_K720_STX) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Break;
     end;
     // Get STX
 
@@ -814,10 +820,10 @@ begin
     end;
     //BCC Error
 
-    if nStr <> Chr(cTTCE_K720_ACK) + Chr($31) + Chr($35) then Exit;
+    if nStr <> Chr(cTTCE_K720_ACK) + cTTCE_K720_ADDH + cTTCE_K720_ADDL then Exit;
     //If not ACK
 
-    nStr := Chr(cTTCE_K720_ENQ) + Chr($31) + Chr($35);
+    nStr := Chr(cTTCE_K720_ENQ) + cTTCE_K720_ADDH + cTTCE_K720_ADDL;
     nLen := Str2Buf(nStr, nByteBuf);
     Socket.Write(nByteBuf, nLen, 0);
     //Send ENQ
@@ -867,13 +873,13 @@ begin
   end;
 
   nCmd := PackSendData(@nSendItem);
-  //WriteLog('0');
+
   if not SendStandardCmdOne(nCmd, nClient) then Exit;
-  //WriteLog('1');
+
   if not UnPackStateRecvData(@nRecvItem, nCmd) then Exit;
-  //WriteLog('2  内容：' + nRecvItem.FRE_DATAB + ' 长度：' + IntToStr(nRecvItem.FLen));
+
   if not StateResolution(nRecvItem.FRE_DATAB, nRecvItem.FLen, nErr) then Exit;
-  //WriteLog('3');
+
   Result := True;
 end;
 
@@ -955,6 +961,7 @@ function TK720ReaderManager.GetCardSerial(nClient: TIdTCPClient=nil): string;
 var nCmd: string;
     nSendItem: TTTCE_K720_Send;
     nRecvItem: TTTCE_K720_Recv;
+    nCardNo: string;
 begin
   Result := '';
   with nSendItem do
@@ -975,7 +982,13 @@ begin
   if not SendStandardCmdOne(nCmd, nClient) then Exit;
   if not UnPackRecvData(@nRecvItem, nCmd) then Exit;
 
-  Result := ParseCardNO(nRecvItem.FRE_DATAB, True);
+  nCardNo := Copy(nRecvItem.FRE_DATAB,1,8);
+  nCardNo := Char(StrToInt('$' + nCardNo[1] + nCardNo[2]))+
+             Char(StrToInt('$' + nCardNo[3] + nCardNo[4]))+
+             Char(StrToInt('$' + nCardNo[5] + nCardNo[6]))+
+             Char(StrToInt('$' + nCardNo[7] + nCardNo[8]));
+
+  Result := ParseCardNO(nCardNo, True);
 end;
 
 //lih 2018-01-30

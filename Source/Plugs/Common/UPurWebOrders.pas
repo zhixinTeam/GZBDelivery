@@ -230,7 +230,7 @@ begin
     //conn db
 
     nSQL := 'Select T_Truck From $TK Where T_Card=''$TD'' and T_CardUsePurch = ''$TP'' ';
-    nSQL := MacroValue(nStr, [MI('$TK', sTable_Truck), MI('$TD', nELabel), MI('$TP', sFlag_Yes)]);
+    nSQL := MacroValue(nSQL, [MI('$TK', sTable_Truck), MI('$TD', nELabel), MI('$TP', sFlag_Yes)]);
 
     with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
     if RecordCount > 0 then
@@ -320,7 +320,7 @@ begin
     //conn db
     
     nSQL := 'Select *,con_quantity-con_finished_quantity as con_remain_quantity From %s where con_status>0 and pcId=''%s''';
-    nSQL := Format(nStr,[sTable_PurchaseContract,nWebOrderItem.Ffac_order_no]);
+    nSQL := Format(nSQL,[sTable_PurchaseContract,nWebOrderItem.Ffac_order_no]);
 
     with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
     begin
@@ -328,7 +328,7 @@ begin
       begin
         //继续查询采购申请单
         nSQL := 'select b_proid as provider_code,b_proname as provider_name,b_stockno as con_materiel_Code,b_restvalue as con_remain_quantity from %s where b_id=''%s''';
-        nSQL := Format(nStr,[sTable_OrderBase,nWebOrderItem.Ffac_order_no]);
+        nSQL := Format(nSQL,[sTable_OrderBase,nWebOrderItem.Ffac_order_no]);
         
         with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
         begin
@@ -377,10 +377,18 @@ var
   nCount, i: Integer;
 begin
   Result := False;
-  
-  nInXml := Format(sInXml, [gSysParam.FFactory, nTruck]);
-  nInXml := PackerEncodeStr(nInXml);
+  nInXml := '<?xml version="1.0" encoding="UTF-8"?>'
+            +'<DATA>'
+            +'<head>'
+            +'<Factory>%s</Factory>'
+            +'<CarNumber>%s</CarNumber>'
+            +'</head>'
+            +'</DATA>';
 
+  nInXml := Format(nInXml, [gSysParam.FFactory, nTruck]);
+  WriteLog(nInXml);
+  nInXml := PackerEncodeStr(nInXml);
+  
   nOutData := Get_ShopPurchaseByTruck(nInXml);
   if nOutData = '' then
   begin
@@ -426,8 +434,10 @@ begin
       gPurWebOrderItems[i].FDriverPhone := nListB.Values['driverphone'];
       gPurWebOrderItems[i].FToAddress := nListB.Values['toaddress'];
       gPurWebOrderItems[i].FIdNumber := nListB.Values['idnumber'];
-      
-      Result := gPurWebOrderItems[i].FOrder_Type = sFlag_Provide;
+
+      if (gPurWebOrderItems[i].FOrder_Type = sFlag_Provide)
+        or (gPurWebOrderItems[i].FOrder_Type = '') then
+      Result := True;
     end;
   finally
     nListB.Free;
