@@ -1121,7 +1121,7 @@ end;
 
 function SavePurchBillAutoOutCard(const nCard, nECard, nTunnel: string):Boolean;
 var
-  nTruck, nStr :string;
+  nTruck, nStr, nStockName :string;
   nLen, nIdx: Integer;
   nWebOrderItem: TPurWebOrderItems;
   nList: TStrings;
@@ -1156,6 +1156,13 @@ begin
     Exit;
   end;
 
+  if not CheckSaveOrderOK(nTruck, nStr) then
+  begin
+    WriteHardHelperLog('   ' + nStr);
+    PlayVoice(nStr);
+    Exit;
+  end;
+  
   if not GetPurchWebOrders(nTruck) then
   begin
     nStr := '%s获取网上下单信息失败';
@@ -1196,6 +1203,7 @@ begin
         Values['Value'] := FData;
     
         Values['WebOrderID'] := FOrdernumber;
+        nStockName := Values['StockName'];
       end;
 
       nOrder := SaveOrder(PackerEncodeStr(nList.Text));
@@ -1211,10 +1219,11 @@ begin
     finally
       nList.Free;
     end;
-
+    WriteHardHelperLog('    ' + nOrder + '开始保存卡号：' + nCard);
     nRet := SaveOrderCard(nOrder, nCard);
     if nRet then
     begin
+      WriteHardHelperLog('    ' + nCard + '准备发卡');
       if not gK720ReaderManager.SendCardOutF(nTunnel) then
       begin
         nStr := '车辆%s自动发卡失败';
@@ -1223,10 +1232,11 @@ begin
         PlayVoice(nStr);
         Exit;
       end;
-      nStr := '车辆%s发卡成功，请您取卡';
-      nStr := Format(nStr, [nTruck]);
+      nStr := '品种%s车辆%s发卡成功，请您取卡';
+      nStr := Format(nStr, [nStockName, nTruck]);
       WriteHardHelperLog(nStr);
       PlayVoice(nStr);
+      Result := True;
     end;
   end;
 end;
@@ -1318,27 +1328,50 @@ end;
 procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
 var
   nStr, nCard, nECard, nETunnel: string;
+  nLast: Int64;
 begin
   //{$IFDEF DEBUG}
   nStr := '网络发卡机'  + nItem.FID + ' ::: ' + nItem.FCard;
   WriteHardHelperLog(nStr);
   //{$ENDIF}
-  WriteHardHelperLog('1');
+
   if nCard <> nItem.FCard then
   begin
     nCard := nItem.FCard;
-    WriteHardHelperLog('卡号：' + nCard);
+
+    if not CheckCardOK(nCard, nStr) then
+    begin
+      WriteHardHelperLog(' ::: ' + nStr);
+      PlayVoice(nStr);
+      if gK720ReaderManager.RecoveryCardF(nItem.FTunnel) then
+        WriteHardHelperLog(' ::: 磁卡' + nCard + '回收完毕');
+      Exit;
+    end;
+
     if gECard <> gELabelFCard then
     begin
-      WriteHardHelperLog('3');
       gECard := gELabelFCard;//gELabelItem.FCard;
       nETunnel := gELabelFTunnel;//gELabelItem.FTunnel;
-      if not SavePurchBillAutoOutCard(nCard, gECard, nETunnel) then
+      WriteHardHelperLog(' ::: 上次电子标签：' + gLastECard + '   当前电子标签：' + gECard);
+
+      nLast := Trunc((GetTickCount - gLastTime) / 1000);
+      if (gECard = gLastECard) and (gLastTime <> 0) and (nLast < 300) then
       begin
-        gECard := '';
-        WriteHardHelperLog('通道[' + nETunnel + ']ELabel: [' + gECard + ']保存失败！');
+        WriteHardHelperLog(' ::: 电子标签'+gECard+'读取间隔时间小于300s');
         Exit;
       end;
+      
+      if not SavePurchBillAutoOutCard(nCard, gECard, nETunnel) then
+      begin
+        WriteHardHelperLog(' ::: 通道[' + nETunnel + ']ELabel: [' + gECard + ']保存失败！');
+        gLastTime := GetTickCount;
+        gLastECard := gECard;
+        gECard := '';
+        Exit;
+      end;
+      WriteHardHelperLog(' ::: 电子标签'+gECard+'业务完毕');
+      gLastTime := GetTickCount;
+      gLastECard := gECard;
       gECard := '';
     end;
   end;

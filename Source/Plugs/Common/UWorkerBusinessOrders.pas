@@ -917,7 +917,7 @@ begin
       nSQL := 'Update %s Set O_Card=''%s'' Where O_ID In(%s)';
       nSQL := Format(nSQL, [sTable_Order, FIn.FExtParam, nStr]);
       gDBConnManager.WorkerExec(FDBConn, nSQL);
-
+      
       nSQL := 'Update %s Set D_Card=''%s'' Where D_OID In(%s) and D_OutFact Is NULL';
       nSQL := Format(nSQL, [sTable_OrderDtl, FIn.FExtParam, nStr]);
       gDBConnManager.WorkerExec(FDBConn, nSQL);
@@ -950,6 +950,7 @@ begin
     end;
 
     FDBConn.FConn.CommitTrans;
+    WriteLog('°ì¿¨³É¹¦');
     Result := True;
   except
     FDBConn.FConn.RollbackTrans;

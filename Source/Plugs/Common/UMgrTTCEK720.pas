@@ -11,8 +11,8 @@ uses
   UWaitItem, USysLoger, ULibFun;
 
 const
-  cK720Reader_Wait_Short     = 150;
-  cK720Reader_Wait_Long      = 2 * 1000;
+  cK720Reader_Wait_Short     = 1500;
+  cK720Reader_Wait_Long      = 3 * 1000;
   cK720Reader_MaxThread      = 10;
 
   cTTCE_K720_ACK = $06;                      //肯定应答
@@ -204,7 +204,9 @@ type
     function SendCardOut(const nReader: PK720ReaderItem):Boolean;
     //发卡
     function SendCardOutF(const nTunnel:string):Boolean;
-    //
+    //发卡
+    function RecoveryCardF(const nTunnel:string):Boolean;
+    //回收卡
     property OnCardProc: THYReaderProc read FOnProc write FOnProc;
     property OnCardEvent: THYReaderEvent read FOnEvent write FOnEvent;
     //属性相关
@@ -216,6 +218,8 @@ var
   gELabelItem: PELabelItem;
   gELabelFCard,gECard: string;
   gELabelFTunnel: string;
+  gLastECard: string;
+  gLastTime:Int64;
 
 implementation
 
@@ -1083,6 +1087,28 @@ function TK720ReaderManager.SendCardOut(const nReader: PK720ReaderItem):Boolean;
 begin
   Result := SendCard(nReader.FClient);
 end;
+
+//lih 2018-03-22
+//回收卡
+function TK720ReaderManager.RecoveryCardF(const nTunnel:string):Boolean;
+var
+  nIdx: Integer;
+  nReader: PK720ReaderItem;
+begin
+  FSyncLock.Enter;
+  try
+    for nIdx := 0 to FReaders.Count -1 do
+    begin
+      nReader := FReaders[nIdx];
+      if CompareText(nTunnel, nReader.FTunnel) <> 0 then Continue;
+
+      Result := RecoveryCard(nReader.FClient);
+      Exit;
+    end;
+  finally
+    FSyncLock.Leave;
+  end;
+end;    
 
 //------------------------------------------------------------------------------
 constructor TK720Reader.Create(AOwner: TK720ReaderManager;

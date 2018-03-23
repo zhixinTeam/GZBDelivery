@@ -42,6 +42,8 @@ function GetTruckNoByELabel(const nELabel:string): string;
 //获取车号
 function TruckMultipleCard(const nTruckno:string;var nMsg:string):Boolean;
 //校验车号是否可用
+function CheckSaveOrderOK(const nTruckno:string;var nMsg:string):Boolean;
+//采购已保存未出卡
 function GetPurchWebOrders(const nTruck:string): Boolean;
 //获取采购网上下单
 function CheckOrderValidate(var nWebOrderItem: TPurWebOrderItems): Boolean;
@@ -52,6 +54,8 @@ function SaveOrderCard(const nOrder, nCard: string): Boolean;
 //绑定采购卡
 function SaveWebOrderMatch(const nBillID, nWebOrderID: string): Boolean;
 //保存电子单号
+function CheckCardOK(const nCard:string; var nMsg:string):Boolean;
+//检查磁卡是否被占用
 
 var
   gPurWebOrderItems: array of TPurWebOrderItems;
@@ -277,7 +281,7 @@ begin
       end;
     end;
 
-    nSQL := 'select * from %s where O_card<>'''' and o_truck=''%s''';
+    nSQL := 'select o_id from %s where O_card <>'''' and o_truck=''%s''';
     nSQL := Format(nSQL, [sTable_Order, nTruckno]);
     with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
     begin
@@ -288,11 +292,101 @@ begin
         Exit;
       end;
     end;
+
     Result := True;
   finally
     gDBConnManager.ReleaseConnection(nDBConn);
   end;
 end;
+
+//采购已保存未出卡
+function CheckSaveOrderOK(const nTruckno:string;var nMsg:string):Boolean;
+var
+  nStr,nSQL: string;
+  nErrNum: Integer;
+  nDBConn: PDBWorker;
+begin
+  Result := False;
+  nDBConn := nil;
+
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
+    if not Assigned(nDBConn) then
+    begin
+      WriteLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+
+    nSQL := 'select top 1 o_id '+
+            'from $OO oo left join $WO wo on oo.O_ID = wo.WOM_LID ' +
+            'where ((O_card ='''') or (O_card is null)) and o_truck=''$OTK'' ' +
+            'and wo.WOM_deleted = ''$WDD'' ' +
+            'order by oo.R_ID desc';
+    nSQL := MacroValue(nSQL, [MI('$OO', sTable_Order),
+                              MI('$WO', sTable_WebOrderMatch),
+                              MI('$OTK', nTruckno),
+                              MI('$WDD', sFlag_No)]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if RecordCount>0 then
+      begin
+        nMsg := '%s在未完成采购订单%s之前禁止开单';
+        nMsg := Format(nMsg, [nTruckno, FieldByName('o_id').AsString]);
+        Exit;
+      end;
+    end;
+    Result := True;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+end;
+
+//检查磁卡是否被占用
+function CheckCardOK(const nCard:string; var nMsg:string):Boolean;
+var
+  nStr,nSQL: string;
+  nErrNum: Integer;
+  nDBConn: PDBWorker;
+begin
+  Result := False;
+  nDBConn := nil;
+
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
+    if not Assigned(nDBConn) then
+    begin
+      WriteLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+
+    nSQL := 'select o_id from %s where O_card =''%s'' ';
+    nSQL := Format(nSQL, [sTable_Order, nCard]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if RecordCount>0 then
+      begin
+        nMsg := '磁卡%s在完成采购订单%s之前禁止使用，正在回收';
+        nMsg := Format(nMsg, [nCard, FieldByName('o_id').AsString]);
+        Exit;
+      end;
+    end;
+
+    Result := True;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+end;
+
 
 //lih 2018-02-03
 //校验订单有效性
