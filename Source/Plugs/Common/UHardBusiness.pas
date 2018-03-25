@@ -1136,7 +1136,7 @@ begin
     nStr := '%s采购电子标签无效';
     nStr := Format(nStr, [nECard]);
     WriteHardHelperLog(nStr);
-    PlayVoice(nStr);
+    //PlayVoice(nStr);
     Exit;
   end;
 
@@ -1355,9 +1355,13 @@ begin
       WriteHardHelperLog(' ::: 上次电子标签：' + gLastECard + '   当前电子标签：' + gECard);
 
       nLast := Trunc((GetTickCount - gLastTime) / 1000);
+      WriteHardHelperLog(' ::: 间隔时长：' + IntToStr(nLast) + 's');
       if (gECard = gLastECard) and (gLastTime <> 0) and (nLast < 300) then
       begin
         WriteHardHelperLog(' ::: 电子标签'+gECard+'读取间隔时间小于300s');
+        gLastECard := gECard;
+        gELabelFCard := '';
+        gECard := '';
         Exit;
       end;
       
