@@ -110,6 +110,8 @@ type
     procedure AddSample(const nValue: Double);
     function IsValidSamaple: Boolean;
     //处理采样
+    function CheckTruckMValue(const nTruck: string): Boolean;
+    //验证毛重
     function SavePoundSale: Boolean;
     function SavePoundData: Boolean;
     //保存称重
@@ -370,6 +372,23 @@ begin
   end;
 end;
 
+//Date: 2017-01-17
+//Parm: 品种
+//Desc: 判断nStock是否允许不去现场装车多次过重
+function AllowMultiM(const nStock: string): Boolean;
+var nIdx: Integer;
+begin
+  Result := False;
+
+  with gSysParam do
+   for nIdx:=Low(FPoundMultiM) to High(FPoundMultiM) do
+    if FPoundMultiM[nIdx] = nStock then
+    begin
+      Result := True;
+      Break;
+    end;
+end;
+
 //Date: 2014-09-19
 //Parm: 磁卡或交货单号
 //Desc: 读取nCard对应的交货单
@@ -409,6 +428,12 @@ begin
     if (FStatus <> sFlag_TruckBFP) and (FNextStatus = sFlag_TruckZT) then
       FNextStatus := sFlag_TruckBFP;
     //状态校正
+
+    {$IFDEF AllowMultiM}
+    if (FStatus = sFlag_TruckBFM) and AllowMultiM(FStockNo) then
+      FNextStatus := sFlag_TruckBFM;
+    //允许多次过重
+    {$ENDIF}
 
     FSelected := (FNextStatus = sFlag_TruckBFP) or
                  (FNextStatus = sFlag_TruckBFM);
@@ -805,6 +830,46 @@ begin
   end;
 end;
 
+//Date: 2018-03-28
+//Parm: 车牌号
+//Desc: 验证nTruck是否超上限
+function TfFrameAutoPoundItem.CheckTruckMValue(const nTruck: string): Boolean;
+var nStr: string;
+    nVal: Double;
+begin
+  Result := True;
+  nStr := 'Select T_MValueMax From %s Where T_Truck=''%s''';
+  nStr := Format(nStr, [sTable_Truck, nTruck]);
+
+  with FDM.QueryTemp(nStr),FUIData do
+  if RecordCount > 0 then
+  begin
+    nVal := Fields[0].AsFloat;
+    if nVal <= 0 then Exit;
+
+    Result := nVal >= FUIData.FMData.FValue;
+    if Result then Exit;
+
+    nStr := '车辆[ %s ]重车超过上限,详情如下:' + #13#10 +
+            '※.毛重上限: %.2f吨' + #13#10 +
+            '※.当前毛重: %.2f吨' + #13#10 +
+            '※.超 重 量: %.2f吨' + #13#10 +
+            '是否允许过磅?';
+    nStr := Format(nStr, [FTruck, nVal, FMData.FValue, FMData.FValue-nVal]);
+
+    Result := VerifyManualEventRecord(FID + sFlag_ManualF, nStr, sFlag_Yes, False);
+    if Result then Exit; //管理员放行
+
+    AddManualEventRecord(FID + sFlag_ManualF, FTruck, nStr, sFlag_DepBangFang,
+      sFlag_Solution_YN, sFlag_DepDaTing, True);
+    WriteSysLog(nStr);
+
+    nStr := '[n1]%s毛重%.2f吨,请返回卸料.';
+    nStr := Format(nStr, [FTruck, FMData.FValue]);
+    PlayVoice(nStr);
+  end;
+end;
+
 //Desc: 保存销售
 function TfFrameAutoPoundItem.SavePoundSale: Boolean;
 var nHint: string;
@@ -854,6 +919,13 @@ begin
       end;
       //判断皮重是否超差
     end;
+  end;
+
+  if FUIData.FNextStatus = sFlag_TruckBFM then
+  begin
+    if gSysParam.FPoundMMax and (FUIData.FMData.FValue > 0) then
+      if not CheckTruckMValue(FUIData.FTruck) then Exit;
+    //启用毛重上限
   end;
 
   if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) and
@@ -1175,12 +1247,27 @@ begin
 end;
 
 procedure TfFrameAutoPoundItem.TimerDelayTimer(Sender: TObject);
+var nStr: string;
 begin
   try
     TimerDelay.Enabled := False;
     WriteSysLog(Format('对车辆[ %s ]称重完毕.', [FUIData.FTruck]));
+
+    {$IFDEF VoiceMValue}
+    if (FCardUsed = sFlag_Sale) and (FUIData.FType = sFlag_San) and
+       (FUIData.FNextStatus = sFlag_TruckBFM) then
+    begin
+      nStr := '车辆[n1]%s毛重[n2]%.2f吨[p500]净重[n2]%.2f吨,请下磅';
+      nStr := Format(nStr, [FUIData.FTruck,
+              Float2Float(FUIData.FMData.FValue, 1000),
+              Float2Float(FUIData.FMData.FValue - FUIData.FPData.FValue, 1000)]);
+      PlayVoice(nStr);
+    end else PlayVoice(#9 + FUIData.FTruck);
+    //播放语音
+    {$ELSE}
     PlayVoice(#9 + FUIData.FTruck);
     //播放语音
+    {$ENDIF}
 
     FLastCard     := FCardTmp;
     FLastCardDone := GetTickCount;
@@ -1206,8 +1293,8 @@ begin
   except
     on E: Exception do
     begin
-      WriteSysLog(Format('磅站[ %s.%s ]: %s', [FPoundTunnel.FID,
-                                               FPoundTunnel.FName, E.Message]));
+      nStr := '磅站[ %s.%s ]: %s';
+      WriteSysLog(Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName, E.Message]));
       //loged
     end;
   end;

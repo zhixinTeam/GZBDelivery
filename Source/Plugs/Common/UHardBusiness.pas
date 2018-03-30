@@ -1929,6 +1929,12 @@ begin
   for nIdx:=Low(nTrucks) to High(nTrucks) do
   with nTrucks[nIdx] do
   begin
+    {$IFDEF AllowMultiM}
+    if FStatus = sFlag_TRuckBFM then
+      FStatus := sFlag_TruckFH;
+    //过重后允许返回
+    {$ENDIF}
+
     if (FStatus = sFlag_TruckFH) or (FNextStatus = sFlag_TruckFH) then Continue;
     //未装或已装
 

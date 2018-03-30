@@ -50,8 +50,42 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE GZBXS}
 //特定系统
+
+//葛洲坝兴山
+{$IFDEF GZBXS}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE SyncRemote}
+  //远程同步
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE MultiReplay}
+  //JSQ应答模式
+  {.$DEFINE MicroMsg}
+  //微信支持
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
+  {.$DEFINE ERROPENONEDOOR}
+  //过磅失败倒车下磅
+  {$DEFINE VoiceMValue}
+  //散装语音播报毛重
+  {$DEFINE AllowMultiM}
+  //允许多次过重车
+  {$DEFINE MultiOrderOfTruck}
+  //允许车辆办理多张采购单
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
+  {.$DEFINE EnableWebMall}
+  //使用网上商城
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
+{$ENDIF}
 
 //葛洲坝松滋
 {$IFDEF GZBSZ}

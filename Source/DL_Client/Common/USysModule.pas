@@ -81,6 +81,7 @@ end;
 //Desc: 运行系统对象
 procedure RunSystemObject;
 var nStr: string;
+    nInt: Integer;
 begin
   with gSysParam do
   begin
@@ -109,8 +110,37 @@ begin
     FPoundDaiZ := 0;
     FPoundDaiF := 0;
     FPoundSanF := 0;
+
+    FPoundMMax := False;
     FDaiWCStop := False;
     FDaiPercent := False;
+  end;
+
+  nStr := 'Select D_Value,D_Memo From %s Where D_Name=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    First;
+
+    while not Eof do
+    begin
+      nStr := Fields[1].AsString;
+      if nStr = sFlag_PoundMMax then
+        gSysParam.FPoundMMax := Fields[0].AsString = sFlag_Yes;
+      //xxxxx
+
+      if nStr = sFlag_PoundMultiM then
+      with USysConst.gSysParam do
+      begin
+        nInt := Length(FPoundMultiM);
+        SetLength(FPoundMultiM, nInt+1);
+        FPoundMultiM[nInt] := Fields[0].AsString;
+      end; //允许多次过重车品种
+            
+      Next;
+    end;
   end;
 
   nStr := 'Select D_Value,D_Memo From %s Where D_Name=''%s''';

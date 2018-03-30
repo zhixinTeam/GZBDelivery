@@ -148,6 +148,7 @@ begin
         Caption := FieldByName('T_Truck').AsString;
         SubItems.Add(FieldByName('T_Owner').AsString);
         SubItems.Add(FieldByName('T_Phone').AsString);
+        SubItems.Add(FieldByName('T_MValueMax').AsString);
 
         ImageIndex := 11;
         StateIndex := ImageIndex;

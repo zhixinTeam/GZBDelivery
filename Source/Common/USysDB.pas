@@ -172,6 +172,7 @@ ResourceString
   sFlag_ManualC       = 'C';                         //净重超出误差范围
   sFlag_ManualD       = 'D';                         //散装超出大票量
   sFlag_ManualE       = 'E';                         //批次号获取失败 
+  sFlag_ManualF       = 'F';                         //毛重超过上限
 
   sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
   sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量
@@ -197,6 +198,8 @@ ResourceString
   sFlag_PoundWuCha    = 'PoundWuCha';                //过磅误差分组
   sFlag_PoundIfDai    = 'PoundIFDai';                //袋装是否过磅
   sFlag_PoundWarning  = 'PoundWarning';              //皮重预警
+  sFlag_PoundMMax     = 'PoundMValueMax';            //启用毛重上限
+  sFlag_PoundMultiM   = 'PoundMultiM';               //允许多次过重
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
   sFlag_StockIfYS     = 'StockIfYS';                 //现场是否验收
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
@@ -912,6 +915,7 @@ const
 
     sSQL_NewTruck = 'Create Table $Table(R_ID $Inc, T_Truck varChar(15), ' +
        'T_PY varChar(15), T_Owner varChar(32), T_Phone varChar(15), T_Used Char(1), ' +
+       'T_MValueMax $Float Default 0,' +
        'T_PrePValue $Float, T_PrePMan varChar(32), T_PrePTime DateTime, ' +
        'T_PrePUse Char(1), T_MinPVal $Float, T_MaxPVal $Float, ' +
        'T_PValue $Float Default 0, T_PTime Integer Default 0,' +
@@ -927,6 +931,7 @@ const
    *.T_Owner: 车主
    *.T_Phone: 联系方式
    *.T_Used: 用途(供应,销售)
+   *.T_MValueMax: 毛重上限
    *.T_PrePValue: 预置皮重
    *.T_PrePMan: 预置司磅
    *.T_PrePTime: 预置时间

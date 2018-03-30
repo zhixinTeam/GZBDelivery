@@ -11,7 +11,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   UFormBase, UFormNormal, cxGraphics, cxControls, cxLookAndFeels,
   cxLookAndFeelPainters, cxContainer, cxEdit, cxMaskEdit, cxDropDownEdit,
-  cxTextEdit, dxLayoutControl, StdCtrls, cxCheckBox;
+  cxTextEdit, dxLayoutControl, StdCtrls, cxCheckBox, cxLabel;
 
 type
   TfFormTruck = class(TfFormNormal)
@@ -35,6 +35,13 @@ type
     CheckGPS: TcxCheckBox;
     dxLayout1Item10: TdxLayoutItem;
     dxLayout1Group4: TdxLayoutGroup;
+    cxLabel1: TcxLabel;
+    dxLayout1Item11: TdxLayoutItem;
+    EditMValue: TcxTextEdit;
+    dxLayout1Item12: TdxLayoutItem;
+    cxLabel2: TcxLabel;
+    dxLayout1Item13: TdxLayoutItem;
+    dxLayout1Group5: TdxLayoutGroup;
     procedure BtnOKClick(Sender: TObject);
   protected
     { Protected declarations }
@@ -111,7 +118,8 @@ begin
     EditTruck.Text := FieldByName('T_Truck').AsString;     
     EditOwner.Text := FieldByName('T_Owner').AsString;
     EditPhone.Text := FieldByName('T_Phone').AsString;
-    
+    EditMValue.Text := FieldByName('T_MValueMax').AsString;
+
     CheckVerify.Checked := FieldByName('T_NoVerify').AsString = sFlag_No;
     CheckValid.Checked := FieldByName('T_Valid').AsString = sFlag_Yes;
     CheckUserP.Checked := FieldByName('T_PrePUse').AsString = sFlag_Yes;
@@ -160,6 +168,7 @@ begin
   nStr := MakeSQLByStr([SF('T_Truck', nTruck),
           SF('T_Owner', EditOwner.Text),
           SF('T_Phone', EditPhone.Text),
+          SF('T_MValueMax', EditMValue.Text, sfVal),
           SF('T_NoVerify', nU),
           SF('T_Valid', nV),
           SF('T_PrePUse', nP),

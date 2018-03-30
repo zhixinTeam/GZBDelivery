@@ -7,7 +7,7 @@ unit USysConst;
 interface
 
 uses
-  SysUtils, Classes, ComCtrls;
+  SysUtils, Classes, ComCtrls, ULibFun;
 
 const
   cSBar_Date            = 0;                         //日期面板索引
@@ -232,6 +232,7 @@ type
     FSerialID   : string;                            //电脑编号
     FIsManual   : Boolean;                           //手动过磅
     FAutoPound  : Boolean;                           //自动称重
+    FPoundMultiM: TDynamicStrArray;                  //多次过重车
 
     FPoundDaiZ  : Double;
     FPoundDaiZ_1: Double;                            //袋装正误差
@@ -240,6 +241,7 @@ type
     FDaiPercent : Boolean;                           //按比例计算偏差
     FDaiWCStop  : Boolean;                           //不允许袋装偏差
     FPoundSanF  : Double;                            //散装负误差
+    FPoundMMax  : Boolean;                           //启用毛重上线
     FPicBase    : Integer;                           //图片索引
     FPicPath    : string;                            //图片目录
     FVoiceUser  : Integer;                           //语音计数

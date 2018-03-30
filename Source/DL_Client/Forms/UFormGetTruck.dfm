@@ -54,6 +54,10 @@ inherited fFormGetTruck: TfFormGetTruck
         item
           Caption = #32852#31995#26041#24335
           Width = 70
+        end
+        item
+          Alignment = taCenter
+          Caption = #27611#37325#19978#38480'('#21544')'
         end>
       HideSelection = False
       ParentFont = False
