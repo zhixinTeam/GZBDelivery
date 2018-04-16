@@ -179,7 +179,7 @@ end;
 //保存电子单号
 function SaveWebOrderMatch(const nBillID, nWebOrderID: string): Boolean;
 var
-  nStr,nSQL: string;
+  nSQL: string;
   nErrNum: Integer;
   nDBConn: PDBWorker;
 begin
@@ -213,7 +213,7 @@ end;
 //获取车号
 function GetTruckNoByELabel(const nELabel:string): string;
 var
-  nStr,nSQL: string;
+  nSQL: string;
   nErrNum: Integer;
   nDBConn: PDBWorker;
 begin
@@ -249,7 +249,7 @@ end;
 
 function TruckMultipleCard(const nTruckno:string;var nMsg:string):Boolean;
 var
-  nStr,nSQL: string;
+  nSQL: string;
   nErrNum: Integer;
   nDBConn: PDBWorker;
 begin
@@ -302,7 +302,7 @@ end;
 //采购已保存未出卡
 function CheckSaveOrderOK(const nTruckno:string;var nMsg:string):Boolean;
 var
-  nStr,nSQL: string;
+  nSQL: string;
   nErrNum: Integer;
   nDBConn: PDBWorker;
 begin
@@ -324,7 +324,7 @@ begin
 
     nSQL := 'select top 1 o_id '+
             'from $OO oo left join $WO wo on oo.O_ID = wo.WOM_LID ' +
-            'where ((O_card ='''') or (O_card is null)) and o_truck=''$OTK'' ' +
+            'where Isnull(O_card, '''')<>'''' and o_truck=''$OTK'' ' +
             'and wo.WOM_deleted = ''$WDD'' ' +
             'order by oo.R_ID desc';
     nSQL := MacroValue(nSQL, [MI('$OO', sTable_Order),
@@ -349,7 +349,7 @@ end;
 //检查磁卡是否被占用
 function CheckCardOK(const nCard:string; var nMsg:string):Boolean;
 var
-  nStr,nSQL: string;
+  nSQL: string;
   nErrNum: Integer;
   nDBConn: PDBWorker;
 begin

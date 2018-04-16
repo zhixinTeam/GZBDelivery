@@ -765,7 +765,8 @@ begin
   end;
 
   //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard,nWeborder);
+  ModifyWebOrderStatus(sFlag_Provide,nOut.FData,'SaveOrder', '创建单据',
+                       c_WeChatStatusCreateCard,nWeborder);
   //发送微信消息
   SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Provide);
 end;

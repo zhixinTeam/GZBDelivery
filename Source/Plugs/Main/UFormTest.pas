@@ -19,6 +19,8 @@ type
     { Private declarations }
     FListA,FListB: TStrings;
     procedure WriteLog(const nMsg: string);
+    procedure SaveWXSync;
+    procedure SendAndSaveWXSync;
   public
     { Public declarations }
     class function CreateForm(const nPopedom: string = '';
@@ -31,7 +33,7 @@ implementation
 {$R *.dfm}
 uses
   UBusinessWorker, UBusinessPacker, UBusinessConst, UMgrControl, UMgrDBConn,
-  UPlugConst, USysDB, USysLoger, ULibFun, DB, ADODB;
+  UPlugConst, USysDB, USysLoger, ULibFun, DB, ADODB, UHardBusiness;
 
 var
   gForm: TBaseForm1 = nil;
@@ -194,22 +196,35 @@ begin
 
 end;
 
+procedure TBaseForm1.SaveWXSync;
+var nOut: TWorkerBusinessCommand;
+begin
+  with FListA do
+  begin
+    Values['RecordID'] := '10';
+    Values['Memo'] := 'memo';
+    Values['Done'] := sFlag_Yes;
+    
+    Values['Type'] := sFlag_Sale;
+    Values['Sender'] := 'test';
+    Values['SenderDesc'] := '≤‚ ‘';
+    Values['Key']    := '180401001';
+    Values['Business'] := IntToStr(cBC_WeChat_complete_shoporders);
+    Values['WXData'] := '0123456';
+  end;
+
+  CallBusinessCommand(cBC_WeChat_SaveAutoSync, PackerEncodeStr(FListA.Text), '', @nOut)
+end;
+
+procedure TBaseForm1.SendAndSaveWXSync;
+begin
+  ModifyWebOrderStatus(sFlag_Sale, 'CG180402002', 'test', '≤‚ ‘');
+end;
+
 //------------------------------------------------------------------------------
 procedure TBaseForm1.Button1Click(Sender: TObject);
-var nIdx: Integer;
 begin
-  if Length(gThreads) < 1 then
-  begin
-    SetLength(gThreads, 2);
-    for nIdx:=Low(gThreads) to High(gThreads) do
-      gThreads[nIdx] := TMyThread.Create(nIdx mod 4);
-    //xxxxx
-  end else
-  begin
-    for nIdx:=Low(gThreads) to High(gThreads) do
-      gThreads[nIdx].StopMe;
-    SetLength(gThreads, 0);
-  end;
+  SaveWXSync;
 end;
 
 initialization

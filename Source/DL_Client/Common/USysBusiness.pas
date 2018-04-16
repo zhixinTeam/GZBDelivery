@@ -2634,8 +2634,8 @@ function complete_shoporders(const nXmlStr: string): string;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := '';
-  if CallBusinessCommand(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
-    Result := nOut.FData;  
+  if not CallBusinessCommand(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
+    Result := nOut.FData;
 end;
 
 //Date: 2016/11/27

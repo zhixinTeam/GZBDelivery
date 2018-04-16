@@ -1007,7 +1007,8 @@ begin
   {$ENDIF}
   nWebOrderID := FListA.Values['WebOrderID'];
   //修改商城订单状态
-  ModifyWebOrderStatus(nOut.FData,c_WeChatStatusCreateCard,nWebOrderID);
+  ModifyWebOrderStatus(sFlag_Sale, nOut.FData, 'SaveBills', '创建单据',
+                       c_WeChatStatusCreateCard,nWebOrderID);
   //发送微信消息
   SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
 end;

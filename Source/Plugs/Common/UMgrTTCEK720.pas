@@ -341,7 +341,7 @@ begin
 end;
 
 procedure TK720ReaderManager.LoadConfig(const nFile: string);
-var nIdx, i: Integer;
+var nIdx: Integer;
     nXML: TNativeXml;  
     nReader: PK720ReaderItem;
     nRoot,nNode,nTmp: TXmlNode;

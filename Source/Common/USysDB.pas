@@ -302,6 +302,7 @@ ResourceString
   sTable_WeixinLog    = 'Sys_WeixinLog';             //微信日志
   sTable_WeixinMatch  = 'Sys_WeixinMatch';           //账号匹配
   sTable_WeixinTemp   = 'Sys_WeixinTemplate';        //信息模板
+  sTable_WeixinSync   = 'Sys_WeixinSync';            //数据同步
 
   sTable_ZhiKa        = 'S_ZhiKa';                   //纸卡数据
   sTable_ZhiKaDtl     = 'S_ZhiKaDtl';                //纸卡明细
@@ -1289,6 +1290,25 @@ const
   *.wcb_WebMallStatus:是否开通商城用户，默认值0：未开通 1：已开通
   -----------------------------------------------------------------------------}
 
+  sSQL_NewWXAutoSync  = 'Create Table $Table(R_ID $Inc, S_Type Char(1), ' +
+       'S_Sender varChar(32), S_SdrDesc varChar(32),' +
+       'S_Key varChar(32), S_Business varChar(32),S_Data varChar(max), ' +
+       'S_SyncTime Integer Default 0, S_SyncFlag Char(1) Default ''N'',' +
+       'S_SyncMemo varChar(max), S_Date DateTime)';
+  {-----------------------------------------------------------------------------
+  微信自动双向同步: Sys_WeiXinAutoSync
+  *.R_ID:记录号
+  *.S_Type: 业务类型(销售,采购等)
+  *.S_Sender,S_SdrDesc: 发送方
+  *.S_Key: 主键
+  *.S_Business: 业务类型(发消息,更新状态等)
+  *.S_Data: 待发送数据
+  *.S_SyncTime: 同步次数
+  *.S_SyncFlag: 同步状态
+  *.S_SyncMemo: 同步描述
+  *.S_Date: 填写时间
+  -----------------------------------------------------------------------------}
+
   sSQL_NewProvider = 'Create Table $Table(R_ID $Inc, P_ID varChar(32),' +
        'P_Name varChar(80),P_PY varChar(80), P_Phone varChar(20),' +
        'P_Saler varChar(32),p_WechartAccount varchar(32), ' +
@@ -1845,6 +1865,7 @@ begin
   AddSysTableItem(sTable_WeixinLog, sSQL_NewWXLog);
   AddSysTableItem(sTable_WeixinMatch, sSQL_NewWXMatch);
   AddSysTableItem(sTable_WeixinTemp, sSQL_NewWXTemplate);
+  AddSysTableItem(sTable_WeixinSync, sSQL_NewWXAutoSync);
 
   AddSysTableItem(sTable_ZhiKa, sSQL_NewZhiKa);
   AddSysTableItem(sTable_ZhiKaDtl, sSQL_NewZhiKaDtl);

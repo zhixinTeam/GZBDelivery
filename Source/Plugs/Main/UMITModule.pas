@@ -16,7 +16,7 @@ uses
   UWorkerClientWebChat,
   UWorkerBusinessCommand, UWorkerBusinessBill,
   UWorkerBusinessDuanDao, UWorkerBusinessOrders,
-  {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}
+  {$IFDEF MicroMsg}UMgrRemoteWXMsg, UWXSyncer,{$ENDIF}
   UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection,
   UBaseObject;
 
@@ -107,6 +107,7 @@ begin
 
   {$IFDEF MicroMsg}
   gWXPlatFormHelper.StartPlatConnector;
+  gWXSyncer.Start(gParamManager.ActiveParam.FDB.FID);
   {$ENDIF} //micro message
 
   gTaskMonitor.StartMon;
@@ -136,6 +137,7 @@ begin
   {$ENDIF} //db
 
   {$IFDEF MicroMsg}
+  gWXSyncer.Stop;
   gWXPlatFormHelper.StopPlatConnector;
   {$ENDIF} //micro message
 end;

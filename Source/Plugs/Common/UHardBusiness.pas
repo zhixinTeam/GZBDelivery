@@ -37,8 +37,8 @@ procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillTy
 function Do_send_event_msg(const nXmlStr: string): string;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer=c_WeChatStatusFinished;const AWebOrderID:string='');
-
+procedure ModifyWebOrderStatus(const nType,nLId,nSender,nDesc:string;
+ nStatus:Integer=c_WeChatStatusFinished;const AWebOrderID:string='');
 //修改网上订单状态
 function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
 
@@ -637,22 +637,27 @@ var nOut: TWorkerBusinessCommand;
 begin
   Result := '';
   if TWorkerBusinessCommander.CallMe(cBC_WeChat_send_event_msg, nXmlStr, '', @nOut) then
-    Result := nOut.FData;
+       Result := nOut.FData
+  else WriteHardHelperLog(nOut.FData);
 end;
 
 //修改网上订单状态
-procedure ModifyWebOrderStatus(const nLId:string;nStatus:Integer;const AWebOrderID:string);
+procedure ModifyWebOrderStatus(const nType,nLId,nSender,nDesc:string;
+  nStatus:Integer;const AWebOrderID:string);
 var
   nXmlStr,nData,nSql:string;
   nDBConn: PDBWorker;
   nWebOrderId:string;
   nIdx:Integer;
   FNetWeight:Double;
+  
+  nList: TStrings;
+  nOut: TWorkerBusinessCommand;
 begin
   {$IFNDEF EnableWebMall}
   Exit;
   {$ENDIF}
-  
+
   FNetWeight := 0;
   nWebOrderId := AWebOrderID;
   nDBConn := nil;
@@ -683,20 +688,23 @@ begin
           end;
         end;
 
-        //销售净重
-        nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
-        nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
-        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+        if nType = sFlag_Sale then //销售净重
         begin
-          if recordcount>0 then
+          nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
+          nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
+          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
           begin
-            FNetWeight := FieldByName('L_Value').asFloat;
-          end;          
-        end;
-        //采购净重
-        if FNetWeight<0.0001 then
+            if recordcount>0 then
+            begin
+              FNetWeight := FieldByName('L_Value').asFloat;
+            end;
+          end;
+        end else
+
+        if nType = sFlag_Provide then //采购净重
         begin
-          nSql := 'select sum(d_mvalue) d_mvalue,sum(d_pvalue) d_pvalue from %s where d_oid=''%s'' and d_status=''%s''';
+          nSql := 'select sum(d_mvalue) d_mvalue,sum(d_pvalue) d_pvalue from %s ' +
+                  'where d_oid=''%s'' and d_status=''%s''';
           nSql := Format(nSql,[sTable_OrderDtl,nLId,sFlag_TruckOut]);
           with gDBConnManager.WorkerQuery(nDBConn, nSql) do
           begin
@@ -712,6 +720,15 @@ begin
     end;
   end;
 
+  if nType = sFlag_Sale then
+  begin
+    WriteHardHelperLog('更新销售状态,微信单据号: ' + nWebOrderId);
+  end else
+  if nType = sFlag_Provide then
+  begin
+    WriteHardHelperLog('更新采购状态,微信单据号: ' + nWebOrderId);
+  end;
+
   if nWebOrderId='' then Exit;
   
   nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
@@ -722,18 +739,34 @@ begin
             +'</head>'
             +'</DATA>';
   nXmlStr := Format(nXmlStr,[nWebOrderId,nStatus,FNetWeight]);
-
   nXmlStr := PackerEncodeStr(nXmlStr);
-  if nStatus = 1 then gSysLoger.AddLog(nXmlStr);
-  nData := Do_ModifyWebOrderStatus(nXmlStr);
-  if nStatus = 1 then
-    gSysLoger.AddLog('出厂更新微信状态结果：' + nData)
-  else
-    gSysLoger.AddLog(nData);
 
-  if ndata<>'' then
-  begin
-    WriteHardHelperLog(nData, sPost_Out);
+  nList := TStringList.Create;
+  try
+    nList.Values['WXData'] := nXmlStr;
+    nData := Do_ModifyWebOrderStatus(nXmlStr);
+
+    if nData <> '' then
+    begin
+      WriteHardHelperLog(nData, sPost_Out);
+      //loged
+      
+      with nList do
+      begin
+        Values['Type'] := nType;
+        Values['Sender'] := nSender;
+        Values['SenderDesc'] := nDesc;
+        Values['Key'] := nLId;
+        Values['Business'] := IntToStr(cBC_WeChat_complete_shoporders);
+        //Values['WXData'] := nXmlStr;
+      end;
+
+      TWorkerBusinessCommander.CallMe(cBC_WeChat_SaveAutoSync,
+        PackerEncodeStr(nList.Text), '', @nOut);
+      //save autuo sync
+    end;
+  finally
+    nList.Free;
   end;
 end;
 
@@ -742,7 +775,7 @@ function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := '';
-  if TWorkerBusinessCommander.CallMe(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
+  if not TWorkerBusinessCommander.CallMe(cBC_WeChat_complete_shoporders, nXmlStr, '', @nOut) then
     Result := nOut.FData;
 end;
 
@@ -824,7 +857,9 @@ begin
   //发送微信商城
   SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
-  with nTrucks[0] do
+
+  for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
   begin
     {$IFDEF PrintBillMoney}
     if CallBusinessCommand(cBC_GetZhiKaMoney, FZhiKa,'',@nOut) then
@@ -839,13 +874,12 @@ begin
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
-    else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
+    else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr); //打印报表
+    
     if nCardType = sFlag_Provide then
-      ModifyWebOrderStatus(FZhiKa)
-    else
-      ModifyWebOrderStatus(FID);
-  end;  
-  //打印报表
+         ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOut', '刷卡出厂')
+    else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOut', '刷卡出厂');
+  end;
 
   if nCardType = sFlag_DuanDao then
   begin
@@ -932,7 +966,9 @@ begin
   //发送微信商城
   SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
-  with nTrucks[0] do
+
+  for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
   begin
     {$IFDEF PrintBillMoney}
     if CallBusinessCommand(cBC_GetZhiKaMoney, FZhiKa,'',@nOut) then
@@ -949,7 +985,9 @@ begin
          gRemotePrinter.PrintBill(FID + nStr)
     else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr);
 
-    ModifyWebOrderStatus(FID);
+    if nCardType = sFlag_Provide then
+         ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOutM100', '刷卡出厂')
+    else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOutM100', '刷卡出厂');
   end;  
   //打印报表
 

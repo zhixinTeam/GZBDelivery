@@ -31,7 +31,7 @@ inherited BaseForm1: TBaseForm1
     TabOrder = 1
     object Button1: TButton
       Left = 189
-      Top = 8
+      Top = 10
       Width = 60
       Height = 20
       Caption = 'test'

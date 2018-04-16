@@ -113,6 +113,9 @@ type
     function SyncRemoteProviders(var nData: string): Boolean;
     function SyncRemoteMaterails(var nData: string): Boolean;
 
+    function SaveWeixinAutoSyncData(var nData: string): Boolean;
+    //增加微信双向同步数据
+
     //防伪码校验
     function CheckSecurityCodeValid(var nData: string): Boolean;
     
@@ -477,6 +480,8 @@ begin
    cBC_GetOrderInfo        : Result := GetOrderInfo(nData); //查询云天系统订单信息
    cBC_GetOrderList        : Result := GetOrderList(nData); //查询云天系统订单列表
    cBC_GetPurchaseContractList : Result := GetPurchaseContractList(nData); //查询采购合同列表
+
+   cBC_WeChat_SaveAutoSync : Result := SaveWeixinAutoSyncData(nData);
 
    cBC_WeChat_getCustomerInfo : Result := getCustomerInfo(nData);   //微信平台接口：获取客户注册信息
    cBC_WeChat_get_Bindfunc    : Result := get_Bindfunc(nData);   //微信平台接口：客户与微信账号绑定
@@ -2255,6 +2260,83 @@ begin
   FOut.FData := PackerEncodeStr(FListA.Text);
   Result := True;
 end;
+
+//Date: 2018-04-13
+//Desc: 保存需要和微信同步的数据
+function TWorkerBusinessCommander.SaveWeixinAutoSyncData(
+  var nData: string): Boolean;
+var nStr,nID: string;
+begin
+  Result := True;
+  FListA.Text := PackerDecodeStr(FIn.FData);
+
+  nID := Trim(FListA.Values['RecordID']);
+  //record id
+
+  if nID <> '' then
+  begin
+    nStr := Trim(FListA.Values['Done']); //更新成功
+    if nStr = sFlag_Yes then
+    begin
+      nStr := MakeSQLByStr([
+              SF('S_SyncFlag', sFlag_Yes)
+              ], sTable_WeixinSync, SF('R_ID', nID, sfVal), False);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+
+      nStr := 'Delete From %s Where S_SyncFlag=''%s''';
+      nStr := Format(nStr, [sTable_WeixinSync, sFlag_Yes]);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+      
+      FOut.FBase.FResult := True;
+      Exit;
+    end;
+
+    nStr := Trim(FListA.Values['Reset']); //重置记录
+    if nStr = sFlag_Yes then
+    begin
+      nStr := MakeSQLByStr([
+              SF('S_SyncTime', 0, sfVal),
+              SF('S_SyncFlag', sFlag_No),
+              SF('S_Date', sField_SQLServer_Now, sfVal)
+              ], sTable_WeixinSync, SF('R_ID', nID, sfVal), False);
+      //xxxxx
+
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+      FOut.FBase.FResult := True;
+      Exit;
+    end;
+
+    nStr := Trim(FListA.Values['Memo']); //更新备注
+    if nStr <> '' then
+    begin
+      nStr := MakeSQLByStr([
+              SF('S_SyncTime', 'S_SyncTime+1', sfVal),
+              SF('S_SyncMemo', nStr)
+              ], sTable_WeixinSync, SF('R_ID', nID, sfVal), False);
+      //xxxxx
+
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+      FOut.FBase.FResult := True;
+      Exit;
+    end;
+  end;
+  
+  nStr := MakeSQLByStr([SF('S_Type', FListA.Values['Type']),
+          SF('S_Sender', FListA.Values['Sender']),
+          SF('S_SdrDesc', FListA.Values['SenderDesc']),
+          SF('S_Key', FListA.Values['Key']),
+          SF('S_Business', FListA.Values['Business']),
+          SF('S_Data', FListA.Values['WXData']),
+          SF('S_SyncTime', 0, sfVal),
+          SF('S_SyncFlag', sFlag_No),
+          SF('S_Date', sField_SQLServer_Now, sfVal)
+          ], sTable_WeixinSync, SF('R_ID', nID, sfVal), nID = '');
+  //xxxxx
+  
+  gDBConnManager.WorkerExec(FDBConn, nStr);
+  FOut.FBase.FResult := True;
+end;
+
 
 //获取客户注册信息
 function TWorkerBusinessCommander.getCustomerInfo(var nData:string):Boolean;
