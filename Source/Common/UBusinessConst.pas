@@ -64,6 +64,7 @@ const
 
   cBC_ChangeDispatchMode      = $0053;   //切换调度模式
   cBC_GetPoundCard            = $0054;   //获取磅站卡号
+  cBC_GetReaderCard           = $0052;   //读卡器有效卡
   cBC_GetQueueData            = $0055;   //获取队列数据
   cBC_PrintCode               = $0056;
   cBC_PrintFixCode            = $0057;   //喷码

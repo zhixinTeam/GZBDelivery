@@ -858,8 +858,8 @@ begin
   SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
 
-  for nIdx:=Low(nTrucks) to High(nTrucks) do
-  with nTrucks[nIdx] do
+  //for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[0] do
   begin
     {$IFDEF PrintBillMoney}
     if CallBusinessCommand(cBC_GetZhiKaMoney, FZhiKa,'',@nOut) then
@@ -967,8 +967,8 @@ begin
   SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
 
-  for nIdx:=Low(nTrucks) to High(nTrucks) do
-  with nTrucks[nIdx] do
+  //for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[0] do
   begin
     {$IFDEF PrintBillMoney}
     if CallBusinessCommand(cBC_GetZhiKaMoney, FZhiKa,'',@nOut) then

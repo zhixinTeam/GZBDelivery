@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE GZBJM}
 //特定系统
 
 //葛洲坝兴山
@@ -143,6 +143,8 @@
   //荆门专用防违流喷码
   {$DEFINE MultiOrderOfTruck}
   //允许车辆办理多张采购单
+  {$DEFINE AutoPoundInManual}
+  //自动称重人工干预异常
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
   {$DEFINE TruckParkReady}

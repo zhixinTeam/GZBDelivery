@@ -148,6 +148,8 @@ function SaveLadingBills(const nPost: string; const nData: TLadingBillItems;
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的交货单
 
+function GetReaderCard(const nReader,nType: string): string;
+//获取指定读头的有效卡号
 function GetTruckPoundItem(const nTruck: string;
  var nPoundData: TLadingBillItems): Boolean;
 //获取指定车辆的已称皮重信息
@@ -1143,6 +1145,17 @@ begin
     Result := Trim(nOut.FData);
     nReader:= Trim(nOut.FExtParam);
   end;
+end;
+
+//Date: 2018-04-16
+//Parm: 读头;类型
+//Desc: 获取nReader上的有效卡号
+function GetReaderCard(const nReader,nType: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessHardware(cBC_GetReaderCard, nReader, nType, @nOut) then
+       Result := Trim(nOut.FData)
+  else Result := '';
 end;
 
 //------------------------------------------------------------------------------

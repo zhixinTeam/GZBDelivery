@@ -664,8 +664,8 @@ begin
 
   if m > 0 then
   begin
-    {$IFDEF GZBJM}
-    nStr := '散装订单超发%.2f吨,请联系开票员处理';
+    {$IFDEF AutoPoundInManual}
+    nStr := '散装订单超发%.2f吨,请等待开票员处理';
     nStr := Format(nStr, [m]);
     PlayVoice(nStr);
     {$ENDIF}
@@ -681,7 +681,7 @@ begin
             FInnerData.FProject, nValue, m]);
     //xxxxx
 
-    {$IFDEF GZBJM}
+    {$IFDEF AutoPoundInManual}
     WriteSysLog(nHint);
     nHint := nHint + '若有可用提货单,请点击"是"按钮继续.';
     if not QueryDlg(nHint, sHint) then Exit;
@@ -899,6 +899,12 @@ begin
 
     if (nNet > 0) and (nWarn > 0) and (Abs(nVal) > nWarn) then
     begin
+      {$IFDEF AutoPoundInManual}
+      nHint := '车辆[n1]%s皮重误差较大,请等待管理员处理';
+      nHint := Format(nHint, [FTruck]);
+      PlayVoice(nHint);
+      {$ENDIF}
+
       nHint := '车辆[ %s ]实时皮重误差较大,详情如下:' + #13#10 +
               '※.实时皮重: %.2f吨' + #13#10 +
               '※.历史皮重: %.2f吨' + #13#10 +
@@ -906,7 +912,12 @@ begin
               '是否继续保存?';
       nHint := Format(nHint, [FTruck, FPData.FValue,
               nNet, nVal]);
+      //xxxxx
 
+      {$IFDEF AutoPoundInManual}
+      WriteSysLog(nHint);
+      if not QueryDlg(nHint, sHint) then Exit;
+      {$ELSE}
       if not VerifyManualEventRecord(FID + sFlag_ManualB, nHint) then
       begin
         AddManualEventRecord(FID + sFlag_ManualB, FTruck, nHint);
@@ -916,8 +927,8 @@ begin
         nHint := Format(nHint, [FTruck]);
         PlayVoice(nHint);
         Exit;
-      end;
-      //判断皮重是否超差
+      end; //判断皮重是否超差
+      {$ENDIF} 
     end;
   end;
 
@@ -963,8 +974,8 @@ begin
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
           ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF))))then
       begin
-        {$IFDEF GZBJM}
-        nHint := '车辆[n1]%s净重与开票量误差较大,请联系管理员处理';
+        {$IFDEF AutoPoundInManual}
+        nHint := '车辆[n1]%s净重与开票量误差较大,请等待管理员处理';
         nHint := Format(nHint, [FTruck]);
         PlayVoice(nHint);
         {$ENDIF}
@@ -976,7 +987,7 @@ begin
                 '请确认是否可以过磅';
         nHint := Format(nHint, [FTruck, FInnerData.FValue, nNet, nVal]);
 
-        {$IFDEF GZBJM}
+        {$IFDEF AutoPoundInManual}
         WriteSysLog(nHint);
         if not QueryDlg(nHint, sHint) then Exit;
         {$ELSE}

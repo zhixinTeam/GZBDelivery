@@ -51,6 +51,8 @@ type
     //切换调度模式
     function PoundCardNo(var nData: string): Boolean;
     //读取磅站卡号
+    function ReaderCardNo(var nData: string): Boolean;
+    //读卡器有效卡号
     function LoadQueue(var nData: string): Boolean;
     //读取车辆队列
     function ExecuteSQL(var nData: string): Boolean;
@@ -234,6 +236,7 @@ begin
   case FIn.FCommand of
    cBC_ChangeDispatchMode   : Result := ChangeDispatchMode(nData);
    cBC_GetPoundCard         : Result := PoundCardNo(nData);
+   cBC_GetReaderCard        : Result := ReaderCardNo(nData);
    cBC_GetQueueData         : Result := LoadQueue(nData);
    cBC_GetQueueList         : Result := GetQueueList(nData);
    cBC_SaveCountData        : Result := SaveDaiNum(nData);
@@ -334,6 +337,23 @@ begin
     FOut.FData := Fields[0].AsString;
     gHardwareHelper.SetPoundCardExt(FIn.FData, FOut.FData);
     //将远距离卡号对应的近距离卡号绑定
+  end;
+end;
+
+//Date: 2018-04-16
+//Parm: 读头标识[FIn.FData];读头类型[FIn.FExtParam]
+//Desc: 读取指定读卡器上的有效卡号
+function THardwareCommander.ReaderCardNo(var nData: string): Boolean;
+begin
+  Result := True;
+  FOut.FData := '';
+  //default
+
+  if FIn.FExtParam = 'RFID102' then
+  begin
+    if Assigned(gHYReaderManager) then
+      FOut.FData := gHYReaderManager.GetLastCard(FIn.FData);
+    //xxxxx
   end;
 end;
 
