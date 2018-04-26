@@ -418,13 +418,56 @@ begin
     SetUIData(True);
     Exit;
   end;
-  
+
   nHint := '';
   nInt := 0;
 
   for nIdx:=Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
+    {$IFDEF TruckAutoIn}
+    if FStatus=sFlag_TruckNone then
+    begin
+      if FCardUsed = sFlag_Provide then
+      begin
+        if SavePurchaseOrders(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItems(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_Sale then
+      begin
+        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItems(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_DuanDao then
+      begin
+        if SaveDuanDaoItems(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItems(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end;
+    end;
+    {$ENDIF}
     if (FStatus <> sFlag_TruckBFP) and (FNextStatus = sFlag_TruckZT) then
       FNextStatus := sFlag_TruckBFP;
     //状态校正
@@ -1095,12 +1138,12 @@ begin
   SetLength(FBillItems, 1);
   FBillItems[0] := FUIData;
   //复制用户界面数据
-  
+
   with FBillItems[0] do
   begin
     FFactory := gSysParam.FFactNum;
     //xxxxx
-    
+
     if FNextStatus = sFlag_TruckBFP then
          FPData.FStation := FPoundTunnel.FID
     else FMData.FStation := FPoundTunnel.FID;

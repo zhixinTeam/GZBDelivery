@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBXS}
 //特定系统
 
 //葛洲坝兴山
@@ -85,6 +85,8 @@
   //特定业务使用异步数据写入
   {$DEFINE ChangeYTSerialNo}
   //修改云天业务流水号规则
+  {$DEFINE TruckAutoIn}
+  //车辆自动进厂
 {$ENDIF}
 
 //葛洲坝松滋

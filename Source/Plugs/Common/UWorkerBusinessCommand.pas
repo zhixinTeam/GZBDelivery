@@ -2773,6 +2773,7 @@ begin
         FID         := FieldByName('L_ID').AsString;
         FZhiKa      := FieldByName('L_ZhiKa').AsString;
         FCusID      := FieldByName('L_CusID').AsString;
+        FCusName    := FieldByName('L_CusName').AsString;
         FCard       := '0';
         //默认非一车一票
 
@@ -2913,6 +2914,9 @@ begin
                   SF('XLB_LadeType', '103'),
                   SF('XLB_Origin', '101'),
                   SF('XLB_Client', nBills[nIdx].FCusID),
+
+                  SF('XLB_Alias', nBills[nIdx].FCusName),
+
                   SF('XLB_Cement', nBills[nIdx].FStockNo),
                   SF('XLB_CementSwap', nBills[nIdx].FStockNo),
                   SF('XLB_Number', nBills[nIdx].FValue, sfVal),
@@ -3052,6 +3056,9 @@ begin
                 SF('DTP_Card', nBills[nIdx].FZhiKa),
                 SF('DTP_ScaleBill', nBills[nIdx].FID),
                 SF('DTP_Origin',  '101'),
+
+                SF('DTP_Company', nBills[nIdx].FCusID),
+                SF('DTP_SENDAREA', FieldByName('XCB_SubLader').AsString),
 
                 SF('DTP_Vehicle', nBills[nIdx].FTruck),
                 SF('DTP_OutDate', Date2StrOracle(nSetDate), sfVal),
