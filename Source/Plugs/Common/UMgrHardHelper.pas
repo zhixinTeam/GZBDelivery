@@ -44,6 +44,7 @@ type
     FLast    : Int64;
     FKeep    : Word;
     FOKTime  : Int64;
+    FOptions : TStrings;          //¸½¼Ó²ÎÊý
   end;
 
   THardwareHelper = class;
@@ -152,7 +153,12 @@ begin
 end;
 
 destructor THardwareHelper.Destroy;
+var nIdx: Integer;
 begin
+  for nIdx:=Low(FItems) to High(FItems) do
+    FreeAndNil(FItems[nIdx].FOptions);
+  //xxxxx
+
   StopRead;
   ClearBuffer(FBuffData);
   FBuffData.Free;
@@ -398,7 +404,14 @@ begin
       if Assigned(nTP) then
            FPrinter := nTP.ValueAsString
       else FPrinter := '';
-      
+
+      nTP := NodeByName('options');
+      if Assigned(nTP) then
+      begin
+        FOptions := TStringList.Create;
+        SplitStr(nTP.ValueAsString, FOptions, 0, ';');
+      end else FOptions := nil;
+
       nTP := NodeByName('keeptime');
       if Assigned(nTP) then
       begin

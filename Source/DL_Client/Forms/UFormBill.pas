@@ -11,7 +11,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   UFormNormal, cxGraphics, cxControls, cxLookAndFeels,
   cxLookAndFeelPainters, cxContainer, cxEdit, cxMaskEdit, cxButtonEdit,
-  cxTextEdit, dxLayoutControl, StdCtrls, cxDropDownEdit;
+  cxTextEdit, dxLayoutControl, StdCtrls, cxDropDownEdit, cxCheckBox;
 
 type
   TfFormBill = class(TfFormNormal)
@@ -62,6 +62,8 @@ type
     dxLayout1Item10: TdxLayoutItem;
     dxLayout1Group4: TdxLayoutGroup;
     dxLayout1Group5: TdxLayoutGroup;
+    dxLayout1Item11: TdxLayoutItem;
+    PrintHY: TcxCheckBox;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -153,16 +155,40 @@ begin
 end;
 
 procedure TfFormBill.FormCreate(Sender: TObject);
+var nIni: TIniFile;
 begin
+  nIni := TIniFile.Create(gPath + sFormConfig);
+  try
+    PrintHY.Checked := nIni.ReadBool(Name, 'PrintHY', False);
+    //Ëæ³µ¿ªµ¥
+  finally
+    nIni.Free;
+  end;
+
   FCardData := TStringList.Create;
   FComentData := TStringList.Create;
+
+  {$IFDEF PrintHYEach}
+  dxLayout1Item11.Visible := True;
+  {$ELSE}
+  dxLayout1Item11.Visible := False;
+  PrintHY.Checked := False;
+  {$ENDIF}
 
   AdjustCtrlData(Self);
   LoadFormConfig(Self);
 end;
 
 procedure TfFormBill.FormClose(Sender: TObject; var Action: TCloseAction);
+var nIni: TIniFile;
 begin
+  nIni := TIniFile.Create(gPath + sFormConfig);
+  try
+    nIni.WriteBool(Name, 'PrintHY', PrintHY.Checked);
+  finally
+    nIni.Free;
+  end;
+
   SaveFormConfig(Self);
   ReleaseCtrlData(Self);
   FCardData.Free;
@@ -301,6 +327,10 @@ begin
       Values['HYDan'] := EditFQ.Text;
       Values['BuDan'] := FBuDanFlag;
       Values['LineGroup'] := GetCtrlData(EditLineGroup);
+
+      if PrintHY.Checked  then
+           Values['PrintHY'] := sFlag_Yes
+      else Values['PrintHY'] := sFlag_No;
     end;
 
     FNewBillID := SaveBill(PackerEncodeStr(nList.Text));

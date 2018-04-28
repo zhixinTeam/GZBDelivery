@@ -780,9 +780,10 @@ begin
 end;
 
 //Date: 2012-4-22
-//Parm: 卡号;读头;打印机
+//Parm: 卡号;读头;打印机;化验单打印机
 //Desc: 对nCard放行出厂
-procedure MakeTruckOut(const nCard,nReader,nPrinter: string);
+procedure MakeTruckOut(const nCard,nReader,nPrinter: string;
+  const nHYPrinter: string = '');
 var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
@@ -871,6 +872,9 @@ begin
 
     nStr := nStr + #7 + nCardType;
     //磁卡类型
+    if nHYPrinter <> '' then
+      nStr := nStr + #6 + nHYPrinter;
+    //化验单打印机
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
@@ -890,9 +894,10 @@ begin
 end;
 
 //Date: 2016-5-4
-//Parm: 卡号;读头;打印机
+//Parm: 卡号;读头;打印机;化验单打印机
 //Desc: 对nCard放行出
-function MakeTruckOutM100(const nCard,nReader,nPrinter: string): Boolean;
+function MakeTruckOutM100(const nCard,nReader,nPrinter: string;
+  const nHYPrinter: string = ''): Boolean;
 var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
@@ -980,6 +985,9 @@ begin
 
     nStr := nStr + #7 + nCardType;
     //磁卡类型
+    if nHYPrinter <> '' then
+      nStr := nStr + #6 + nHYPrinter;
+    //化验单打印机
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
@@ -1124,7 +1132,10 @@ begin
 
       if nReader.FType = rtOut then
       begin
-        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter);
+        if Assigned(nReader.FOptions) then
+             nStr := nReader.FOptions.Values['HYPrinter']
+        else nStr := '';
+        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter, nStr);
       end else
 
       if nReader.FType = rtGate then
@@ -1352,7 +1363,8 @@ begin
     if not nItem.FVirtual then Exit;
     case nItem.FVType of
     rtOutM100 :
-      nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader, nItem.FVPrinter);
+      nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader,
+                                  nItem.FVPrinter, nItem.FVHYPrinter);
     else
       gHardwareHelper.SetReaderCard(nItem.FVReader, nItem.FCard, False);
     end;

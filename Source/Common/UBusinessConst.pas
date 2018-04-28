@@ -193,6 +193,7 @@ type
 
     FSeal       : string;          //编号ID
     FHYDan      : string;          //水泥编号
+    FPrintHY    : Boolean;         //打印化验单
     FLineGroup  : string;          //生产线
 
     FYSValid    : string;          //验收结果，Y验收成功；N拒收；
@@ -368,6 +369,7 @@ begin
 
         FSeal   := Values['Seal'];
         FHYDan  := Values['HYDan'];
+        FPrintHY := Values['PrintHY'] = sFlag_Yes;
         FLineGroup := Values['LineGroup'];
 
         FMemo   := Values['Memo']; 
@@ -457,6 +459,10 @@ begin
         Values['Seal']       := FSeal;
         Values['HYDan']      := FHYDan;
         Values['LineGroup']  := FLineGroup;
+
+        if FPrintHY then
+             Values['PrintHY'] := sFlag_Yes
+        else Values['PrintHY'] := sFlag_No;
 
         Values['KZValue']    := FloatToStr(FKZValue);
         Values['YSValid']    := FYSValid;

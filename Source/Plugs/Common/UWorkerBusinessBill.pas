@@ -700,6 +700,10 @@ begin
               SF('L_Value', FListC.Values['Value'], sfVal),
               SF('L_Price', FListC.Values['Price'], sfVal),
 
+              {$IFDEF PrintHYEach}
+              SF('L_PrintHY', FListA.Values['PrintHY']),
+              {$ENDIF} //随车打印化验单
+
               SF('L_ZKMoney', sFlag_No),
               SF('L_Truck', FListA.Values['Truck']),
               SF('L_Status', sFlag_BillNew),
@@ -1740,7 +1744,7 @@ begin
 
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
-          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_HKRecord,' +
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
           'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId '+
           'From $Bill b ';
   //xxxxx
@@ -1786,6 +1790,7 @@ begin
 
       FSeal       := FieldByName('L_Seal').AsString;
       FHYDan      := FieldByName('L_HYDan').AsString;
+      FPrintHY    := FieldByName('L_PrintHY').AsString = sFlag_Yes;
 
       FCard       := FieldByName('L_Card').AsString;
       FIsVIP      := FieldByName('L_IsVIP').AsString;

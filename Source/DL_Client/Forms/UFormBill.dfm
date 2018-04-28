@@ -203,6 +203,15 @@ inherited fFormBill: TfFormBill
       TabOrder = 23
       Width = 121
     end
+    object PrintHY: TcxCheckBox [21]
+      Left = 11
+      Top = 469
+      Caption = #25171#21360#21270#39564#21333
+      ParentFont = False
+      TabOrder = 24
+      Transparent = True
+      Width = 95
+    end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
         object dxGroupLayout1Group2: TdxLayoutGroup
@@ -356,6 +365,13 @@ inherited fFormBill: TfFormBill
               end
             end
           end
+        end
+      end
+      inherited dxLayout1Group1: TdxLayoutGroup
+        object dxLayout1Item11: TdxLayoutItem [0]
+          ShowCaption = False
+          Control = PrintHY
+          ControlOptions.ShowBorder = False
         end
       end
     end

@@ -313,6 +313,105 @@ begin
   Result := FDR.PrintSuccess;
 end;
 
+//Desc: 获取nStock品种的报表文件
+function GetReportFileByStock(const nStock: string): string;
+var nIni: TIniFile;
+begin
+  nIni := TIniFile.Create(gPath + sConfig);
+  try
+    Result := nIni.ReadString('QCReportFR3Map', nStock, '');
+    if Result <> '' then
+      Result := gPath + 'Report\' + Result;
+    //xxxxx
+  finally
+    nIni.Free;
+  end;
+end;
+
+//Desc: 打印标识为nHID的化验单
+function PrintHuaYanReport(const nBill: string; var nHint: string;
+ const nPrinter: string = ''): Boolean;
+var nStr,nHY,nStock,nOF: string;
+    nField: TField;
+begin
+  nHint := '';
+  Result := False;
+
+  nStr := 'Select L_HYDan,L_StockNo,L_OutFact,L_PrintHY From %s ' +
+          'Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, nBill]);
+
+  if FDM.SQLQuery(nStr, FDM.SqlTemp).RecordCount < 1 then
+  begin
+    nHint := '交货单[ %s ]已无效';
+    nHint := Format(nHint, [nBill]);
+    Exit;
+  end;
+
+  with FDM.SQLTemp do
+  begin
+    nField := FindField('L_PrintHY');
+    if Assigned(nField) and (nField.AsString <> sFlag_Yes) then
+    begin
+      nHint := '交货单[ %s ]无需打印合格证.';
+      nHint := Format(nHint, [nBill]);
+      Exit;
+    end;
+
+    nHY := FieldByName('L_HYDan').AsString;
+    nStock := FieldByName('L_StockNo').AsString;
+
+    nOF := 'yyyy年mm月dd日';
+    nOF := FormatDateTime(nOF, FieldByName('L_OutFact').AsDateTime);
+  end;
+
+  nStr := GetReportFileByStock(nStock);
+  if not FDR.LoadReportFile(nStr) then
+  begin
+    nHint := '无法正确加载报表文件: ' + nStr;
+    Exit;
+  end;
+
+  nStr := 'Select OutFact=''%s'',* From %s Where Paw_Analy=''%s''';
+  nStr := Format(nStr, [nOF, sTable_YT_Batchcode, nHY]);
+
+  if FDM.SQLQuery(nStr, FDM.SqlTemp).RecordCount < 1 then
+  begin
+    nHint := '编号为[ %s ] 的化验单记录已无效!!';
+    nHint := Format(nStr, [nHY]);
+    Exit;
+  end; 
+
+  if nPrinter = '' then
+       FDR.Report1.PrintOptions.Printer := 'My_Default_HYPrinter'
+  else FDR.Report1.PrintOptions.Printer := nPrinter;
+
+  FDR.Dataset1.DataSet := FDM.SqlTemp;
+  FDR.PrintReport;
+  Result := FDR.PrintSuccess;
+end;
+
+//Desc: 打印标识为nID的合格证
+function PrintHeGeReport(const nBill: string; var nHint: string;
+ const nPrinter: string = ''): Boolean;
+var nStr: string;
+begin
+  nStr := gPath + 'Report\HeGeZheng.fr3';
+  if not FDR.LoadReportFile(nStr) then
+  begin
+    nHint := '无法正确加载报表文件: ' + nStr;
+    Exit;
+  end;
+
+  if nPrinter = '' then
+       FDR.Report1.PrintOptions.Printer := 'My_Default_HYPrinter'
+  else FDR.Report1.PrintOptions.Printer := nPrinter;
+  
+  FDR.Dataset1.DataSet := FDM.SqlTemp;
+  FDR.PrintReport;
+  Result := FDR.PrintSuccess;
+end;
+
 //Date: 2012-4-1
 //Parm: 采购单号;提示;数据对象;打印机
 //Desc: 打印nOrder采购单号
@@ -453,7 +552,7 @@ end;
 
 procedure TfFormMain.Timer2Timer(Sender: TObject);
 var nPos: Integer;
-    nBill,nHint,nPrinter,nMoney, nType: string;
+    nBill,nHint,nPrinter,nHYPrinter,nMoney,nType: string;
 begin
   if not FIsBusy then
   begin
@@ -466,7 +565,15 @@ begin
       FSyncLock.Leave;
     end;
 
-    //bill #9 printer #8 money #7 CardType
+    //bill #9 printer #8 money #7 CardType #6 HYPrinter
+    nPos := Pos(#6, nBill);
+    if nPos > 1 then
+    begin
+      nHYPrinter := nBill;
+      nBill := Copy(nBill, 1, nPos - 1);
+      System.Delete(nHYPrinter, 1, nPos);
+    end else nHYPrinter := '';
+    
     nPos := Pos(#7, nBill);
     if nPos > 1 then
     begin
@@ -505,7 +612,20 @@ begin
       if nType = 'P' then
            PrintOrderReport(nBill, nHint, nPrinter) else
       if nType = 'S' then
-           PrintBillReport(nBill, nHint, nPrinter, nMoney) else
+      begin
+        PrintBillReport(nBill, nHint, nPrinter, nMoney);
+        if nHint <> '' then WriteLog(nHint);
+
+        {$IFDEF PrintHuaYanDan}
+        PrintHuaYanReport(nBill, nHint, nHYPrinter);
+        if nHint <> '' then WriteLog(nHint);
+        {$ENDIF}
+
+        {$IFDEF PrintHeGeZheng}
+        PrintHeGeReport(nBill, nHint, nHYPrinter);
+        if nHint <> '' then WriteLog(nHint);
+        {$ENDIF}
+      end else
       if nType = 'D' then
            PrintDDReport(nBill, nHint, nPrinter)
       else PrintPoundReport(nBill, nHint, nPrinter);

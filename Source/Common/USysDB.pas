@@ -762,7 +762,7 @@ const
        'L_DaiTotal Integer,L_DaiNormal Integer,L_DaiBuCha Integer,' +
        'L_OutFact DateTime,L_OutMan varChar(32),' +
        'L_Lading Char(1),L_IsVIP Char(1),L_Seal varChar(100),' +
-       'L_HYDan varChar(32),L_Man varChar(32),L_Date DateTime,' +
+       'L_HYDan varChar(32),L_PrintHY Char(1),L_Man varChar(32),L_Date DateTime,' +
        'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500))';
   {-----------------------------------------------------------------------------
    交货单表: Bill
@@ -795,6 +795,7 @@ const
    *.L_IsVIP:VIP单
    *.L_Seal: 封签号
    *.L_HYDan: 化验单
+   *.L_PrintHY:自动打印化验单
    *.L_Man:操作人
    *.L_Date:创建时间
    *.L_DelMan: 交货单删除人员
