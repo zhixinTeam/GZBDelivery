@@ -1350,6 +1350,9 @@ end;
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 var nStr: string;
     nRetain: Boolean;
+    nCType: string;
+    nDBConn: PDBWorker;
+    nErrNum: Integer;
 begin
   nRetain := False;
   //init
@@ -1363,8 +1366,45 @@ begin
     if not nItem.FVirtual then Exit;
     case nItem.FVType of
     rtOutM100 :
+    begin
       nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader,
                                   nItem.FVPrinter, nItem.FVHYPrinter);
+
+      if not GetCardUsed(nItem.FCard, nCType) then
+        nCType := '';
+
+      if nCType = sFlag_Provide then
+      begin
+        nDBConn := nil;
+        with gParamManager.ActiveParam^ do
+        Try
+          nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
+          if not Assigned(nDBConn) then
+          begin
+            WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
+            Exit;
+          end;
+
+          if not nDBConn.FConn.Connected then
+            nDBConn.FConn.Connected := True;
+          //conn db
+          nStr := 'select O_CType from %s Where O_Card=''%s'' ';
+          nStr := Format(nStr, [sTable_Order, nItem.FCard]);
+          with gDBConnManager.WorkerQuery(nDBConn,nStr) do
+          if RecordCount > 0 then
+          begin
+            if FieldByName('O_CType').AsString = sFlag_OrderCardG then
+              nRetain := False;
+          end;
+        finally
+          gDBConnManager.ReleaseConnection(nDBConn);
+        end;
+      end;
+      if nRetain then
+        WriteHardHelperLog('吞卡机执行状态:'+'卡类型:'+nCType+'动作:吞卡')
+      else
+        WriteHardHelperLog('吞卡机执行状态:'+'卡类型:'+nCType+'动作:吞卡后吐卡');
+    end
     else
       gHardwareHelper.SetReaderCard(nItem.FVReader, nItem.FCard, False);
     end;

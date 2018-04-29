@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBXS}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝兴山
@@ -115,7 +115,7 @@
   //特定业务使用异步数据写入
   {$DEFINE ChangeYTSerialNo}
   //修改云天业务流水号规则
-  {.$DEFINE TruckParkReady}
+  {$DEFINE TruckParkReady}
   //验证车辆是否在停车场
   {$DEFINE PurELabelAutoCard}
   //采购电子标签自动发卡
