@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE GZBXS}
 //特定系统
 
 //葛洲坝兴山
@@ -87,6 +87,8 @@
   //修改云天业务流水号规则
   {$DEFINE TruckAutoIn}
   //车辆自动进厂
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
 {$ENDIF}
 
 //葛洲坝松滋
