@@ -1297,6 +1297,17 @@ begin
     gDBConnManager.WorkerExec(FDBConn, nStr);
   end;
 
+  {$IFDEF TruckAutoIn}
+  if (nLine.FPeerWeight > 0) and
+     ((not nTruck.FInFact) or FParam.FDelayQueue) then
+  begin
+    nStr := 'Update %s Set T_Line=''%s'',T_PeerWeight=%d Where T_Bill=''%s''';
+    nStr := Format(nStr, [sTable_ZTTrucks, nLine.FLineID, nLine.FPeerWeight,
+                          nTruck.FBill]);
+    gDBConnManager.WorkerExec(FDBConn, nStr);
+  end;
+  {$ENDIF}
+
   {$IFDEF DEBUG}
   WriteLog(Format('³µÁ¾[ %s ]½ø[ %s ]¶Ó.', [nTruck.FTruck, nLine.FName]));
   {$ENDIF}

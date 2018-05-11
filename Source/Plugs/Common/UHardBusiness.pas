@@ -1054,7 +1054,7 @@ end;
 //Parm: 读头数据
 //Desc: 对nReader读到的卡号做具体动作
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
-var nStr,nSQL: string;
+var nStr,nSQL,nHYStr : string;
     nErrNum: Integer;
     nDBConn: PDBWorker;
 begin
@@ -1115,7 +1115,7 @@ begin
           WriteHardHelperLog(nStr);
           Exit;
         end;
-      end;  
+      end;
       {$ENDIF}
     end else
     begin
@@ -1133,9 +1133,9 @@ begin
       if nReader.FType = rtOut then
       begin
         if Assigned(nReader.FOptions) then
-             nStr := nReader.FOptions.Values['HYPrinter']
-        else nStr := '';
-        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter, nStr);
+             nHYStr := nReader.FOptions.Values['HYPrinter']
+        else nHYStr := '';
+        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter, nHYStr);
       end else
 
       if nReader.FType = rtGate then
@@ -1178,7 +1178,7 @@ var
   nRet: Boolean;
 begin
   Result := False;
-  
+
   nTruck := GetTruckNoByELabel(nECard);
   if nTruck = '' then
   begin

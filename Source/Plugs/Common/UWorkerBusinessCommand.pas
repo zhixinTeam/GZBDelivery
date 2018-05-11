@@ -2915,7 +2915,6 @@ begin
                   SF('XLB_Origin', '101'),
                   SF('XLB_Client', nBills[nIdx].FCusID),
 
-                  SF('XLB_Alias', nBills[nIdx].FCusName),
 
                   SF('XLB_Cement', nBills[nIdx].FStockNo),
                   SF('XLB_CementSwap', nBills[nIdx].FStockNo),

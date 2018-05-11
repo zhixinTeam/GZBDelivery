@@ -518,10 +518,13 @@ begin
       nStr := UpperCase(GetPinYinOfStr(FieldByName('L_Area').AsString));
       nCode:= nCode + Copy(nStr, 1, 2);
       //销售片区前两位
-
+      {$IFDEF XSCODE}
+      nCode:= 'P03' + nCode;//兴山工厂代码P03
+      {$ELSE}
       nStr := UpperCase(FieldByName('L_Truck').AsString);
       nCode:= nCode + Copy(nStr, Length(nStr)-5, 6);
       //车牌号后六位
+      {$ENDIF}
       {$ENDIF}
 
       {$IFDEF CODEBATCODE}

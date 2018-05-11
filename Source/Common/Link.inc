@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBXS}
+{$DEFINE GZBJM}
 //特定系统
 
 //葛洲坝兴山
@@ -79,7 +79,7 @@
   //允许车辆办理多张采购单
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
-  {.$DEFINE EnableWebMall}
+  {$DEFINE EnableWebMall}
   //使用网上商城
   {$DEFINE ASyncWriteData}
   //特定业务使用异步数据写入
@@ -87,8 +87,10 @@
   //修改云天业务流水号规则
   {$DEFINE TruckAutoIn}
   //车辆自动进厂
-  {$DEFINE CODEAREA}
-  //喷码打印销售区域
+  {$DEFINE XSCODE}
+  //兴山喷码规则
+  {$DEFINE MITTruckProber}
+  //服务器操作车检
 {$ENDIF}
 
 //葛洲坝松滋
@@ -147,7 +149,7 @@
   //荆门专用防违流喷码
   {$DEFINE MultiOrderOfTruck}
   //允许车辆办理多张采购单
-  {$DEFINE AutoPoundInManual}
+  {.$DEFINE AutoPoundInManual}
   //自动称重人工干预异常
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
@@ -155,6 +157,8 @@
   //验证车辆是否在停车场
   {.$DEFINE PurELabelAutoCard}
   //采购电子标签自动发卡
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
 {$ENDIF}
 
 //葛洲坝钟祥
