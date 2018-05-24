@@ -245,6 +245,8 @@ ResourceString
   sFlag_PoundQueue    = 'PoundQueue';                //延迟排队(厂内依据过皮时间)
   sFlag_NetPlayVoice  = 'NetPlayVoice';              //使用网络语音播发
   sFlag_SaveHKRecord  = 'SaveHKRecord';              //保存合单表信息
+  sFlag_DaiForceQueue = 'DaiForceQueue';             //袋装强制排队
+  sFlag_SanForceQueue = 'SanForceQueue';             //散装强制排队
 
   sFlag_BusGroup      = 'BusFunction';               //业务编码组
   sFlag_BillNo        = 'Bus_Bill';                  //交货单号

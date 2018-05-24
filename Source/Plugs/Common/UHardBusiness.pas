@@ -1544,6 +1544,32 @@ begin
 //    nPTruck.FStockName := nPLine.FName;
 //    //同步物料名
     Result := True;
+
+    if (not nQueued) or (nIdx < 1) then Exit;
+    //不检查队列,或头车
+
+    //--------------------------------------------------------------------------
+    nInt := -1;
+    //init
+
+    for i:=nPline.FTrucks.Count-1 downto 0 do
+    if PTruckItem(nPLine.FTrucks[i]).FStarted then
+    begin
+      nInt := i;
+      Break;
+    end;
+
+    if nInt < 0 then Exit;
+    //没有在装车车辆,无需排队
+
+    if nIdx - nInt <> 1 then
+    begin
+      nHint := '车辆[ %s ]需要在[ %s ]排队等候.';
+      nHint := Format(nHint, [nPTruck.FTruck, nPLine.FName]);
+
+      Result := False;
+      Exit;
+    end;
   finally
     SyncLock.Leave;
   end;
@@ -1721,6 +1747,7 @@ end;
 //Desc: 对nCard执行袋装装车操作
 procedure MakeTruckLadingDai(const nCard: string; nTunnel: string);
 var nStr,nCardType: string;
+    nBool: Boolean;
     nIdx,nInt: Integer;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
@@ -1836,7 +1863,7 @@ begin
     gDisplayManager.Display(nTunnel, nStr);
 
     Exit;
-  end;  
+  end;
 
   if IsJSRun then Exit;
   //tunnel is busy
@@ -1865,8 +1892,21 @@ begin
     //重新定位车辆所在车道
     if IsJSRun then Exit;
   end;
-  
-  if not IsTruckInQueue(nTrucks[0].FTruck, nTunnel, False, nStr,
+
+  if gTruckQueueManager.IsDaiForceQueue then
+  begin
+    nBool := True;
+    for nIdx:=Low(nTrucks) to High(nTrucks) do
+    begin
+      nBool := nTrucks[nIdx].FNextStatus = sFlag_TruckZT;
+      //未装车,检查排队顺序
+      if not nBool then Break;
+    end;
+  end
+  else
+    nBool := False;
+
+  if not IsTruckInQueue(nTrucks[0].FTruck, nTunnel, nBool, nStr,
          nPTruck, nPLine, sFlag_Dai) then
   begin
     WriteNearReaderLog(nStr);
@@ -1978,7 +2018,7 @@ begin
   nTmp := nLine.FName + FloatToStr(nTruck.FValue);
   nStr := nStr + nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
           FloatToStr(nTruck.FValue);
-  //xxxxx  
+  //xxxxx
 
   gERelayManager.ShowTxt(nLine.FLineID, nStr);
   //显示内容
@@ -1989,6 +2029,7 @@ end;
 //Desc: 对nCard执行袋装装车操作
 procedure MakeTruckLadingSan(const nCard,nTunnel: string);
 var nStr: string;
+    nBool: Boolean;
     nIdx: Integer;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
@@ -2030,19 +2071,35 @@ begin
 
     nStr := '车辆[ %s ]下一状态为:[ %s ],无法放灰.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-    
+
     WriteHardHelperLog(nStr);
     Exit;
   end;
 
-  if not IsTruckInQueue(nTrucks[0].FTruck, nTunnel, False, nStr,
+  if gTruckQueueManager.IsSanForceQueue then
+  begin
+    nBool := True;
+    for nIdx:=Low(nTrucks) to High(nTrucks) do
+    begin
+      nBool := nTrucks[nIdx].FNextStatus = sFlag_TruckFH;
+      //未装车,检查排队顺序
+      if not nBool then Break;
+    end;
+  end
+  else
+    nBool := False;
+
+  if not IsTruckInQueue(nTrucks[0].FTruck, nTunnel, nBool, nStr,
          nPTruck, nPLine, sFlag_San) then
-  begin 
+  begin
     WriteNearReaderLog(nStr);
     //loged
 
     nIdx := Length(nTrucks[0].FTruck);
-    nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '请换库装车';
+    if nBool and (Pos('等候', nStr) > 0) then
+      nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '请排队等候'
+    else
+      nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '请换库装车';
     gERelayManager.ShowTxt(nTunnel, nStr);
     Exit;
   end; //检查通道
@@ -2052,7 +2109,7 @@ begin
     nStr := '散装车辆[ %s ]再次刷卡装车.';
     nStr := Format(nStr, [nTrucks[0].FTruck]);
     WriteNearReaderLog(nStr);
-    
+
     TruckStartFH(nPTruck, nPLine);
     Exit;
   end;

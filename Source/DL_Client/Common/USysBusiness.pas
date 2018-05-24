@@ -177,6 +177,11 @@ procedure GetPoundAutoWuCha(var nWCValZ, nWCValF: Double;
   const nVal: Double; const nStation: string = '');
 //获取自动过磅误差
 
+function GetTruckNO(const nTruck: WideString; const nLong: Integer=12): string;
+function GetValue(const nValue: Double): string;
+//显示格式化
+function AdjustBillStatus(const nLID, nStatus, nNextStatus: string): Boolean;
+//校正状态(用以散装车辆多次过磅且毛重超出上限)
 function SaveOrderBase(const nOrderData: string): string;
 //保存采购申请单
 function DeleteOrderBase(const nOrder: string): Boolean;
@@ -3074,6 +3079,50 @@ begin
     ShowMsg(nLID + '未查询到网上提货单号', sHint);
     WriteLog(nLID + '未查询到网上提货单号');
   end;
+end;
+
+//------------------------------------------------------------------------------
+//Date: 2017-10-17
+//Parm: 车牌号;保留长度
+//Desc: 将nTruck整合为长度为nLen的字符串
+function GetTruckNO(const nTruck: WideString; const nLong: Integer): string;
+var nStr: string;
+    nIdx,nLen,nPos: Integer;
+begin
+  nPos := 0;
+  nLen := 0;
+
+  for nIdx:=Length(nTruck) downto 1 do
+  begin
+    nStr := nTruck[nIdx];
+    nLen := nLen + Length(nStr);
+
+    if nLen >= nLong then Break;
+    nPos := nIdx;
+  end;
+
+  Result := Copy(nTruck, nPos, Length(nTruck));
+  nIdx := nLong - Length(Result);
+  Result := Result + StringOfChar(' ', nIdx);
+end;
+
+function GetValue(const nValue: Double): string;
+var nStr: string;
+begin
+  nStr := Format('      %.2f', [nValue]);
+  Result := Copy(nStr, Length(nStr) - 6 + 1, 6);
+end;
+
+function AdjustBillStatus(const nLID, nStatus, nNextStatus: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+
+  nStr := 'Update %s Set L_Status=''%s'',L_NextStatus=''%s'' Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, nStatus, nNextStatus, nLID]);
+  FDM.ExecuteSQL(nStr);
+
+  Result := True;
 end;
 
 end.

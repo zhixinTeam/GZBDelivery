@@ -91,6 +91,12 @@
   //兴山喷码规则
   {$DEFINE MITTruckProber}
   //服务器操作车检
+  {$DEFINE BFLED}
+  //磅房小屏
+  {$DEFINE XSLedShow}
+  //兴山过磅完毕显示物料名称
+  {$DEFINE VoiceToDoor}
+  //过磅失败向门岗播报语音
 {$ENDIF}
 
 //葛洲坝松滋
@@ -159,6 +165,8 @@
   //采购电子标签自动发卡
   {$DEFINE ASyncWriteData}
   //特定业务使用异步数据写入
+  {$DEFINE PlayVoiceWithOutWeight}
+  //磅房袋装过磅不播报重量
 {$ENDIF}
 
 //葛洲坝钟祥

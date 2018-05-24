@@ -58,7 +58,7 @@ implementation
 
 uses
   ULibFun, UMgrChannel, UChannelChooser, UDataModule, USysDB, USysMAC, SysUtils,
-  USysLoger, USysConst,UMemDataPool, UFormBase;
+  USysLoger, USysConst,UMemDataPool, UFormBase, UMgrLEDDisp;
 
 //Desc: 初始化系统对象
 procedure InitSystemObject;
@@ -237,6 +237,14 @@ begin
            
   CreateBaseFormItem(cFI_FormTodo);
   //待处理事项
+
+  {$IFDEF BFLED}
+  if FileExists(gPath + cDisp_Config) then
+  begin
+    gDisplayManager.LoadConfig(gPath + cDisp_Config);
+    gDisplayManager.StartDisplay;
+  end;
+  {$ENDIF}
 end;
 
 //Desc: 释放系统对象

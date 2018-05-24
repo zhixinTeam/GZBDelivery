@@ -68,6 +68,8 @@ type
     FDelayQueue : Boolean;     //延时排队(厂内)
     FPoundQueue : Boolean;     //延时排队(厂内依据过皮时间)
     FNetVoice   : Boolean;     //网络播放语音
+    FDaiForceQueue : Boolean;  //袋装强制排队
+    FSanForceQueue : Boolean;  //散装强制排队
   end;
 
   TStockMatchItem = record
@@ -170,6 +172,8 @@ type
     function IsSanQueueClosed: Boolean;
     function IsDelayQueue: Boolean;
     function IsNetPlayVoice: Boolean;
+    function IsDaiForceQueue: Boolean;
+    function IsSanForceQueue: Boolean;
     //队列参数
     procedure RefreshParam;
     procedure RefreshTrucks(const nLoadLine: Boolean);
@@ -365,6 +369,32 @@ begin
   try
     FSyncLock.Enter;
     Result := FDBReader.FParam.FNetVoice;
+  finally
+    FSyncLock.Leave;
+  end;
+end;
+
+function TTruckQueueManager.IsDaiForceQueue: Boolean;
+begin
+  Result := False;
+
+  if Assigned(FDBReader) then
+  try
+    FSyncLock.Enter;
+    Result := FDBReader.FParam.FDaiForceQueue;
+  finally
+    FSyncLock.Leave;
+  end;
+end;
+
+function TTruckQueueManager.IsSanForceQueue: Boolean;
+begin
+  Result := False;
+
+  if Assigned(FDBReader) then
+  try
+    FSyncLock.Enter;
+    Result := FDBReader.FParam.FSanForceQueue;
   finally
     FSyncLock.Leave;
   end;
@@ -653,6 +683,9 @@ begin
     FDelayQueue := False;
 
     FNetVoice   := False;
+
+    FDaiForceQueue := False;
+    FSanForceQueue := False;
   end;
 
   FWaiter := TWaitObject.Create;
@@ -879,6 +912,12 @@ begin
       if CompareText(Fields[1].AsString, sFlag_NetPlayVoice) = 0 then
         FParam.FNetVoice := Fields[0].AsString = sFlag_Yes;
       //NetVoice
+
+      if CompareText(Fields[1].AsString, sFlag_DaiForceQueue) = 0 then
+        FParam.FDaiForceQueue := Fields[0].AsString = sFlag_Yes;
+
+      if CompareText(Fields[1].AsString, sFlag_SanForceQueue) = 0 then
+        FParam.FSanForceQueue := Fields[0].AsString = sFlag_Yes;
       Next;
     end;
   end;

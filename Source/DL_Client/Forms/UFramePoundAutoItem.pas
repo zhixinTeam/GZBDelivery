@@ -67,6 +67,8 @@ type
     { Private declarations }
     FCardUsed: string;
     //卡片类型
+    FLEDContent: string;
+    //显示屏内容
     FIsWeighting, FIsSaving: Boolean;
     //称重标识,保存标识
     FPoundTunnel: PPTTunnelItem;
@@ -119,6 +121,10 @@ type
     //记录日志
     procedure PlayVoice(const nStrtext: string);
     //播放语音
+    procedure LEDDisplay(const nContent: string);
+    //LED显示
+    procedure PlayVoiceEx(const nStrtext: string);
+    //向门岗播放语音
   public
     { Public declarations }
     class function FrameID: integer; override;
@@ -136,7 +142,7 @@ implementation
 uses
   ULibFun, UFormBase, {$IFDEF HR1847}UKRTruckProber,{$ELSE}UMgrTruckProbe,{$ENDIF}
   UMgrRemoteVoice, UMgrVoiceNet, UDataModule, USysBusiness,UBusinessPacker,
-  USysLoger, USysConst, USysDB, UFormInputbox;
+  USysLoger, USysConst, USysDB, UFormInputbox, UMgrLEDDisp;
 
 const
   cFlag_ON    = 10;
@@ -682,6 +688,9 @@ begin
   begin
     PlayVoice('读取订单失败,请联系管理员处理');
     WriteSysLog(nStr);
+
+    nStr := GetTruckNO(FUIData.FTruck) + '读取订单失败';
+    LEDDisplay(nStr);
     Exit;
   end;
 
@@ -711,6 +720,9 @@ begin
     nStr := '散装订单超发%.2f吨,请等待开票员处理';
     nStr := Format(nStr, [m]);
     PlayVoice(nStr);
+
+    nStr := '散装订单超发,请等待处理';
+    LEDDisplay(nStr);
     {$ENDIF}
 
     nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
@@ -758,6 +770,10 @@ begin
       begin
         PlayVoice('读取合单订单失败,请联系管理员处理');
         WriteSysLog(nStr);
+
+        nStr := GetTruckNO(FUIData.FTruck) + '读取合单失败';
+        LEDDisplay(nStr);
+
         Exit;
       end;
 
@@ -783,6 +799,10 @@ begin
           nStr := '散装订单超发%.2f吨,请联系开票员处理';
           nStr := Format(nStr, [m]);
           PlayVoice(nStr);
+
+          nStr := GetTruckNO(FUIData.FTruck) + '超发%.2f吨';
+          nStr := Format(nStr, [m]);
+          LEDDisplay(nStr);
           Exit;
         end;
       end else
@@ -806,6 +826,9 @@ begin
         begin
           PlayVoice('读取合单订单失败,请联系管理员处理');
           WriteSysLog(nStr);
+
+          nStr := GetTruckNO(FUIData.FTruck) + '读取合单失败';
+          LEDDisplay(nStr);
           Exit;
         end;
 
@@ -831,6 +854,10 @@ begin
             nStr := '散装订单超发%.2f吨,请联系开票员处理';
             nStr := Format(nStr, [m]);
             PlayVoice(nStr);
+
+            nStr := GetTruckNO(FUIData.FTruck) + '超发%.2f吨';
+            nStr := Format(nStr, [m]);
+            LEDDisplay(nStr);
             Exit;
           end;
         end else
@@ -855,10 +882,14 @@ begin
         nStr := '散装订单超发%.2f吨,请联系开票员处理';
         nStr := Format(nStr, [m]);
         PlayVoice(nStr);
+
+        nStr := GetTruckNO(FUIData.FTruck) + '超发%.2f吨';
+        nStr := Format(nStr, [m]);
+        LEDDisplay(nStr);
         Exit;
       end;
     end;
-    
+
     FUIData.FMemo := nStr;
     FUIData.FKZValue := m;
     FUIData.FHdOrderId := nHdID;
@@ -877,7 +908,7 @@ end;
 //Parm: 车牌号
 //Desc: 验证nTruck是否超上限
 function TfFrameAutoPoundItem.CheckTruckMValue(const nTruck: string): Boolean;
-var nStr: string;
+var nStr, nStatus: string;
     nVal: Double;
 begin
   Result := True;
@@ -907,15 +938,31 @@ begin
       sFlag_Solution_YN, sFlag_DepDaTing, True);
     WriteSysLog(nStr);
 
+    {$IFDEF AllowMultiM}//散装允许多次过磅时当车辆超毛重上限后需校正车辆状态
+    if FType = sFlag_Dai then
+      nStatus := sFlag_TruckZT
+    else
+      nStatus := sFlag_TruckFH;
+
+    AdjustBillStatus(FID, nStatus, sFlag_TruckBFM);
+
+    nStr := '提货单[%s]车辆[%s]状态校正为:当前状态[%s],下一状态[%s]';
+    nStr := Format(nStr, [FID, FTruck, nStatus, sFlag_TruckBFM]);
+    WriteSysLog(nStr);
+    {$ENDIF}
+
     nStr := '[n1]%s毛重%.2f吨,请返回卸料.';
     nStr := Format(nStr, [FTruck, FMData.FValue]);
     PlayVoice(nStr);
+
+    nStr := GetTruckNO(FTruck) + '请返回卸料';
+    LEDDisplay(nStr);
   end;
 end;
 
 //Desc: 保存销售
 function TfFrameAutoPoundItem.SavePoundSale: Boolean;
-var nHint: string;
+var nHint, nStr: string;
     nVal,nNet, nWarn: Double;
 begin
   Result := False;
@@ -932,6 +979,7 @@ begin
 
         WriteSysLog(nHint);
         PlayVoice(nHint);
+        LEDDisplay(nHint);
         Exit;
       end;
     end;
@@ -969,9 +1017,13 @@ begin
         nHint := '[n1]%s皮重超出预警,请等待管理员处理';
         nHint := Format(nHint, [FTruck]);
         PlayVoice(nHint);
+
+        nStr := GetTruckNO(FTruck) + '皮重超出预警';
+        LEDDisplay(nStr);
+
         Exit;
       end; //判断皮重是否超差
-      {$ENDIF} 
+      {$ENDIF}
     end;
   end;
 
@@ -988,6 +1040,10 @@ begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
     begin
       PlayVoice('皮重应小于毛重,请联系管理员处理');
+
+      nStr := GetTruckNO(FUIData.FTruck) + '皮重大于毛重';
+      LEDDisplay(nStr);
+
       Exit;
     end;
 
@@ -1043,7 +1099,16 @@ begin
           nHint := '车辆[n1]%s净重[n2]%.2f吨,开票量[n2]%.2f吨,'+
                    '误差量[n2]%.2f公斤,请去包装点包';
           nHint := Format(nHint, [FTruck,nNet,FInnerData.FValue,nVal]);
+
+          {$IFDEF PlayVoiceWithOutWeight}
+          nHint := '车辆[n1]%s实际装车量误差较大,请去包装点包';
+          nHint := Format(nHint, [FTruck]);
+          {$ENDIF}
           PlayVoice(nHint);
+
+          nStr := GetTruckNO(FTruck) + '请去包装点包';
+          LEDDisplay(nStr);
+
           Exit;
         end;
         {$ENDIF}
@@ -1089,7 +1154,12 @@ begin
   end;
 
   if not Result then
+  begin
     PlayVoice('过磅保存失败，请联系管理员处理');
+
+    nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
+    LEDDisplay(nStr);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1106,6 +1176,9 @@ begin
     if FUIData.FPData.FValue > FUIData.FMData.FValue then
     begin
       WriteLog('皮重应小于毛重');
+
+      nStr := GetTruckNO(FUIData.FTruck) + '皮重大于毛重';
+      LEDDisplay(nStr);
       Exit;
     end;
 
@@ -1127,6 +1200,9 @@ begin
         nStr := '车辆[ %s ]本次称重无效,请下磅.';
         nStr := Format(nStr, [FUIData.FTruck]);
         PlayVoice(nStr);
+
+        nStr := GetTruckNO(FUIData.FTruck) + '净重小于下限';
+        LEDDisplay(nStr);
         Exit;
       end;
     end;
@@ -1155,7 +1231,12 @@ begin
   //保存称重
 
   if not Result then
+  begin
     PlayVoice('过磅保存失败，请联系管理员处理');
+
+    nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
+    LEDDisplay(nStr);
+  end;
 end;
 
 //Desc: 读取表头数据
@@ -1180,6 +1261,7 @@ end;
 procedure TfFrameAutoPoundItem.OnPoundData(const nValue: Double);
 var nRet: Boolean;
     nInt: Int64;
+    nStr: string;
 begin
   FLastBT := GetTickCount;
   EditValue.Text := Format('%.2f', [nValue]);
@@ -1273,6 +1355,8 @@ begin
   {$ENDIF}
   begin
     PlayVoice('车辆未停到位,请移动车辆.');
+    LEDDisplay(nStr);
+
     InitSamples;
     Exit;
   end;
@@ -1282,8 +1366,28 @@ begin
        nRet := SavePoundSale
   else nRet := SavePoundData;
 
+  {$IFDEF VoiceToDoor}
+  if not nRet then
+  begin
+    nStr := '[n1]%s过磅失败,请处理';
+    nStr := Format(nStr, [FUIData.FTruck]);
+    PlayVoiceEx(nStr);
+  end;
+  {$ENDIF}
+
   if nRet then
-       TimerDelay.Enabled := True
+  begin
+    {$IFDEF XSLedShow}
+    nStr := FUIData.FTruck + '-' + FUIData.FStockName;
+    if Length(nStr) > 24 then
+      nStr := Copy(nStr, 1, 24);
+    {$ELSE}
+    nStr := GetTruckNO(FUIData.FTruck) + '重量:' + GetValue(nValue);
+    {$ENDIF}
+    LEDDisplay(nStr);
+
+    TimerDelay.Enabled := True
+  end
   else Timer_SaveFail.Enabled := True;
 
   if FBarrierGate then
@@ -1293,7 +1397,7 @@ begin
     begin
       OpenDoorByReader(FLastReader, sFlag_Yes);
       Exit;
-    end;  
+    end;
     {$ENDIF}
     OpenDoorByReader(FLastReader, sFlag_No);
     //打开副道闸
@@ -1423,6 +1527,35 @@ begin
       //loged
     end;
   end;
+end;
+
+procedure TfFrameAutoPoundItem.LEDDisplay(const nContent: string);
+begin
+  {$IFDEF BFLED}
+  WriteSysLog(Format('LEDDisplay:%s.%s', [FPoundTunnel.FID, nContent]));
+  if Assigned(FPoundTunnel.FOptions) And
+     (UpperCase(FPoundTunnel.FOptions.Values['LEDEnable'])='Y') then
+  begin
+    if FLEDContent = nContent then Exit;
+    FLEDContent := nContent;
+    gDisplayManager.Display(FPoundTunnel.FID, nContent);
+  end;
+  {$ENDIF}
+end;
+
+procedure TfFrameAutoPoundItem.PlayVoiceEx(const nStrtext: string);
+begin
+  {$IFNDEF DEBUG}
+  if (Assigned(FPoundTunnel.FOptions)) and
+     (CompareText('NET', FPoundTunnel.FOptions.Values['Voice']) = 0) then
+  begin
+    WriteSysLog(Format('NetVoicePlayEx:%s.%s', [FPoundTunnel.FOptions.Values['VoiceEx']
+                                                , nStrtext]));
+    gNetVoiceHelper.PlayVoice(nStrtext,
+    FPoundTunnel.FOptions.Values['VoiceEx'], 'door')
+  end
+  else gVoiceHelper.PlayVoice(nStrtext);
+  {$ENDIF}
 end;
 
 end.
