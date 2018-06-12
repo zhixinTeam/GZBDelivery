@@ -1,5 +1,6 @@
 unit UFormCusBatMap;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -20,6 +21,8 @@ type
     dxLayout1Item4: TdxLayoutItem;
     EditStock: TcxComboBox;
     dxLayout1Item6: TdxLayoutItem;
+    EditCk: TcxComboBox;
+    dxLayout1Item7: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -112,6 +115,10 @@ begin
     SetCtrlData(EditIsVip, FieldByName('M_IsVip').AsString);
     SetCtrlData(EditAddrID, FieldByName('M_AddrID').AsString);
     SetCtrlData(EditLineType, FieldByName('M_LineGroup').AsString);
+    {$IFDEF SpecifyCk}
+    SetCtrlData(EditStock, FieldByName('M_StockName').AsString);
+    SetCtrlData(EditCk, FieldByName('M_Ck').AsString);
+    {$ENDIF}
   end;
 end;
 
@@ -130,6 +137,13 @@ begin
   //载入发货品种
   LoadZTLineGroup(EditLineType.Properties.Items);
   //载入栈台类型列表
+  {$IFDEF SpecifyCk}
+  dxLayout1Item7.Visible := True;
+  LoadCk(EditCk.Properties.Items);
+  //载入仓库编号列表
+  {$ELSE}
+  dxLayout1Item7.Visible := False;
+  {$ENDIF}
 end;
 
 procedure TfFormCusBatMap.FormClose(Sender: TObject;
@@ -141,10 +155,14 @@ begin
 end;
 
 procedure TfFormCusBatMap.BtnOKClick(Sender: TObject);
-var nSQL, nW: string;
+var nSQL, nW, nCk: string;
 begin
   inherited;
   if FRecord <> '' then nW := SF('R_ID', FRecord);
+
+  {$IFDEF SpecifyCk}
+  nCk := Trim(EditCk.Text);
+  {$ENDIF}
 
   nSQL := MakeSQLByStr([
           SF('M_CusPY', GetPinYinOfStr(EditCusID.Text)),
@@ -158,6 +176,11 @@ begin
           SF('M_AddrName', EditAddrID.Text),
 
           SF('M_LineGroup', GetCtrlData(EditLineType)),
+
+          {$IFDEF SpecifyCk}
+          SF('M_Ck', nCk),
+          {$ENDIF}
+
           SF('M_IsVip', GetCtrlData(EditIsVip))
           //SF('M_Line', GetCtrlData(EditLine)),
           //SF('M_LineName', EditLine.Text)

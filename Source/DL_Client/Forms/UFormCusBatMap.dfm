@@ -2,7 +2,7 @@ inherited fFormCusBatMap: TfFormCusBatMap
   Left = 496
   Top = 222
   Caption = 'fFormCusBatMap'
-  ClientHeight = 207
+  ClientHeight = 242
   ClientWidth = 311
   OnClose = FormClose
   OnCreate = FormCreate
@@ -10,16 +10,16 @@ inherited fFormCusBatMap: TfFormCusBatMap
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
     Width = 311
-    Height = 207
+    Height = 242
     inherited BtnOK: TButton
       Left = 165
-      Top = 174
-      TabOrder = 5
+      Top = 209
+      TabOrder = 6
     end
     inherited BtnExit: TButton
       Left = 235
-      Top = 174
-      TabOrder = 6
+      Top = 209
+      TabOrder = 7
     end
     object EditAddrID: TcxComboBox [2]
       Left = 81
@@ -60,7 +60,16 @@ inherited fFormCusBatMap: TfFormCusBatMap
     object EditStock: TcxComboBox [6]
       Left = 81
       Top = 61
+      ParentFont = False
       TabOrder = 1
+      Width = 121
+    end
+    object EditCk: TcxComboBox [7]
+      Left = 81
+      Top = 161
+      ParentFont = False
+      Properties.DropDownListStyle = lsEditFixedList
+      TabOrder = 5
       Width = 121
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
@@ -88,6 +97,11 @@ inherited fFormCusBatMap: TfFormCusBatMap
         object dxLayout1Item9: TdxLayoutItem
           Caption = #36890#36947#20998#32452':'
           Control = EditLineType
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item7: TdxLayoutItem
+          Caption = #20179#24211#32534#21495':'
+          Control = EditCk
           ControlOptions.ShowBorder = False
         end
       end

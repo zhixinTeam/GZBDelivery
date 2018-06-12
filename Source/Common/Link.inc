@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBJM}
+{$DEFINE GZBXS}
 //特定系统
 
 //葛洲坝兴山
@@ -97,6 +97,8 @@
   //兴山过磅完毕显示物料名称
   {$DEFINE VoiceToDoor}
   //过磅失败向门岗播报语音
+  {$DEFINE SpecifyCk}
+  //指定仓库
 {$ENDIF}
 
 //葛洲坝松滋

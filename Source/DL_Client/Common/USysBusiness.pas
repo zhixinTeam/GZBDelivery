@@ -330,6 +330,8 @@ function AddManualEventRecordOver(nEID, nKey, nEvent:string;
 
 function ReadWxHdOrderId(const nLID:string):string;
 //读取微信合单号
+function LoadCk(const nList: TStrings): Boolean;
+//读取库位编号到nList中
 
 implementation
 
@@ -2928,8 +2930,8 @@ begin
           SF('E_Result', sFlag_Yes),
           SF('E_From', nFrom),
           SF('E_Memo', nMemo),
-          
-          SF('E_Event', nEvent), 
+
+          SF('E_Event', nEvent),
           SF('E_Solution', nSolution),
           SF('E_Departmen', nDepartmen),
           SF('E_Date', sField_SQLServer_Now, sfVal)
@@ -2951,7 +2953,7 @@ begin
 
   AdjustStringsItem(nList, True);
   FDM.FillStringsData(nList, nStr, -1, '.', DSA(['D_Value']));
-  
+
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;
 end;
@@ -2970,7 +2972,7 @@ begin
 
   AdjustStringsItem(nList, True);
   FDM.FillStringsData(nList, nStr, -1, '.', DSA(['Z_ID']));
-  
+
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;
 end;
@@ -3008,7 +3010,7 @@ begin
     begin     //按固定值计算误差
       nWCValZ := FieldByName('P_DaiWuChaZ').AsFloat;
       nWCValF := FieldByName('P_DaiWuChaF').AsFloat;
-    end;    
+    end;
   end;
 end;
 
@@ -3123,6 +3125,23 @@ begin
   FDM.ExecuteSQL(nStr);
 
   Result := True;
+end;
+
+//Desc: 读取库位编号到nList中
+function LoadCk(const nList: TStrings): Boolean;
+var nStr: string;
+begin
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_HYPackers]);
+
+  with FDM.QuerySQL(nStr) do
+  if RecordCount > 0 then
+  begin
+    nStr := ','+Fields[0].AsString;
+    SplitStr(nStr, nList, 0, ',', False);
+  end;
+
+  Result := nList.Count > 0;
 end;
 
 end.
