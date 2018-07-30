@@ -44,6 +44,18 @@ uses
   UFrameWeiXinAccount, UFormWeiXinAccount, UFrameWeiXinSendlog,
   UFormWeiXinSendlog,
   {$ENDIF}
+  {$IFDEF GlLade}
+  UFrameSalesMan, UFormSalesMan,
+  UFrameSaleContract, UFormSaleContract, UFrameZhiKa, UFormZhiKa,
+  UFormGetContract, UFormZhiKaAdjust, UFormZhiKaFixMoney, UFrameZhiKaVerify,
+  UFormZhiKaVerify, UFrameShouJu, UFormShouJu, UFramePayment, UFormPayment,
+  UFrameCustomerCredit, UFormCustomerCredit, UFrameCusAccount,
+  UFrameCusInOutMoney, UFrameInvoiceWeek, UFormInvoiceWeek, UFormInvoiceGetWeek,
+  UFrameInvoice, UFormInvoice, UFormInvoiceAdjust,UFrameInvoiceK, UFormInvoiceK,
+  UFrameInvoiceDtl, UFrameInvoiceZZ, UFormInvoiceZZAll, UFormInvoiceZZCus,
+  UFormGetZhiKa, UFrameZhiKaDetail, UFormZhiKaFreeze,
+  UFormZhiKaPrice, UFormBillSingle,
+  {$ENDIF}
   //----------------------------------------------------------------------------
   UFramePurchaseContract,UFormPurchaseContract,UFormGetPurchaseContract,
   UFormPurchaseAssayRes,

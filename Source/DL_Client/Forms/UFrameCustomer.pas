@@ -57,6 +57,7 @@ type
     { Private declarations }
     FQueryXuni: string;
   protected
+    procedure OnCreateFrame; override;
     function InitFormDataSQL(const nWhere: string): string; override;
     {*查询SQL*}
 
@@ -77,6 +78,14 @@ uses
 class function TfFrameCustomer.FrameID: integer;
 begin
   Result := cFI_FrameCustomer;
+end;
+
+procedure TfFrameCustomer.OnCreateFrame;
+begin
+  inherited;
+  {$IFDEF GlLade}
+  BtnAdd.Visible := True;
+  {$ENDIF}
 end;
 
 //Desc: 数据查询SQL

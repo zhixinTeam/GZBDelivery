@@ -16,6 +16,7 @@ uses
   UWorkerClientWebChat,
   UWorkerBusinessCommand, UWorkerBusinessBill,
   UWorkerBusinessDuanDao, UWorkerBusinessOrders,
+  {$IFDEF GLlade}UWorkerBusinessBillSingle,{$ENDIF}
   {$IFDEF MicroMsg}UMgrRemoteWXMsg, UWXSyncer,{$ENDIF}
   UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection,
   UBaseObject;

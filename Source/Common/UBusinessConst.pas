@@ -46,7 +46,9 @@ const
   cBC_LogoffCard              = $0025;   //注销磁卡
 
   cBC_ReadYTCard              = $0026;   //读取云天卡片信息
-  cBC_VerifyYTCard            = $0027;   //校验云天卡片有效性    
+  cBC_VerifyYTCard            = $0027;   //校验云天卡片有效性
+
+  cBC_SaveBillLSCard          = $0028;   //绑定厂内零售磁卡(单厂)
 
   cBC_SaveOrder               = $0040;
   cBC_DeleteOrder             = $0041;
@@ -61,6 +63,7 @@ const
 
   cBC_GetPostBills            = $0030;   //获取岗位交货单
   cBC_SavePostBills           = $0031;   //保存岗位交货单
+  cBC_MakeSanPreHK            = $0032;   //执行散装预合卡(单厂)
 
   cBC_ChangeDispatchMode      = $0053;   //切换调度模式
   cBC_GetPoundCard            = $0054;   //获取磅站卡号
@@ -129,6 +132,8 @@ const
   cBC_SyncProvidePound             = $0192;   //同步供应磅单到远程
   cBC_GetBatcodeAfterLine          = $0193;   //现场刷卡后获取批次号
   cBC_GetLineGroupByCustom         = $0194;   //获取客户指定分组编号
+
+  cBC_GetStockBatcode            = $1100;   //获取批次编号(单厂)
 
   cSendWeChatMsgType_AddBill       = 1;       //开提货单
   cSendWeChatMsgType_OutFactory    = 2;       //车辆出厂
@@ -269,6 +274,7 @@ resourcestring
   sBus_BusinessDuanDao        = 'Bus_BusinessDuanDao';  //短倒业务相关
   sBus_BusinessPurchaseOrder  = 'Bus_BusinessPurchaseOrder'; //采购单相关
   sBus_BusinessWebchat        = 'Bus_BusinessWebchat';  //Web平台服务
+  sBus_BusinessSaleBillSingle = 'Bus_BusinessSaleBillSingle'; //交货单相关(单厂)
 
   {*client function name*}
   sCLI_ServiceStatus          = 'CLI_ServiceStatus';    //服务状态
@@ -280,6 +286,7 @@ resourcestring
   sCLI_HardwareCommand        = 'CLI_HardwareCommand';  //硬件指令
   sCLI_BusinessDuanDao        = 'CLI_BusinessDuanDao';  //短倒业务相关
   sCLI_BusinessPurchaseOrder  = 'CLI_BusinessPurchaseOrder'; //采购单相关
+  sCLI_BusinessSaleBillSingle = 'CLI_BusinessSaleBillSingle'; //交货单业务(单厂)
 
 implementation
 

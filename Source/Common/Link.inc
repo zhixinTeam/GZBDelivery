@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBXS}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝兴山
@@ -207,5 +207,7 @@
   //验证车辆是否在停车场
   {.$DEFINE PurELabelAutoCard}
   //采购电子标签自动发卡
+  {$DEFINE GlLade}
+  //骨料发运
 {$ENDIF}
 

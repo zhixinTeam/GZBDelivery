@@ -190,6 +190,9 @@ const
   cFI_FormPoundDaiWC    = $1133;                     //袋装误差范围设置
   cFI_FormCusBatMap     = $1134;                     //批次号客户绑定
 
+  cFI_FormShouJu        = $1151;                     //开收据
+  cFI_FormBillSingle    = $1201;                     //开提货单(单厂版)
+
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
   cCmd_ViewSysLog       = $0003;                     //系统日志
@@ -410,6 +413,9 @@ begin
 
   AddMenuModuleItem('MAIN_W01', cFI_FrameWXAccount);
   AddMenuModuleItem('MAIN_W02', cFI_FrameWXSendLog);
+
+  AddMenuModuleItem('MAIN_N01', cFI_FormBillSingle, mtForm);
+  AddMenuModuleItem('MAIN_N02', cFI_FormBillSingle, mtForm);
 end;
 
 //Desc: 清理模块列表

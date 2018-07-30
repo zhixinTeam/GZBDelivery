@@ -559,6 +559,8 @@ var nBills: TLadingBillItems;
     nIdx:Integer;
     nNetWeight:Double;
     nTransName:string;
+    nDBConn: PDBWorker;
+    nWebOrderId, nSQL:string;
 begin
   {$IFNDEF EnableWebMall}
   Exit;
@@ -578,10 +580,38 @@ begin
     if not GetLadingOrders(nLid, sFlag_BillDone, nBills) then
     begin
       Exit;
-    end;  
+    end;
   end
   else begin
     Exit;
+  end;
+
+  nDBConn := nil;
+  nWebOrderId := '';
+  with gParamManager.ActiveParam^ do
+  begin
+    try
+      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+      if Assigned(nDBConn) then
+      begin
+        if not nDBConn.FConn.Connected then
+        nDBConn.FConn.Connected := True;
+
+        //查询网上商城订单
+        nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+        nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
+
+        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+        begin
+          if recordcount>0 then
+          begin
+            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+          end;
+        end;
+      end;
+    finally
+      gDBConnManager.ReleaseConnection(nDBConn);
+    end;
   end;
 
   for nIdx := Low(nBills) to High(nBills) do
@@ -615,12 +645,14 @@ begin
         +'	      <Searial>%s</Searial>'
         +'	      <OutFact></OutFact>'
         +'	      <OutMan></OutMan>'
+        +'	      <OrderNo>%s</OrderNo>'
         +'	  </Item>	'
         +'</Items>'
         +'   <remark/>'
         +'</DATA>';
     nXmlStr := Format(nXmlStr,[gSysParam.FFactory, FCusID, MsgType,//cSendWeChatMsgType_DelBill,
-               FID, FCard, FTruck, FStockNo, FStockName, FCusID, FCusName, nTransName, nNetWeight, Fworkaddr]);
+               FID, FCard, FTruck, FStockNo, FStockName, FCusID,
+               FCusName, nTransName, nNetWeight, Fworkaddr, nWebOrderId]);
     nXmlStr := PackerEncodeStr(nXmlStr);
     nData := Do_send_event_msg(nXmlStr);
 
@@ -650,7 +682,7 @@ var
   nWebOrderId:string;
   nIdx:Integer;
   FNetWeight:Double;
-  
+
   nList: TStrings;
   nOut: TWorkerBusinessCommand;
 begin
@@ -730,7 +762,7 @@ begin
   end;
 
   if nWebOrderId='' then Exit;
-  
+
   nXmlStr := '<?xml version="1.0" encoding="UTF-8"?>'
             +'<DATA>'
             +'<head><ordernumber>%s</ordernumber>'

@@ -47,6 +47,20 @@ type
 
   TZTLineItems = array of TZTLineItem;
   TZTTruckItems = array of TZTTruckItem;
+
+  PSalePlanItem = ^TSalePlanItem;
+  TSalePlanItem = record
+    FOrderNo: string;        //订单号
+    FInterID: string;        //主表编号
+    FEntryID: string;        //附表编号
+    FStockID: string;        //物料编号
+    FStockName: string;      //物料名称
+
+    FTruck: string;          //车牌号码
+    FValue: Double;          //开单量
+    FSelected: Boolean;      //状态
+  end;
+  TSalePlanItems = array of TSalePlanItem;
   
 //------------------------------------------------------------------------------
 function AdjustHintToRead(const nHint: string): string;
@@ -332,6 +346,10 @@ function ReadWxHdOrderId(const nLID:string):string;
 //读取微信合单号
 function LoadCk(const nList: TStrings): Boolean;
 //读取库位编号到nList中
+function VerifyFQSumValue: Boolean;
+//是否校验封签号
+function GetFQValueByStockNo(const nStock: string): Double;
+//获取封签号已发量
 
 implementation
 
@@ -3142,6 +3160,34 @@ begin
   end;
 
   Result := nList.Count > 0;
+end;
+
+function VerifyFQSumValue: Boolean;
+var nStr: string;
+begin
+  Result := False;
+  //默认不判断
+
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' and D_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_VerifyFQValue]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+    Result := Fields[0].AsString = sFlag_Yes;
+end;
+
+function GetFQValueByStockNo(const nStock: string): Double;
+var nSQL: string;
+begin
+  Result := 0;
+  if nStock = '' then Exit;
+
+  nSQL := 'Select Sum(L_Value) From %s Where L_Seal=''%s'' ' +
+          'and L_Date > GetDate() - 30';   //一个月内的总计
+  nSQL := Format(nSQL, [sTable_Bill, nStock]);
+  with FDM.QueryTemp(nSQL) do
+  if RecordCount > 0 then
+    Result := Fields[0].AsFloat;
 end;
 
 end.

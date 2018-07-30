@@ -265,6 +265,8 @@ ResourceString
   sFlag_Transfer      = 'Bus_Transfer';              //短倒单号
   sFlag_PurchaseContract  = 'Bus_PurchaseContract';  //采购合同单号
 
+  sFlag_VerifyFQValue = 'VerifyFQValue';             //禁止封签号超发
+
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组
   sTable_User         = 'Sys_User';                  //用户表
@@ -311,6 +313,7 @@ ResourceString
   sTable_Card         = 'S_Card';                    //销售磁卡
   sTable_Bill         = 'S_Bill';                    //提货单
   sTable_BillBak      = 'S_BillBak';                 //已删交货单
+  sTable_BillHK       = 'S_BillPreHK';               //开单预合卡
   sTable_StockMatch   = 'S_StockMatch';              //品种映射
 
   sTable_Order        = 'P_Order';                   //采购订单
@@ -340,6 +343,7 @@ ResourceString
   sTable_StockParamExt= 'S_StockParamExt';           //参数扩展
   sTable_StockRecord  = 'S_StockRecord';             //检验记录
   sTable_StockHuaYan  = 'S_StockHuaYan';             //开化验单
+  sTable_StockBatcode = 'S_Batcode';                 //批次号
 
   sTable_YT_CardInfo  = 'S_YTCardInfo';              //云天销售卡片
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
@@ -803,6 +807,19 @@ const
    *.L_DelMan: 交货单删除人员
    *.L_DelDate: 交货单删除时间
    *.L_Memo: 动作备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewBillHK = 'Create Table $Table(R_ID $Inc, H_Bill varChar(20),' +
+       'H_ZhiKa varChar(15), H_HKBill varChar(20),' +
+       'H_Man varChar(32), H_Date DateTime)';
+  {-----------------------------------------------------------------------------
+   交货单预合卡: BillPreHK
+   *.R_ID: 编号
+   *.H_Bill: 提单号
+   *.H_ZhiKa: 纸卡号
+   *.H_HKBill: 合卡生成的单号
+   *.H_Man:操作人
+   *.H_Date:创建时间
   -----------------------------------------------------------------------------}
 
   sSQL_NewOrderBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +
@@ -1465,6 +1482,33 @@ const
    *.H_Reporter:报告人
   -----------------------------------------------------------------------------}
 
+  sSQL_NewStockBatcode = 'Create Table $Table(R_ID $Inc, B_Stock varChar(32),' +
+       'B_Name varChar(80), B_Prefix varChar(5), B_UseYear Char(1),' +
+       'B_Base Integer, B_Incement Integer, B_Length Integer, ' +
+       'B_Value $Float, B_Low $Float, B_High $Float, B_Interval Integer,' +
+       'B_AutoNew Char(1), B_UseDate Char(1), B_FirstDate DateTime,' +
+       'B_LastDate DateTime, B_HasUse $Float Default 0, B_Batcode varChar(32))';
+  {-----------------------------------------------------------------------------
+   批次编码表: Batcode
+   *.R_ID: 编号
+   *.B_Stock: 物料号
+   *.B_Name: 物料名
+   *.B_Prefix: 前缀
+   *.B_UseYear: 前缀后加两位年
+   *.B_Base: 起始编码(基数)
+   *.B_Incement: 编号增量
+   *.B_Length: 编号长度
+   *.B_Value:检测量
+   *.B_Low,B_High:上下限(%)
+   *.B_Interval: 编号周期(天)
+   *.B_AutoNew: 元旦重置(Y/N)
+   *.B_UseDate: 使用日期编码
+   *.B_FirstDate: 首次使用时间
+   *.B_LastDate: 上次基数更新时间
+   *.B_HasUse: 已使用
+   *.B_Batcode: 当前批次号
+  -----------------------------------------------------------------------------}
+
   sSQL_NewYTCard = 'Create Table $Table(R_ID $Inc, C_ID varChar(20),' +
        'C_Card varChar(50), C_Stock varChar(32), C_Freeze $Float, C_HasDone $Float)';
   {-----------------------------------------------------------------------------
@@ -1690,7 +1734,7 @@ const
    *.R_ID: 记录编号
    *.pcId: 合同表记录编号（外键）
    *.quota_name: 指标名称
-   *.quota_unit: 指标单位   
+   *.quota_unit: 指标单位
    *.quota_condition：指标条件,'≤'或'≥'
    *.quota_value：指标值
    *.punish_condition：惩罚条件,'≤'或'≥'
@@ -1876,6 +1920,7 @@ begin
   AddSysTableItem(sTable_Card, sSQL_NewCard);
   AddSysTableItem(sTable_Bill, sSQL_NewBill);
   AddSysTableItem(sTable_BillBak, sSQL_NewBill);
+  AddSysTableItem(sTable_BillHK, sSQL_NewBillHK);
   AddSysTableItem(sTable_Order, sSQL_NewOrder);
   AddSysTableItem(sTable_OrderBak, sSQL_NewOrder);
   AddSysTableItem(sTable_OrderBase, sSQL_NewOrderBase);
@@ -1903,6 +1948,7 @@ begin
   AddSysTableItem(sTable_StockParamExt, sSQL_NewStockRecord);
   AddSysTableItem(sTable_StockRecord, sSQL_NewStockRecord);
   AddSysTableItem(sTable_StockHuaYan, sSQL_NewStockHuaYan);
+  AddSysTableItem(sTable_StockBatcode, sSQL_NewStockBatcode);
 
   AddSysTableItem(sTable_YT_CardInfo, sSQL_NewYTCard);
   AddSysTableItem(sTable_YT_CodeInfo, sSQL_NewYTCode);
