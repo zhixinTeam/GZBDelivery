@@ -11,7 +11,7 @@ uses
   Windows, Classes, Controls, DB, SysUtils, UBusinessWorker, UBusinessPacker,
   {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}
   UBusinessConst, UMgrDBConn, UMgrParam, ZnMD5, ULibFun, UFormCtrl, USysLoger,
-  USysDB, UMITConst, UWorkerBusinessCommand;
+  USysDB, UMITConst, UWorkerBusinessCommand, DateUtils;
 
 type
   TStockMatchItem = record
@@ -1745,7 +1745,7 @@ begin
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
           'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
-          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId '+
+          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate '+
           'From $Bill b ';
   //xxxxx
 
@@ -1794,7 +1794,7 @@ begin
 
       FCard       := FieldByName('L_Card').AsString;
       FIsVIP      := FieldByName('L_IsVIP').AsString;
-      FStatus     := FieldByName('L_Status').AsString; 
+      FStatus     := FieldByName('L_Status').AsString;
       FHKRecord   := FieldByName('L_HKRecord').AsString;
       FNextStatus := FieldByName('L_NextStatus').AsString;
 
@@ -1812,6 +1812,7 @@ begin
 
       FPData.FValue := FieldByName('L_PValue').AsFloat;
       FMData.FValue := FieldByName('L_MValue').AsFloat;
+      FMData.FDate  := FieldByName('L_MDate').AsDateTime;
 
       FLineGroup:= FieldByName('L_LineGroup').AsString;
       FYSValid  := FieldByName('L_IsEmpty').AsString;
@@ -2613,6 +2614,23 @@ begin
               SF('L_OutMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
       //xxxxx
+
+      try
+        WriteLog('交货单号:'+ FID +
+                 '毛重时间:'+ FormatDateTime('YYYY-MM-DD HH:MM:SS',FMData.FDate) +
+                 '当前时间:'+ FormatDateTime('YYYY-MM-DD HH:MM:SS',Now));
+        if Pos('1899', FormatDateTime('YYYY-MM-DD HH:MM:SS',FMData.FDate)) > 0 then
+        begin
+          nData := '毛重时间为空,无法出厂...';
+          Exit;
+        end;
+        if FMData.FDate > Now then
+        begin
+          nData := '毛重时间与出厂时间间隔过短,无法出厂...';
+          Exit;
+        end;
+      except
+      end;
 
       {$IFDEF ASyncWriteData}
       gDBConnManager.ASyncAddItem(@nItem, nSQL, FID);
