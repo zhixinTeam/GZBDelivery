@@ -212,6 +212,10 @@ begin
 
   if FParam.FParamC = sFlag_DuanDao then
        nRet := SaveDDCard(EditBill.Text, EditCard.Text)
+  else
+
+  if FParam.FParamC = sFlag_SaleSingle then
+       nRet := SaveBillCardSingle(EditBill.Text, EditCard.Text)
 
   else nRet := SaveBillCard(EditBill.Text, EditCard.Text);
   

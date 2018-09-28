@@ -31,7 +31,8 @@ procedure WhenSaveJS(const nTunnel: PMultiJSTunnel);
 //保存计数结果
 
 //推送消息到微信平台
-procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillType:string);
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;
+                           const nBillType:string;const nWOID:string='');
 
 //发送消息
 function Do_send_event_msg(const nXmlStr: string): string;
@@ -103,6 +104,38 @@ begin
     nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
     nStr := nPacker.PackIn(@nIn);
     nWorker := gBusinessWorkerManager.LockWorker(sBus_BusinessSaleBill);
+    //get worker
+
+    Result := nWorker.WorkActive(nStr);
+    if Result then
+         nPacker.UnPackOut(nStr, nOut)
+    else nOut.FData := nStr;
+  finally
+    gBusinessPackerManager.RelasePacker(nPacker);
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
+//Date: 2018-08-18
+//Parm: 命令;数据;参数;输出
+//Desc: 调用中间件上的销售单据对象(单厂)
+function CallBusinessSaleBillSingle(const nCmd: Integer;
+  const nData, nExt: string; const nOut: PWorkerBusinessCommand): Boolean;
+var nStr: string;
+    nIn: TWorkerBusinessCommand;
+    nPacker: TBusinessPackerBase;
+    nWorker: TBusinessWorkerBase;
+begin
+  nPacker := nil;
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
+    nStr := nPacker.PackIn(@nIn);
+    nWorker := gBusinessWorkerManager.LockWorker(sBus_BusinessSaleBillSingle);
     //get worker
 
     Result := nWorker.WorkActive(nStr);
@@ -239,6 +272,34 @@ begin
   //xxxxx
 end;
 
+//Date: 2018-08-18
+//Parm: 磁卡号;岗位;交货单列表
+//Desc: 获取nPost岗位上磁卡为nCard的交货单列表(单厂)
+function GetLadingBillsSingle(const nCard,nPost: string;
+ var nData: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessSaleBillSingle(cBC_GetPostBills, nCard, nPost, @nOut);
+  if Result then
+       AnalyseBillItems(nOut.FData, nData)
+  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+end;
+
+//Date: 2018-08-18
+//Parm: 岗位;交货单列表
+//Desc: 保存nPost岗位上的交货单数据(单厂)
+function SaveLadingBillsSingle(const nPost: string; nData: TLadingBillItems): Boolean;
+var nStr: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessSaleBillSingle(cBC_SavePostBills, nStr, nPost, @nOut);
+
+  if not Result then
+    gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
 //Date: 2015-08-06
 //Parm: 磁卡号
 //Desc: 获取磁卡使用类型
@@ -366,7 +427,9 @@ begin
   if nCardType = sFlag_Sale then
     nRet := GetLadingBills(nCard, sFlag_TruckIn, nTrucks) else
   if nCardType = sFlag_DuanDao then
-    nRet := GetDuanDaoItems(nCard, sFlag_TruckIn, nTrucks) else nRet := False;
+    nRet := GetDuanDaoItems(nCard, sFlag_TruckIn, nTrucks) else
+  if nCardType = sFlag_SaleSingle then
+    nRet := GetLadingBillsSingle(nCard, sFlag_TruckIn, nTrucks) else nRet := False;
 
   if not nRet then
   begin
@@ -396,7 +459,7 @@ begin
 
     nStr := '车辆[ %s ]下一状态为:[ %s ],进厂刷卡无效.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-      
+
     WriteHardHelperLog(nStr, sPost_In);
     Exit;
   end;
@@ -432,7 +495,7 @@ begin
     Exit;
   end;
 
-  if nCardType <> sFlag_Sale then
+  if (nCardType <> sFlag_Sale) and (nCardType <> sFlag_SaleSingle) then
   begin
     if nCardType = sFlag_Provide then
       nRet := SaveLadingOrders(sFlag_TruckIn, nTrucks) else
@@ -507,7 +570,12 @@ begin
     SyncLock.Leave;
   end;
 
-  if not SaveLadingBills(sFlag_TruckIn, nTrucks) then
+  if nCardType = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckIn, nTrucks)
+  else
+    nRet := SaveLadingBills(sFlag_TruckIn, nTrucks);
+
+  if not nRet then
   begin
     nStr := '车辆[ %s ]进厂放行失败.';
     nStr := Format(nStr, [nTrucks[0].FTruck]);
@@ -553,7 +621,8 @@ begin
   end;
 end;
 
-procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;const nBillType:string);
+procedure SendMsgToWebMall(const nLid:string;const MsgType:Integer;
+                           const nBillType:string;const nWOID:string='');
 var nBills: TLadingBillItems;
     nXmlStr,nData:string;
     nIdx:Integer;
@@ -566,7 +635,7 @@ begin
   Exit;
   {$ENDIF}
 
-  if nBillType=sFlag_Sale then
+  if (nBillType=sFlag_Sale) or (nBillType=sFlag_SaleSingle) then
   begin
     //加载提货单信息
     if not GetLadingBills(nLid, sFlag_BillDone, nBills) then
@@ -587,30 +656,33 @@ begin
   end;
 
   nDBConn := nil;
-  nWebOrderId := '';
-  with gParamManager.ActiveParam^ do
+  nWebOrderId := nWOID;
+  if nWebOrderId = '' then
   begin
-    try
-      nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
-      if Assigned(nDBConn) then
-      begin
-        if not nDBConn.FConn.Connected then
-        nDBConn.FConn.Connected := True;
-
-        //查询网上商城订单
-        nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
-        nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
-
-        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
+    with gParamManager.ActiveParam^ do
+    begin
+      try
+        nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+        if Assigned(nDBConn) then
         begin
-          if recordcount>0 then
+          if not nDBConn.FConn.Connected then
+          nDBConn.FConn.Connected := True;
+
+          //查询网上商城订单
+          nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+          nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
+
+          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
           begin
-            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+            if recordcount>0 then
+            begin
+              nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
+            end;
           end;
         end;
+      finally
+        gDBConnManager.ReleaseConnection(nDBConn);
       end;
-    finally
-      gDBConnManager.ReleaseConnection(nDBConn);
     end;
   end;
 
@@ -720,7 +792,7 @@ begin
           end;
         end;
 
-        if nType = sFlag_Sale then //销售净重
+        if (nType = sFlag_Sale) or (nType = sFlag_SaleSingle) then //销售净重
         begin
           nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
           nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
@@ -752,7 +824,7 @@ begin
     end;
   end;
 
-  if nType = sFlag_Sale then
+  if (nType = sFlag_Sale) or (nType = sFlag_SaleSingle) then
   begin
     WriteHardHelperLog('更新销售状态,微信单据号: ' + nWebOrderId);
   end else
@@ -836,7 +908,9 @@ begin
   if nCardType = sFlag_Sale then
     nRet := GetLadingBills(nCard, sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_DuanDao then
-    nRet := GetDuanDaoItems(nCard, sFlag_TruckOut, nTrucks) else nRet := False;
+    nRet := GetDuanDaoItems(nCard, sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_SaleSingle then
+    nRet := GetLadingBillsSingle(nCard, sFlag_TruckIn, nTrucks) else nRet := False;
 
   if not nRet then
   begin
@@ -864,7 +938,7 @@ begin
     if FNextStatus = sFlag_TruckOut then Continue;
     nStr := '车辆[ %s ]下一状态为:[ %s ],无法出厂.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-    
+
     WriteHardHelperLog(nStr, sPost_Out);
     Exit;
   end;
@@ -873,6 +947,8 @@ begin
     nRet := SaveLadingOrders(sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_Sale then
     nRet := SaveLadingBills(sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_DuanDao then
     nRet := SaveDuanDaoItems(sFlag_TruckOut, nTrucks);
 
@@ -902,7 +978,10 @@ begin
     nStr := '';
     {$ENDIF}
 
-    nStr := nStr + #7 + nCardType;
+    if nCardType = sFlag_SaleSingle then
+      nStr := nStr + #7 + sFlag_Sale
+    else
+      nStr := nStr + #7 + nCardType;
     //磁卡类型
     if nHYPrinter <> '' then
       nStr := nStr + #6 + nHYPrinter;
@@ -911,7 +990,7 @@ begin
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
     else gRemotePrinter.PrintBill(FID + #9 + nPrinter + nStr); //打印报表
-    
+
     if nCardType = sFlag_Provide then
          ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOut', '刷卡出厂')
     else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOut', '刷卡出厂');
@@ -938,7 +1017,7 @@ var nStr,nCardType: string;
     nOut: TWorkerBusinessCommand;
     {$ENDIF}
 begin
-  Result := False;               
+  Result := False;
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
 
@@ -947,7 +1026,9 @@ begin
   if nCardType = sFlag_Sale then
     nRet := GetLadingBills(nCard, sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_DuanDao then
-    nRet := GetDuanDaoItems(nCard, sFlag_TruckOut, nTrucks) else nRet := False;
+    nRet := GetDuanDaoItems(nCard, sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_SaleSingle then
+    nRet := GetLadingBillsSingle(nCard, sFlag_TruckIn, nTrucks) else nRet := False;
 
   if not nRet then
   begin
@@ -977,7 +1058,7 @@ begin
     if FNextStatus = sFlag_TruckOut then Continue;
     nStr := '车辆[ %s ]下一状态为:[ %s ],无法出厂.';
     nStr := Format(nStr, [FTruck, TruckStatusToStr(FNextStatus)]);
-    
+
     WriteHardHelperLog(nStr, sPost_Out);
     Exit;
   end;
@@ -986,6 +1067,8 @@ begin
     nRet := SaveLadingOrders(sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_Sale then
     nRet := SaveLadingBills(sFlag_TruckOut, nTrucks) else
+  if nCardType = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_DuanDao then
     nRet := SaveDuanDaoItems(sFlag_TruckOut, nTrucks);
 
@@ -1015,7 +1098,10 @@ begin
     nStr := '';
     {$ENDIF}
 
-    nStr := nStr + #7 + nCardType;
+    if nCardType = sFlag_SaleSingle then
+      nStr := nStr + #7 + sFlag_Sale
+    else
+      nStr := nStr + #7 + nCardType;
     //磁卡类型
     if nHYPrinter <> '' then
       nStr := nStr + #6 + nHYPrinter;
@@ -1028,7 +1114,7 @@ begin
     if nCardType = sFlag_Provide then
          ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOutM100', '刷卡出厂')
     else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOutM100', '刷卡出厂');
-  end;  
+  end;
   //打印报表
 
   Result := True;
@@ -1772,14 +1858,14 @@ var nStr: string;
 begin
   nStr := Copy(nTruck, Length(nTruck) - 5, 6);
   Result := Dbc2Sbc(nStr + StringOfChar(' ', 12 - Length(nStr)) + nExt);
-end;  
+end;
 
 //Date: 2012-4-24
 //Parm: 磁卡号;通道号
 //Desc: 对nCard执行袋装装车操作
 procedure MakeTruckLadingDai(const nCard: string; nTunnel: string);
 var nStr,nCardType: string;
-    nBool: Boolean;
+    nBool, nRet: Boolean;
     nIdx,nInt: Integer;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
@@ -1837,7 +1923,7 @@ begin
         FYSValid  := sFlag_Yes;
         FPoundID  := nTunnel;
         FSelected := True;
-        
+
         Inc(nInt);
         Continue;
       end;
@@ -1863,7 +1949,7 @@ begin
       nStr := MakeShowTxt(nTrucks[0].FTruck, '请换库卸货');
       gDisplayManager.Display(nTunnel, nStr);
       Exit;
-    end;     
+    end;
 
     for nIdx:=Low(nTrucks) to High(nTrucks) do
     with nTrucks[nIdx] do
@@ -1875,7 +1961,7 @@ begin
       nStr := Format(nStr, [FTruck]);
       WriteNearReaderLog(nStr);
 
-      nStr := MakeShowTxt(FTruck, FStockName); 
+      nStr := MakeShowTxt(FTruck, FStockName);
       WriteNearReaderLog(nStr);
       gDisplayManager.Display(nTunnel, nStr);
 
@@ -1900,7 +1986,11 @@ begin
   if IsJSRun then Exit;
   //tunnel is busy
 
-  if not GetLadingBills(nCard, sFlag_TruckZT, nTrucks) then
+  if nCardType = sFlag_SaleSingle then
+    nRet := GetLadingBillsSingle(nCard, sFlag_TruckZT, nTrucks)
+  else
+    nRet := GetLadingBills(nCard, sFlag_TruckZT, nTrucks);
+  if not nRet then
   begin
     nStr := '读取磁卡[ %s ]交货单信息失败.';
     nStr := Format(nStr, [nCard]);
@@ -1991,7 +2081,11 @@ begin
     Exit;
   end;
 
-  if not SaveLadingBills(sFlag_TruckZT, nTrucks) then
+  if nCardType = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckZT, nTrucks)
+  else
+    nRet := SaveLadingBills(sFlag_TruckZT, nTrucks);
+  if not nRet then
   begin
     nStr := '车辆[ %s ]栈台提货失败.';
     nStr := Format(nStr, [nTrucks[0].FTruck]);
@@ -2060,8 +2154,8 @@ end;
 //Parm: 磁卡号;通道号
 //Desc: 对nCard执行袋装装车操作
 procedure MakeTruckLadingSan(const nCard,nTunnel: string);
-var nStr: string;
-    nBool: Boolean;
+var nStr, nCardType: string;
+    nBool, nRet: Boolean;
     nIdx: Integer;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
@@ -2071,7 +2165,15 @@ begin
   WriteNearReaderLog('MakeTruckLadingSan进入.');
   {$ENDIF}
 
-  if not GetLadingBills(nCard, sFlag_TruckFH, nTrucks) then
+  nCardType := '';
+  if not GetCardUsed(nCard, nCardType) then Exit;
+
+  if nCardType = sFlag_SaleSingle then
+    nRet := GetLadingBillsSingle(nCard, sFlag_TruckFH, nTrucks)
+  else
+    nRet := GetLadingBills(nCard, sFlag_TruckFH, nTrucks);
+
+  if not nRet then
   begin
     nStr := '读取磁卡[ %s ]交货单信息失败.';
     nStr := Format(nStr, [nCard]);
@@ -2094,8 +2196,11 @@ begin
   begin
     {$IFDEF AllowMultiM}
     if FStatus = sFlag_TRuckBFM then
-      FStatus := sFlag_TruckFH;
-    //过重后允许返回
+    begin
+      FStatus := sFlag_TruckBFP;
+      FNextStatus := sFlag_TruckFH;
+    end;
+    //过重后允许返回(状态回溯至成皮重,防止过快出厂)
     {$ENDIF}
 
     if (FStatus = sFlag_TruckFH) or (FNextStatus = sFlag_TruckFH) then Continue;
@@ -2147,7 +2252,13 @@ begin
   end;
 
   nTrucks[0].FLineGroup := nPLine.FLineGroup;
-  if not SaveLadingBills(sFlag_TruckFH, nTrucks) then
+
+  if nCardType = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckFH, nTrucks)
+  else
+    nRet := SaveLadingBills(sFlag_TruckFH, nTrucks);
+
+  if not nRet then
   begin
     nStr := '车辆[ %s ]放灰处提货失败.';
     nStr := Format(nStr, [nTrucks[0].FTruck]);

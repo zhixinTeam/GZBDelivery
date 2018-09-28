@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBXS}
+{$DEFINE GZBZX}
 //特定系统
 
 //葛洲坝兴山
@@ -209,5 +209,7 @@
   //采购电子标签自动发卡
   {$DEFINE GlLade}
   //骨料发运
+  {$DEFINE SaveEmptyTruck}
+  //空车出厂保存净重为0
 {$ENDIF}
 

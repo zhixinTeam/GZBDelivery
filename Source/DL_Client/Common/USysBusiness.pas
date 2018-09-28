@@ -350,6 +350,25 @@ function VerifyFQSumValue: Boolean;
 //是否校验封签号
 function GetFQValueByStockNo(const nStock: string): Double;
 //获取封签号已发量
+//----------------------------------------------------------------
+//单厂函数
+function SaveBillSingle(const nBillData: string): string;
+//保存交货单
+function DeleteBillSingle(const nBill: string): Boolean;
+//删除交货单
+function SaveBillCardSingle(const nBill, nCard: string): Boolean;
+//保存交货单磁卡
+function LogoutBillCardSingle(const nCard: string): Boolean;
+//注销指定磁卡
+
+function GetLadingBillsSingle(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+//获取指定岗位的交货单列表
+function SaveLadingBillsSingle(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem = nil): Boolean;
+//保存指定岗位的交货单
+function IsLocalStock(const nStockNo: string): Boolean;
+//-----------------------------------------------------------------
 
 implementation
 
@@ -457,6 +476,40 @@ begin
     //自动称重时不提示
 
     nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessSaleBill);
+    //get worker
+    Result := nWorker.WorkActive(@nIn, nOut);
+
+    if not Result then
+      WriteLog(nOut.FBase.FErrDesc);
+    //xxxxx
+  finally
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
+//Date: 2018-08-16
+//Parm: 命令;数据;参数;输出
+//Desc: 调用中间件上的销售单据对象(单厂)
+function CallBusinessSaleBillSingle(const nCmd: Integer; const nData,nExt: string;
+  const nOut: PWorkerBusinessCommand; const nWarn: Boolean = True): Boolean;
+var nIn: TWorkerBusinessCommand;
+    nWorker: TBusinessWorkerBase;
+begin
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    if nWarn then
+         nIn.FBase.FParam := ''
+    else nIn.FBase.FParam := sParam_NoHintOnError;
+
+    if gSysParam.FAutoPound and (not gSysParam.FIsManual) then
+      nIn.FBase.FParam := sParam_NoHintOnError;
+    //自动称重时不提示
+
+    nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessSaleBillSingle);
     //get worker
     Result := nWorker.WorkActive(@nIn, nOut);
 
@@ -1573,7 +1626,7 @@ function GetLadingBills(const nCard,nPost: string;
  var nBills: TLadingBillItems): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
-  Result := CallBusinessSaleBill(cBC_GetPostBills, nCard, nPost, @nOut);
+    Result := CallBusinessSaleBill(cBC_GetPostBills, nCard, nPost, @nOut);
   if Result then
     AnalyseBillItems(nOut.FData, nBills);
   //xxxxx
@@ -1612,7 +1665,7 @@ end;
 
 //------------------------------------------------------------------------------
 //Date: 2015/9/19
-//Parm: 
+//Parm:
 //Desc: 保存采购申请单
 function SaveOrderBase(const nOrderData: string): string;
 var nOut: TWorkerBusinessCommand;
@@ -3188,6 +3241,104 @@ begin
   with FDM.QueryTemp(nSQL) do
   if RecordCount > 0 then
     Result := Fields[0].AsFloat;
+end;
+
+//Date: 2018-08-16
+//Parm: 开单数据
+//Desc: 保存交货单,返回交货单号列表
+function SaveBillSingle(const nBillData: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessSaleBillSingle(cBC_SaveBills, nBillData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+//Date: 2018-08-16
+//Parm: 交货单号
+//Desc: 删除nBillID单据
+function DeleteBillSingle(const nBill: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessSaleBillSingle(cBC_DeleteBill, nBill, '', @nOut);
+end;
+
+//Date: 2018-08-16
+//Parm: 交货单号;磁卡
+//Desc: 绑定nBill.nCard
+function SaveBillCardSingle(const nBill, nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessSaleBillSingle(cBC_SaveBillCard, nBill, nCard, @nOut);
+end;
+
+//Date: 2018-08-16
+//Parm: 磁卡号
+//Desc: 注销nCard
+function LogoutBillCardSingle(const nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessSaleBillSingle(cBC_LogoffCard, nCard, '', @nOut);
+end;
+
+//Date: 2018-08-16
+//Parm: 磁卡号;岗位;交货单列表
+//Desc: 获取nPost岗位上磁卡为nCard的交货单列表
+function GetLadingBillsSingle(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessSaleBillSingle(cBC_GetPostBills, nCard, nPost, @nOut);
+  if Result then
+    AnalyseBillItems(nOut.FData, nBills);
+  //xxxxx
+end;
+
+//Date: 2018-08-16
+//Parm: 岗位;交货单列表;磅站通道
+//Desc: 保存nPost岗位上的交货单数据
+function SaveLadingBillsSingle(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessSaleBillSingle(cBC_SavePostBills, nStr, nPost, @nOut);
+  if (not Result) or (nOut.FData = '') then Exit;
+
+  if Assigned(nTunnel) then //过磅称重
+  begin
+    nList := TStringList.Create;
+    try
+      CapturePicture(nTunnel, nList);
+      //capture file
+
+      for nIdx:=0 to nList.Count - 1 do
+        SavePicture(nOut.FData, nData[0].FTruck,
+                                nData[0].FStockName, nList[nIdx]);
+      //save file
+    finally
+      nList.Free;
+    end;
+  end;
+end;
+
+function IsLocalStock(const nStockNo: string): Boolean;
+var
+  nStr:string;
+begin
+  Result := False;
+  nStr := 'select D_Memo from %s where D_ParamB=''%s'' and D_Index=2';
+  nStr := Format(nStr,[sTable_SysDict,nStockNo]);
+  with fdm.QueryTemp(nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      Result := True;
+    end;
+  end;
 end;
 
 end.

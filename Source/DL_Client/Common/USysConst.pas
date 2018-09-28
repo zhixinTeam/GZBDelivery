@@ -416,6 +416,10 @@ begin
 
   AddMenuModuleItem('MAIN_N01', cFI_FormBillSingle, mtForm);
   AddMenuModuleItem('MAIN_N02', cFI_FormBillSingle, mtForm);
+  AddMenuModuleItem('MAIN_N03', cFI_FrameBill);
+  AddMenuModuleItem('MAIN_N04', cFI_FrameSaleDetailQuery);
+  AddMenuModuleItem('MAIN_N05', cFI_FrameMakeCard);
+  AddMenuModuleItem('MAIN_N06', cFI_FrameZhiKaDetail);
 end;
 
 //Desc: 清理模块列表

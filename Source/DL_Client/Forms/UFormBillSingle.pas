@@ -672,7 +672,7 @@ begin
     BtnOK.Enabled := False;
     try
       ShowWaitForm(Self, '正在保存', True);
-      gInfo.FIDList := SaveBill(PackerEncodeStr(nList.Text));
+      gInfo.FIDList := SaveBillSingle(PackerEncodeStr(nList.Text));
     finally
       BtnOK.Enabled := True;
       CloseWaitForm;
@@ -686,13 +686,13 @@ begin
   end;
 
   if (FBuDanFlag <> sFlag_Yes) and (gInfo.FCard = '') then
-    SetBillCard(gInfo.FIDList, EditTruck.Text, True);
+    SetBillCard(gInfo.FIDList, EditTruck.Text, True, sFlag_SaleSingle);
   //办理磁卡
 
   if nPrint then
     PrintBillReport(gInfo.FIDList, True);
   //print report
-  
+
   ModalResult := mrOk;
   ShowMsg('提货单保存成功', sHint);
 end;

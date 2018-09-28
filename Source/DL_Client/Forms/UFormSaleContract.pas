@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormSaleContract;
 
+{$I Link.inc}
 interface
 
 uses
@@ -324,6 +325,13 @@ begin
 
       while not Eof do
       begin
+        {$IFDEF GLlade}
+        if FieldByName('D_Index').AsInteger <> 2 then
+        begin
+          Next;
+          Continue;
+        end;
+        {$ENDIF}
         nStr := CombinStr([FieldByName('D_Memo').AsString,
                 FieldByName('D_Value').AsString,
                 '0', '0', '0', '0',

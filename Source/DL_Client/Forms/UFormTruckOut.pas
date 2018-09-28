@@ -79,7 +79,9 @@ begin
     if gCardUsed = sFlag_Sale then
       nRet := GetLadingBills(nStr, sFlag_TruckIn, gBills) else
     if gCardUsed = sFlag_DuanDao then
-      nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else nRet := False;
+      nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else
+    if gCardUsed = sFlag_SaleSingle then
+      nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
 
     if nRet and (Length(gBills)>0) then Break;
   end;
@@ -222,6 +224,8 @@ begin
     nRet := SavePurchaseOrders(sFlag_TruckOut, gBills) else
   if gCardUsed = sFlag_Sale then
     nRet := SaveLadingBills(sFlag_TruckOut, gBills) else
+  if gCardUsed = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckOut, gBills) else
   if gCardUsed = sFlag_DuanDao then
     nRet := SaveDuanDaoItems(sFlag_TruckOut, gBills);
 

@@ -48,6 +48,7 @@ uses
   USysDB, USysConst;
 
 var
+  gCardUsed: string;
   gBills: TLadingBillItems;
   //提货单列表
 
@@ -70,7 +71,16 @@ begin
     nStr := Trim(nStr);
 
     if nStr = '' then Continue;
-    if GetLadingBills(nStr, sFlag_TruckFH, gBills) then Break;
+
+    gCardUsed := GetCardUsed(nStr);
+    if gCardUsed = sFlag_SaleSingle then
+    begin
+      if GetLadingBillsSingle(nStr, sFlag_TruckFH, gBills) then Break;
+    end
+    else
+    begin
+      if GetLadingBills(nStr, sFlag_TruckFH, gBills) then Break;
+    end;
   end;
 
   nInt := 0 ;
@@ -198,8 +208,14 @@ begin
 end;
 
 procedure TfFormLadingSan.BtnOKClick(Sender: TObject);
+var nRet: Boolean;
 begin
-  if SaveLadingBills(sFlag_TruckFH, gBills) then
+  if gCardUsed = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(sFlag_TruckFH, gBills)
+  else
+    nRet := SaveLadingBills(sFlag_TruckFH, gBills);
+
+  if nRet then
   begin
     ShowMsg('散装提货成功', sHint);
     ModalResult := mrOk;

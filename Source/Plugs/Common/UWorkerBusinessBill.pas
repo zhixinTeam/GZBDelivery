@@ -1014,7 +1014,7 @@ begin
   ModifyWebOrderStatus(sFlag_Sale, nOut.FData, 'SaveBills', '创建单据',
                        c_WeChatStatusCreateCard,nWebOrderID);
   //发送微信消息
-  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale);
+  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale,nWebOrderID);
 end;
 
 //------------------------------------------------------------------------------
@@ -2605,6 +2605,11 @@ begin
       else f := 0;
       nVal := TWorkerBusinessCommander.VerifyDaiValue(nBills[nIdx],f);
       //获取订单正确的发货量
+
+      {$IFDEF SaveEmptyTruck}
+      if nBills[nIdx].FYSValid = sFlag_Yes then
+        nVal := 0;
+      {$ENDIF}
 
       nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
               SF('L_Value', nVal, sfVal),

@@ -44,10 +44,11 @@ implementation
 
 {$R *.dfm}
 uses
-  IniFiles, ULibFun, UMgrControl, UFormInputbox, USysGrid, UBusinessConst, 
+  IniFiles, ULibFun, UMgrControl, UFormInputbox, USysGrid, UBusinessConst,
   USysBusiness, USysDB, USysConst, UFormBase;
 
 var
+  gCardUsed: string;
   gBills: TLadingBillItems;
   //提货单列表
 
@@ -83,6 +84,16 @@ begin
       begin
         ShowDlg('读取磁卡失败,请重新刷卡', sWarn);
         Exit;
+      end;
+
+      gCardUsed := GetCardUsed(nStr);
+      if gCardUsed = sFlag_SaleSingle then
+      begin
+        nRet := GetLadingBillsSingle(nStr, sFlag_TruckZT, gBills);
+      end
+      else
+      begin
+        nRet := GetLadingBills(nStr, sFlag_TruckZT, gBills);
       end;
 
       nRet := GetLadingBills(nStr, sFlag_TruckZT, gBills);
@@ -232,7 +243,10 @@ begin
        nNext := sFlag_TruckZT
   else nNext := sFlag_TruckFH;
 
-  nRet := SaveLadingBills(nNext, gBills);
+  if gCardUsed = sFlag_SaleSingle then
+    nRet := SaveLadingBillsSingle(nNext, gBills)
+  else
+    nRet := SaveLadingBills(nNext, gBills);
 
   if nRet then
   begin

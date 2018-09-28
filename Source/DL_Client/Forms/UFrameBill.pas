@@ -71,6 +71,7 @@ type
     //时间区间
     FUseDate: Boolean;
     //使用区间
+    FGL: Boolean;
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     function FilterColumnField: string; override;
@@ -132,9 +133,21 @@ begin
     Result := Result + nStr + '(' + nWhere + ')';
   //xxxxx
 
+  {$IFDEF GLlade}
+  FGL := PopedomItem = 'MAIN_N03';
+  if FGL then
+    Result := Result + 'And L_CardUsed = ''$CU'''
+  else
+    Result := Result + 'And (L_CardUsed <> ''$CU'' or L_CardUsed is null)';
+
+  Result := MacroValue(Result, [
+        MI('$ST', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1)),
+        MI('$CU', sFlag_SaleSingle)]);
+  {$ELSE}
   Result := MacroValue(Result, [
             MI('$ST', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx
+  {$ENDIF}
 
   if CheckDelete.Checked then
        Result := MacroValue(Result, [MI('$Bill', sTable_BillBak)])
@@ -229,7 +242,10 @@ end;
 procedure TfFrameBill.BtnAddClick(Sender: TObject);
 var nP: TFormCommandParam;
 begin
-  CreateBaseFormItem(cFI_FormBill, PopedomItem, @nP);
+  if FGL then
+    CreateBaseFormItem(cFI_FormBillSingle, PopedomItem, @nP)
+  else
+    CreateBaseFormItem(cFI_FormBill, PopedomItem, @nP);
   if (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK) then
   begin
     InitFormData('');
@@ -271,10 +287,21 @@ begin
     //不处理异常
   end;
 
-  if DeleteBill(SQLQuery.FieldByName('L_ID').AsString) then
+  if FGL then
   begin
-    InitFormData(FWhere);
-    ShowMsg('提货单已删除', sHint);
+    if DeleteBillSingle(SQLQuery.FieldByName('L_ID').AsString) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('提货单已删除', sHint);
+    end;
+  end
+  else
+  begin
+    if DeleteBill(SQLQuery.FieldByName('L_ID').AsString) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('提货单已删除', sHint);
+    end;
   end;
 end;
 

@@ -69,6 +69,12 @@ type
     function GetFixedServiceURL: string; override;
   end;
 
+  TClientBusinessSaleBillSingle = class(TClient2MITWorker)
+  public
+    function GetFlagStr(const nFlag: Integer): string; override;
+    class function FunctionName: string; override;
+  end;
+
 implementation
 
 uses
@@ -348,6 +354,22 @@ begin
   Result := gSysParam.FHardMonURL;
 end;
 
+//------------------------------------------------------------------------------
+class function TClientBusinessSaleBillSingle.FunctionName: string;
+begin
+  Result := sCLI_BusinessSaleBillSingle;
+end;
+
+function TClientBusinessSaleBillSingle.GetFlagStr(const nFlag: Integer): string;
+begin
+  Result := inherited GetFlagStr(nFlag);
+
+  case nFlag of
+   cWorker_GetPackerName : Result := sBus_BusinessCommand;
+   cWorker_GetMITName    : Result := sBus_BusinessSaleBillSingle;
+  end;
+end;
+
 initialization
   gBusinessWorkerManager.RegisteWorker(TClientWorkerQueryField);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessCommand);
@@ -355,4 +377,5 @@ initialization
   gBusinessWorkerManager.RegisteWorker(TClientBusinessHardware);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessDuanDao);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessPurchaseOrder);
+  gBusinessWorkerManager.RegisteWorker(TClientBusinessSaleBillSingle);
 end.

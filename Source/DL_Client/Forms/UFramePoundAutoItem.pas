@@ -413,7 +413,9 @@ begin
   if FCardUsed=sFlag_DuanDao then
      nRet := GetDuanDaoItems(nCard, sFlag_TruckBFP, nBills) else
   if FCardUsed=sFlag_Sale then
-     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else nRet := False;
+     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_SaleSingle then
+     nRet := GetLadingBillsSingle(nCard, sFlag_TruckBFP, nBills) else nRet := False;
 
   if (not nRet) or (Length(nBills) < 1)
   then
@@ -450,6 +452,19 @@ begin
       if FCardUsed = sFlag_Sale then
       begin
         if SaveLadingBills(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItems(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_SaleSingle then
+      begin
+        if SaveLadingBillsSingle(sFlag_TruckIn, nBills) then
         begin
           ShowMsg('车辆进厂成功', sHint);
           LoadBillItems(FCardTmp);
@@ -1104,6 +1119,10 @@ begin
           nHint := '车辆[n1]%s实际装车量误差较大,请去包装点包';
           nHint := Format(nHint, [FTruck]);
           {$ENDIF}
+          {$IFDEF GZBXS}
+          nHint := '车辆[n1]%s净重超出误差范围,请退回栈台';
+          nHint := Format(nHint, [FTruck]);
+          {$ENDIF}
           PlayVoice(nHint);
 
           nStr := GetTruckNO(FTruck) + '请去包装点包';
@@ -1118,9 +1137,12 @@ begin
       FUIData.FKZValue := 0;
       //初始化补单数据
 
-      if (nVal > 0) and (FType = sFlag_San) and (not VerifySanValue(nNet)) then
-        Exit;
-      //散装净重超过开单量时,验证是否发超
+      if FCardUsed <> sFlag_SaleSingle then
+      begin
+        if (nVal > 0) and (FType = sFlag_San) and (not VerifySanValue(nNet)) then
+          Exit;
+        //散装净重超过开单量时,验证是否发超
+      end;
     end;
   end;
 
@@ -1149,7 +1171,10 @@ begin
 
     FPoundID := sFlag_Yes;
     //标记该项有称重数据
-    Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
+    if FCardUsed = sFlag_SaleSingle then
+      Result := SaveLadingBillsSingle(FNextStatus, FBillItems, FPoundTunnel)
+    else
+      Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
     //保存称重
   end;
 
@@ -1362,7 +1387,7 @@ begin
   end;
 
   FIsSaving := True;
-  if FCardUsed = sFlag_Sale then
+  if (FCardUsed = sFlag_Sale) or (FCardUsed = sFlag_SaleSingle) then
        nRet := SavePoundSale
   else nRet := SavePoundData;
 

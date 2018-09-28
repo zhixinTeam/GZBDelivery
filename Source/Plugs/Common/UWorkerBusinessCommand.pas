@@ -71,8 +71,12 @@ type
     //获取串号
     function IsSystemExpired(var nData: string): Boolean;
     //系统是否已过期
+    function GetCusName(nCusID:string):string;
+    //获取客户名称
     function GetCustomerValidMoney(var nData: string): Boolean;
     //获取客户可用金
+    function GetCustomerValidMoneyEx(nCustomer: string): Double;
+    //获取客户可用金Ex
     function GetZhiKaValidMoney(var nData: string): Boolean;
     //获取纸卡可用金
     function CustomerHasMoney(var nData: string): Boolean;
@@ -2042,9 +2046,9 @@ begin
   if not nOrderValid then
   begin
     nData := '请勿冒用其他客户的订单号.';
-    nout.FBase.FErrDesc := nData;  
+    nout.FBase.FErrDesc := nData;
     Result := False;
-    Exit;  
+    Exit;
   end;
   //------防伪校验end-------
 end;
@@ -2053,10 +2057,73 @@ end;
 function TWorkerBusinessCommander.GetOrderList(var nData:string):Boolean;
 var nWorker: PDBWorker;
     nTmp,nStr:string;
+    nMoney, nValue: Double;
 begin
   Result := False;
   nTmp := Trim(FIn.FData);
   if nTmp='' then Exit;
+
+  FListA.Clear;
+  {$IFDEF GLlade}
+  nMoney := GetCustomerValidMoneyEx(FIn.FData);
+
+  nStr := 'select D_ZID,' +                     //销售卡片编号
+        '  D_Type,' +                           //类型(袋,散)
+        '  D_StockNo,' +                        //水泥编号
+        '  D_StockName,' +                      //水泥名称
+        '  D_Price,' +                          //单价
+        '  D_Value,' +                          //订单量
+        '  Z_Man,' +                            //创建人
+        '  Z_Date,' +                           //创建日期
+        '  Z_Customer,' +                       //客户编号
+        '  Z_Name,' +                           //客户名称
+        '  Z_Lading,' +                         //提货方式
+        '  Z_CID ' +                            //合同编号
+        '  Z_FixedMoney ' +                     //限提金额
+        'from %s a join %s b on a.Z_ID = b.D_ZID ' +
+        'where Z_Verified=''%s'' and (Z_InValid<>''%s'' or Z_InValid is null) '+
+        'and Z_Customer=''%s''';
+        //订单已审核 有效
+  nStr := Format(nStr,[sTable_ZhiKa,sTable_ZhiKaDtl,sFlag_Yes,sFlag_Yes,
+                       FIn.FData]);
+  WriteLog('获取本地订单列表sql:'+nStr);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      FListB.Clear;
+
+      First;
+
+      while not Eof do
+      begin
+        FListB.Values['XCB_CardId']     := FieldByName('D_ZID').AsString;
+        FListB.Values['XCB_SetDate']    := FieldByName('Z_Date').AsString;;
+        FListB.Values['XCB_Client']     := FieldByName('Z_Customer').AsString;
+        FListB.Values['XCB_ClientName'] := GetCusName(FieldByName('Z_Customer').AsString);
+        FListB.Values['XCB_WorkAddr']   := '';
+        FListB.Values['XCB_TransName']   := '';
+
+        if FieldByName('Z_FixedMoney').AsFloat > 0 then
+          nMoney := FieldByName('Z_FixedMoney').AsFloat;
+        try
+          nValue := nMoney / FieldByName('D_Price').AsFloat;
+          nValue := Float2PInt(nValue, cPrecision, False) / cPrecision;
+        except
+          nValue := 0;
+        end;
+
+        FListB.Values['XCB_RemainNum']  := FloatToStr(nValue);
+        FListB.Values['XCB_Cement']     := FieldByName('D_StockNo').AsString;
+        FListB.Values['XCB_CementName'] := FieldByName('D_StockName').AsString;
+
+        FListA.Add(PackerEncodeStr(FListB.Text));
+
+        Next;
+      end;
+    end;
+  end;
+  {$ENDIF}
 
   nStr := 'Select * From ' +
         '(select xcb.XCB_ID,' +                      //内部编号
@@ -2126,13 +2193,21 @@ begin
   try
     with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
     begin
+      {$IFDEF GLlade}
+      if (RecordCount < 1) and (FListA.Count < 1) then
+      begin
+        nData := Format('未查询到客户编号[ %s ]对应的订单信息1.', [nTmp]);
+        Exit;
+      end;
+      {$ELSE}
       if RecordCount < 1 then
       begin
         nData := Format('未查询到客户编号[ %s ]对应的订单信息1.', [nTmp]);
         Exit;
       end;
+      {$ENDIF}
 
-      FListA.Clear;
+      //FListA.Clear;
       FListB.Clear;
       First;
 
@@ -5254,6 +5329,70 @@ begin
     Exit;
   end;
   //检测不带工程工地的规则
+end;
+
+function TWorkerBusinessCommander.GetCustomerValidMoneyEx(
+  nCustomer: string): Double;
+var nStr: string;
+    nUseCredit: Boolean;
+    nVal,nCredit: Double;
+begin
+  Result := 0 ;
+  nUseCredit := False;
+
+  nStr := 'Select MAX(C_End) From %s ' +
+          'Where C_CusID=''%s'' and C_Money>=0 and C_Verify=''%s''';
+  nStr := Format(nStr, [sTable_CusCredit, nCustomer, sFlag_Yes]);
+  WriteLog('信用SQL:'+nStr);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+    nUseCredit := (Fields[0].AsDateTime > Str2Date('2000-01-01')) and
+                  (Fields[0].AsDateTime > Now());
+  //信用未过期
+
+  nStr := 'Select * From %s Where A_CID=''%s''';
+  nStr := Format(nStr, [sTable_CusAccount, nCustomer]);
+  WriteLog('用户账户SQL:'+nStr);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount < 1 then
+    begin
+      Exit;
+    end;
+
+    nVal := FieldByName('A_InitMoney').AsFloat + FieldByName('A_InMoney').AsFloat -
+            FieldByName('A_OutMoney').AsFloat -
+            FieldByName('A_Compensation').AsFloat -
+            FieldByName('A_FreezeMoney').AsFloat;
+    //xxxxx
+    WriteLog('用户账户金额:'+FloatToStr(nVal));
+    nCredit := FieldByName('A_CreditLimit').AsFloat;
+    nCredit := Float2PInt(nCredit, cPrecision, False) / cPrecision;
+    WriteLog('用户账户信用:'+FloatToStr(nCredit));
+    if nUseCredit then
+      nVal := nVal + nCredit;
+    WriteLog('用户账户可用金:'+FloatToStr(nVal));
+    Result := Float2PInt(nVal, cPrecision, False) / cPrecision;
+  end;
+end;
+
+function TWorkerBusinessCommander.GetCusName(nCusID: string): string;
+var nStr: string;
+    nDBWorker: PDBWorker;
+begin
+  Result := '';
+
+  nDBWorker := nil;
+  try
+    nStr := 'Select C_Name From %s Where C_ID=''%s'' ';
+    nStr := Format(nStr, [sTable_Customer, nCusID]);
+
+    with gDBConnManager.SQLQuery(nStr, nDBWorker) do
+    begin
+      Result := Fields[0].AsString;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBWorker);
+  end;
 end;
 
 initialization

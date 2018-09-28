@@ -86,6 +86,8 @@ type
   end;
 
 implementation
+uses
+  UHardBusiness;
 
 class function TWorkerBusinessBillsSingle.FunctionName: string;
 begin
@@ -572,27 +574,6 @@ begin
       FListC.Text := PackerDecodeStr(FListB[nIdx]);
       //get bill info
 
-      if not TWorkerBusinessCommander.CallMe(cBC_GetStockBatcode,
-         FListC.Values['StockNO'], FListC.Values['Value'], @nTmp) then
-         raise Exception.Create(nTmp.FData);
-
-      {$IFDEF BatchInHYOfBill}
-      if nTmp.FData = '' then
-           FListC.Values['HYDan'] := FListC.Values['Seal']
-      else FListC.Values['HYDan'] := nTmp.FData;
-      {$ELSE}
-      if nTmp.FData <> '' then
-        FListC.Values['Seal'] := nTmp.FData;
-      //auto batcode
-      {$ENDIF}
-
-      if PBWDataBase(@nTmp).FErrCode = sFlag_ForceHint then
-      begin
-        FOut.FBase.FErrCode := sFlag_ForceHint;
-        FOut.FBase.FErrDesc := PBWDataBase(@nTmp).FErrDesc;
-      end;
-      //获取批次号信息
-
       nStr := MakeSQLByStr([SF('L_ID', nOut.FData),
               SF('L_ZhiKa', FListA.Values['ZhiKa']),
               SF('L_Order', FListC.Values['OrderNo']),
@@ -613,11 +594,7 @@ begin
               {$IFDEF PrintGLF}
               SF('L_PrintGLF', FListC.Values['PrintGLF']),
               {$ENDIF} //自动打印过路费
-
-              {$IFDEF PrintHYEach}
-              SF('L_PrintHY', FListC.Values['PrintHY']),
-              {$ENDIF} //随车打印化验单
-
+              SF('L_HKRecord', nOut.FData),
               SF('L_ZKMoney', nFixMoney),
               SF('L_Truck', FListA.Values['Truck']),
               SF('L_Lading', FListA.Values['Lading']),
@@ -625,6 +602,7 @@ begin
               SF('L_Seal', FListC.Values['Seal']),
               SF('L_HYDan', FListC.Values['HYDan']),
               SF('L_Man', FIn.FBase.FFrom.FUser),
+              SF('L_CardUsed', sFlag_SaleSingle),
               SF('L_Date', sField_SQLServer_Now, sfVal)
               ], sTable_Bill,SF('L_ID', nOut.FData),FListA.Values['Card']='');
       gDBConnManager.WorkerExec(FDBConn, nStr);
@@ -641,12 +619,6 @@ begin
                 ], sTable_PoundLog, SF('P_Bill', nOut.FData), False);
       gDBConnManager.WorkerExec(FDBConn, nStr);
       //更新磅单基本信息
-
-      nStr := 'Update %s Set B_HasUse=B_HasUse+%s Where B_Batcode=''%s''';
-      nStr := Format(nStr, [sTable_StockBatcode, FListC.Values['Value'],
-              FListC.Values['HYDan']]);
-      gDBConnManager.WorkerExec(FDBConn, nStr);
-      //更新批次号使用量
 
       if FListA.Values['Card'] = '' then
       begin
@@ -805,23 +777,6 @@ begin
     raise;
   end;
 
-  {$IFDEF UseERP_K3}
-  if FListA.Values['BuDan'] = sFlag_Yes then //补单
-  try
-    nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
-    //bill list
-
-    if not TWorkerBusinessCommander.CallMe(cBC_SyncStockBill, nSQL, '', @nOut) then
-      raise Exception.Create(nOut.FData);
-    //xxxxx
-  except
-    nStr := 'Delete From %s Where L_ID In (%s)';
-    nStr := Format(nStr, [sTable_Bill, nSQL]);
-    gDBConnManager.WorkerExec(FDBConn, nStr);
-    raise;
-  end;
-  {$ENDIF}
-
   {$IFDEF MicroMsg}
   with FListC do
   begin
@@ -836,6 +791,12 @@ begin
 
   gWXPlatFormHelper.WXSendMsg(nStr, FListC.Text);
   {$ENDIF}
+
+  //修改商城订单状态
+  ModifyWebOrderStatus(sFlag_SaleSingle, nOut.FData, 'SaveBills', '创建单据',
+                       c_WeChatStatusCreateCard,FListA.Values['WebOrderID']);
+  //发送微信消息
+  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_SaleSingle);
 end;
 
 //------------------------------------------------------------------------------
@@ -1478,7 +1439,7 @@ begin
     begin
       nStr := MakeSQLByStr([SF('C_Card', FIn.FExtParam),
               SF('C_Status', sFlag_CardUsed),
-              SF('C_Used', sFlag_Sale),
+              SF('C_Used', sFlag_SaleSingle),
               SF('C_Freeze', sFlag_No),
               SF('C_Man', FIn.FBase.FFrom.FUser),
               SF('C_Date', sField_SQLServer_Now, sfVal)
@@ -1488,7 +1449,7 @@ begin
     begin
       nStr := Format('C_Card=''%s''', [FIn.FExtParam]);
       nStr := MakeSQLByStr([SF('C_Status', sFlag_CardUsed),
-              SF('C_Used', sFlag_Sale),
+              SF('C_Used', sFlag_SaleSingle),
               SF('C_Freeze', sFlag_No),
               SF('C_Man', FIn.FBase.FFrom.FUser),
               SF('C_Date', sField_SQLServer_Now, sfVal)
@@ -1722,7 +1683,7 @@ begin
   nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
           'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue,L_PrintHY,' +
-          'L_HYDan, L_EmptyOut, L_LadeTime From $Bill b ';
+          'L_HYDan, L_IsEmpty, L_LadeTime From $Bill b ';
   //xxxxx
 
   if nIsBill then
@@ -1785,7 +1746,7 @@ begin
 
       FPData.FValue := FieldByName('L_PValue').AsFloat;
       FMData.FValue := FieldByName('L_MValue').AsFloat;
-      FYSValid      := FieldByName('L_EmptyOut').AsString;
+      FYSValid      := FieldByName('L_IsEmpty').AsString;
       FSelected := True;
 
       Inc(nIdx);
@@ -1948,7 +1909,7 @@ begin
 
       nSQL := MakeSQLByStr([
               SF('P_ID', nOut.FData),
-              SF('P_Type', sFlag_Sale),
+              SF('P_Type', sFlag_SaleSingle),
               SF('P_Bill', FID),
               SF('P_Truck', FTruck),
               SF('P_CusID', FCusID),

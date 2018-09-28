@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameBillCard;
 
+{$I Link.inc}
 interface
 
 uses
@@ -87,6 +88,7 @@ type
     //时间区间
     FQueryHas,FQueryNo: Boolean;
     //查询开关
+    FGL: Boolean;
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     procedure OnLoadGridConfig(const nIni: TIniFile); override;
@@ -155,10 +157,21 @@ end;
 
 procedure TfFrameBillCard.OnInitFormData(var nDefault: Boolean;
   const nWhere: string; const nQuery: TADOQuery);
-var nStr: string;
+var nStr, nType: string;
 begin
   nDefault := False;
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
+
+  {$IFDEF GLlade}
+  FGL := PopedomItem = 'MAIN_N05';
+  if FGL then
+    nType :=  sFlag_SaleSingle
+  else
+    nType := sFlag_Sale;
+  {$ELSE}
+  FGL := False;
+  nType := sFlag_Sale;
+  {$ENDIF}
 
   if FQueryHas then
   begin
@@ -173,7 +186,7 @@ begin
     nStr := nStr + ' And (C_Used=''$Sale'')';
 
     nStr := MacroValue(nStr, [MI('$BC', sTable_Card),
-            MI('$Bill', sTable_Bill), MI('$Sale', sFlag_Sale),
+            MI('$Bill', sTable_Bill), MI('$Sale', nType),
             MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
     FDM.QueryData(SQLQuery, nStr);
   end;
@@ -185,9 +198,20 @@ begin
        nStr := nStr + ' And (L_Date>=''$S'' and L_Date<''$End'')'
   else nStr := nStr + ' And (' + FWhereNo + ')';
 
+  {$IFDEF GLlade}
+  if FGL then
+    nStr := nStr + 'And L_CardUsed = ''$CU'''
+  else
+    nStr := nStr + 'And (L_CardUsed <> ''$CU'' or L_CardUsed is null)';
+
+  nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill),
+          MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1)),
+        MI('$CU', sFlag_SaleSingle)]);
+  {$ELSE}
   nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill),
           MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx
+  {$ENDIF}
 
   FDM.QueryData(SQLNo1, nStr);
 end;
@@ -212,12 +236,14 @@ end;
 
 //Desc: 办理
 procedure TfFrameBillCard.BtnAddClick(Sender: TObject);
-var nBill,nTruck: string;
+var nBill,nTruck,nCardType: string;
+    nRet: Boolean;
 begin
   if BtnAdd.Enabled then
   begin
     nBill := '';
     nTruck := '';
+    nCardType := '';
   end else Exit;
 
   if cxGrid1.ActiveView = cxView2 then
@@ -229,9 +255,17 @@ begin
 
     nBill := SQLNo1.FieldByName('L_ID').AsString;
     nTruck := SQLNo1.FieldByName('L_Truck').AsString;
+    {$IFDEF GLlade}
+    nCardType := SQLNo1.FieldByName('L_CardUsed').AsString;
+    {$ENDIF}
   end;
 
-  if SetBillCard(nBill, nTruck, False) then
+  if nCardType = sFlag_SaleSingle then
+    nRet := SetBillCard(nBill, nTruck, False, sFlag_SaleSingle)
+  else
+    nRet := SetBillCard(nBill, nTruck, False);
+
+  if nRet then
   begin
     FQueryNo := cxGrid1.ActiveView = cxView2;
     FQueryHas := True;
@@ -471,12 +505,23 @@ end;
 
 //Desc: 补办磁卡
 procedure TfFrameBillCard.N11Click(Sender: TObject);
-var nBill,nTruck: string;
+var nBill,nTruck,nCardType: string;
+    nRet: Boolean;
 begin
   nBill := SQLQuery.FieldByName('L_ID').AsString;
   nTruck := SQLQuery.FieldByName('L_Truck').AsString;
 
-  if SetBillCard(nBill, nTruck, False) then
+  nCardType := '';
+  {$IFDEF GLlade}
+  nCardType := SQLNo1.FieldByName('L_CardUsed').AsString;
+  {$ENDIF}
+
+  if nCardType = sFlag_SaleSingle then
+    nRet := SetBillCard(nBill, nTruck, False, sFlag_SaleSingle)
+  else
+    nRet := SetBillCard(nBill, nTruck, False);
+
+  if nRet then
   begin
     InitFormData(FWhere);
     ShowMsg('补卡操作成功', sHint);

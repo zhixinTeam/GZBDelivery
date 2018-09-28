@@ -94,6 +94,7 @@ ResourceString
   sFlag_Returns       = 'R';                         //退货
   sFlag_DuanDao       = 'D';                         //短倒(First=>Second)
   sFlag_Other         = 'O';                         //其它
+  sFlag_SaleSingle    = 'E';                         //销售(单厂)
   
   sFlag_TiHuo         = 'T';                         //自提
   sFlag_SongH         = 'S';                         //送货
@@ -264,6 +265,7 @@ ResourceString
   sFlag_TransBase     = 'Bus_TransBase';             //短倒申请单号
   sFlag_Transfer      = 'Bus_Transfer';              //短倒单号
   sFlag_PurchaseContract  = 'Bus_PurchaseContract';  //采购合同单号
+  sFlag_BillNoSingle  = 'Bus_BillSingle';            //交货单号(单厂)
 
   sFlag_VerifyFQValue = 'VerifyFQValue';             //禁止封签号超发
 
@@ -769,6 +771,7 @@ const
        'L_OutFact DateTime,L_OutMan varChar(32),' +
        'L_Lading Char(1),L_IsVIP Char(1),L_Seal varChar(100),' +
        'L_HYDan varChar(32),L_PrintHY Char(1),L_Man varChar(32),L_Date DateTime,' +
+       'L_Order varChar(20),' +
        'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500))';
   {-----------------------------------------------------------------------------
    交货单表: Bill
@@ -807,6 +810,7 @@ const
    *.L_DelMan: 交货单删除人员
    *.L_DelDate: 交货单删除时间
    *.L_Memo: 动作备注
+   *.L_Order: 订单号(备用)(单厂)
   -----------------------------------------------------------------------------}
 
   sSQL_NewBillHK = 'Create Table $Table(R_ID $Inc, H_Bill varChar(20),' +
@@ -1783,7 +1787,7 @@ const
 // 数据查询
 //------------------------------------------------------------------------------
   sQuery_SysDict = 'Select D_ID, D_Value, D_Memo, D_ParamA, ' +
-         'D_ParamB From $Table Where D_Name=''$Name'' Order By D_Index ASC';
+         'D_ParamB, D_Index From $Table Where D_Name=''$Name'' Order By D_Index ASC';
   {-----------------------------------------------------------------------------
    从数据字典读取数据
    *.$Table:数据字典表

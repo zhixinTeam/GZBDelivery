@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameQuerySaleDetail;
 
+{$I Link.inc}
 interface
 
 uses
@@ -52,7 +53,8 @@ type
     FTimeS,FTimeE: TDate;
     //时间区间
     FJBWhere: string;
-    //交班条件 
+    //交班条件
+    FGL: Boolean;
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     function FilterColumnField: string; override;
@@ -110,9 +112,22 @@ begin
   end;
 
   Result := Result + ' And L_OutFact is not NULL';
+
+  {$IFDEF GLlade}
+  FGL := PopedomItem = 'MAIN_N04';
+  if FGL then
+    Result := Result + ' And L_CardUsed = ''$CU'''
+  else
+    Result := Result + ' And (L_CardUsed <> ''$CU'' or L_CardUsed is null)';
+
+  Result := MacroValue(Result, [MI('$Bill', sTable_Bill),
+        MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1)),
+        MI('$CU', sFlag_SaleSingle)]);
+  {$ELSE}
   Result := MacroValue(Result, [MI('$Bill', sTable_Bill),
             MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);
   //xxxxx
+  {$ENDIF}
 end;
 
 //Desc: 过滤字段

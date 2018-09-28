@@ -399,7 +399,9 @@ begin
   if FCardUsed=sFlag_DuanDao then
      nRet := GetDuanDaoItems(nCard, sFlag_TruckBFP, nBills) else
   if FCardUsed=sFlag_Sale then
-     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else nRet := False;
+     nRet := GetLadingBills(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_SaleSingle then
+     nRet := GetLadingBillsSingle(nCard, sFlag_TruckBFP, nBills) else nRet := False;
 
   if (not nRet) or (Length(nBills) < 1) then
   begin
@@ -1162,7 +1164,7 @@ begin
       ShowMsg('请先称量皮重', sHint);
       Exit;
     end;
-    
+
     nNet := GetTruckEmptyValue(FUIData.FTruck);
     nVal := nNet * 1000 - FUIData.FPData.FValue * 1000;
 
@@ -1234,16 +1236,19 @@ begin
           nStr := nStr + #13#10#13#10 + '是否继续保存?';
           nStr := Format(nStr, [FTruck, FInnerData.FValue, nNet, nVal]);
           if not QueryDlg(nStr, sAsk) then Exit;
-        end;  
+        end;
       end;
 
       FUIData.FMemo := '';
       FUIData.FKZValue := 0;
       //初始化补单数据
 
-      if (nVal > 0) and (FType = sFlag_San) and (not VerifySanValue(nNet)) then
-        Exit;
-      //散装净重超过开单量时,验证是否发超
+      if FCardUsed <> sFlag_SaleSingle then
+      begin
+        if (nVal > 0) and (FType = sFlag_San) and (not VerifySanValue(nNet)) then
+          Exit;
+        //散装净重超过开单量时,验证是否发超
+      end;
     end;
   end;
 
@@ -1272,7 +1277,10 @@ begin
 
     FPoundID := sFlag_Yes;
     //标记该项有称重数据
-    Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
+    if FCardUsed = sFlag_SaleSingle then
+      Result := SaveLadingBillsSingle(FNextStatus, FBillItems, FPoundTunnel)
+    else
+      Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
     //保存称重
   end;
 end;
@@ -1280,7 +1288,7 @@ end;
 //Desc: 保存称重
 procedure TfFrameManualPoundItem.BtnSaveClick(Sender: TObject);
 var nBool: Boolean;
-begin  
+begin
   {$IFDEF MITTruckProber}
     if not IsTunnelOK(FPoundTunnel.FID) then
   {$ELSE}
@@ -1300,7 +1308,8 @@ begin
     BtnSave.Enabled := False;
     ShowWaitForm(ParentForm, '正在保存称重', True);
     
-    if (Length(FBillItems) > 0) and (FCardUsed=sFlag_Sale) then
+    if (Length(FBillItems) > 0) and (
+    (FCardUsed=sFlag_Sale) or (FCardUsed=sFlag_SaleSingle)) then
          nBool := SavePoundSale
     else nBool := SavePoundData;
 
