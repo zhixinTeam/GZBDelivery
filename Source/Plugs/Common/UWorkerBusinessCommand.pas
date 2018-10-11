@@ -2078,7 +2078,7 @@ begin
         '  Z_Customer,' +                       //客户编号
         '  Z_Name,' +                           //客户名称
         '  Z_Lading,' +                         //提货方式
-        '  Z_CID ' +                            //合同编号
+        '  Z_CID, ' +                            //合同编号
         '  Z_FixedMoney ' +                     //限提金额
         'from %s a join %s b on a.Z_ID = b.D_ZID ' +
         'where Z_Verified=''%s'' and (Z_InValid<>''%s'' or Z_InValid is null) '+

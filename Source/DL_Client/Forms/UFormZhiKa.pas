@@ -4,7 +4,6 @@
 *******************************************************************************}
 unit UFormZhiKa;
 
-{$I Link.inc}
 interface
 
 uses
@@ -28,7 +27,7 @@ type
     FContract: string;
     FIsXuNi: Boolean;
     FIsValid: Boolean;
-
+    
     FSaleMan: string;
     FSaleName: string;
     FSalePY: string;
@@ -97,7 +96,6 @@ type
     FZhiKa: TZhiKaItem;
     FStockList: array of TStockItem;
     //纸卡信息
-    FCusValidMoney, FZKTotalMoney, FZKNowMoney: Double;
     function OnVerifyCtrl(Sender: TObject; var nHint: string): Boolean; override;
     //基类方法
     procedure InitFormData(const nID: string);
@@ -208,10 +206,6 @@ begin
 
   FItemIndex := -1;
   AdjustCtrlData(Self);
-  {$IFDEF GlLade}
-  Check1.Visible := False;
-  Check1.Checked := False;
-  {$ENDIF}
 end;
 
 procedure TfFormZhiKa.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -278,7 +272,7 @@ begin
 
       EditName.Text := FieldByName('Z_Name').AsString;
       SetLength(nDStr, 4);
-
+      
       nDStr[0] := FieldByName('Z_Project').AsString;
       nDStr[1] := FieldByName('Z_Lading').AsString;
       nDStr[2] := FieldByName('Z_Payment').AsString;
@@ -412,7 +406,6 @@ var nMoney: Double;
 begin
   nNum := 0;
   nMoney := 0;
-  FZKNowMoney := 0;
   dxGroup2.Caption := '办理明细';
 
   for nIdx:=Low(FStockList) to High(FStockList) do
@@ -421,8 +414,6 @@ begin
     Inc(nNum);
     nMoney := nMoney + FStockList[nIdx].FPrice * FStockList[nIdx].FValue;
   end;
-
-  FZKNowMoney := nMoney;
 
   if nNum > 0 then
     dxGroup2.Caption := dxGroup2.Caption +
@@ -439,7 +430,7 @@ begin
   begin
     EditCID.Text := nCID; Exit;
   end else FZhiKa.FIsValid := False;
-
+  
   nStr := 'Select sc.*,sm.S_Name,sm.S_PY,cus.C_Name as CusName,' +
           '$Now as S_Now From $SC sc' +
           ' Left Join $SM sm On sm.S_ID=sc.C_SaleMan' +
@@ -753,44 +744,15 @@ begin
     else nCID := SaveXuNiCustomer(EditCustom.Text, GetCtrlData(EditSMan));
   end else nCID := FZhiKa.FCustomer;
 
-  nStr := 'Select * From %s Where A_CID=''%s''';
-  nStr := Format(nStr, [sTable_CusAccount, nCID]);
-
-  with FDM.QueryTemp(nStr) do
-  if RecordCount > 0 then
+  if FRecordID = '' then
   begin
-    FCusValidMoney := FieldByName('A_InMoney').AsFloat;
-  end
-  else
-    FCusValidMoney := 0;
+    nParam.FCommand := cCmd_EditData;
+    nParam.FParamA := nCID;
+    CreateBaseFormItem(cFI_FormZhiKaAdjust, '', @nParam);
 
-  FZKTotalMoney := 0;
-  nStr := 'Select Sum(D_Price*D_Value) as D_Money From $DT dt ' +
-          ' Left Join $ZK zk On zk.Z_ID=dt.D_ZID' +
-          ' Where zk.Z_Customer=''$ID'' And zk.Z_Verified=''$ZV''';
-
-  if FRecordID <> '' then//除去当前纸卡金额
-  begin
-    nStr := nStr + ' And zk.Z_ID <> ''$ZD'''
-  end;
-
-  nStr := MacroValue(nStr, [MI('$DT', sTable_ZhiKaDtl),
-          MI('$ZK', sTable_ZhiKa),  MI('$ZV', sFlag_Yes),
-          MI('$ID', nCID), MI('$ZD', FRecordID)]);
-  //xxxxx
-
-  with FDM.QuerySQL(nStr) do
-  if RecordCount > 0 then
-  begin
-    FZKTotalMoney := Fields[0].AsFloat;
-  end;
-  FZKTotalMoney := FZKTotalMoney + FZKNowMoney;
-
-  if FZKTotalMoney > FCusValidMoney then
-  begin
-    nStr := '客户[%s]纸卡总金额[%.2f],入金金额[%.2f],请缩减开单量.';
-    nStr := Format(nStr,[nCID, FZKTotalMoney, FCusValidMoney]);
-    ShowMsg(nStr, sError); Exit;
+    if (nParam.FCommand <> cCmd_ModalResult) or (nParam.FParamA <> mrOK) then
+      Exit;
+    //旧卡校正没有完成
   end;
 
   nList := TStringList.Create;
@@ -805,7 +767,7 @@ begin
     nList.Add(Format('Z_SaleMan=''%s''', [nStr]));
     nList.Add(Format('Z_CID=''%s''', [FZhiKa.FContract]));
     nList.Add(Format('Z_Project=''%s''', [Trim(EditPName.Text)]));
-
+    
     nList.Add(Format('Z_Payment=''%s''', [EditPayment.Text]));
     nList.Add(Format('Z_Lading=''%s''', [GetCtrlData(EditLading)]));
     nList.Add(Format('Z_ValidDays=''%s''', [Date2Str(EditDays.Date)]));

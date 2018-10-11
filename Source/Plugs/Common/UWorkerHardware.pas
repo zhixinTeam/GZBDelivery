@@ -76,6 +76,10 @@ type
     //获取通道信息
     function OpenDoorByReader(var nData: string): Boolean;
     //通过读卡器打开道闸
+    function ShowLedText(var nData: string): Boolean;
+    //定制放灰调用小屏显示
+    function LineClose(var nData: string): Boolean;
+    //定制放灰
   public
     constructor Create; override;
     destructor destroy; override;
@@ -877,6 +881,28 @@ begin
 
   if Trim(nReader) <> '' then
     gHYReaderManager.OpenDoor(Trim(nReader));
+end;
+
+function THardwareCommander.ShowLedText(var nData: string): Boolean;
+var
+  nTunnel, nStr:string;
+begin
+  nTunnel := FIn.FData;
+  nStr := fin.FExtParam;
+  gERelayManager.ShowTxt(nTunnel, nStr);
+  Result := True;
+end;
+
+function THardwareCommander.LineClose(var nData: string): Boolean;
+var
+  nTunnel:string;
+begin
+  nTunnel := FIn.FData;
+  if FIn.FExtParam = sFlag_No then
+    gERelayManager.LineOpen(nTunnel)
+  else
+    gERelayManager.LineClose(nTunnel);
+  Result := True;
 end;
 
 initialization
