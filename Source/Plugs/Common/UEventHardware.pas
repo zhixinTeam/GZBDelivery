@@ -37,7 +37,7 @@ uses
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
   UMgrERelay,   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
   UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp, UMgrRFID102, UMgrVoiceNet,
-  UMgrTTCEM100, UMgrTTCEK720;
+  UMgrTTCEM100, UMgrTTCEK720, UMgrTTCEDispenser;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
 begin
@@ -122,12 +122,21 @@ begin
     end;
 
     {$IFDEF PurELabelAutoCard}
-    nStr := 'K720网络发卡机';
-    if not Assigned(gK720ReaderManager) then
-    begin
-      gK720ReaderManager := TK720ReaderManager.Create;
-      gK720ReaderManager.LoadConfig(nCfg + cTTCE_K720_Config);
-    end;
+      {$IFDEF UseTTCEDispenser}
+      nStr := 'K720网络发卡机(新版驱动)';
+      if not Assigned(gDispenserManager) then
+      begin
+        gDispenserManager := TDispenserManager.Create;
+        gDispenserManager.LoadConfig(nCfg + 'TTCE_K720.xml');
+      end;
+      {$ELSE}
+      nStr := 'K720网络发卡机';
+      if not Assigned(gK720ReaderManager) then
+      begin
+        gK720ReaderManager := TK720ReaderManager.Create;
+        gK720ReaderManager.LoadConfig(nCfg + cTTCE_K720_Config);
+      end;
+      {$ENDIF}
     {$ENDIF}
   except
     on E:Exception do
@@ -227,11 +236,19 @@ begin
   {$ENDIF}
 
   {$IFDEF PurELabelAutoCard}
-  if Assigned(gK720ReaderManager) then
-  begin
-    gK720ReaderManager.OnCardProc := WhenTTCE_K720_ReadCard;
-    gK720ReaderManager.StartReader;
-  end;
+    {$IFDEF UseTTCEDispenser}
+    if Assigned(gDispenserManager) then
+    begin
+      gDispenserManager.OnCardProc := WhenTTCE_K720_ReadCardByTTCEDispenser;
+      gDispenserManager.StartDispensers;
+    end;
+    {$ELSE}
+    if Assigned(gK720ReaderManager) then
+    begin
+      gK720ReaderManager.OnCardProc := WhenTTCE_K720_ReadCard;
+      gK720ReaderManager.StartReader;
+    end;
+    {$ENDIF}
   {$ENDIF}
 end;
 
@@ -291,7 +308,11 @@ begin
   {$ENDIF}
 
   {$IFDEF PurELabelAutoCard}
-  gK720ReaderManager.StopReader;
+    {$IFDEF UseTTCEDispenser}
+    gDispenserManager.StopDispensers;
+    {$ELSE}
+    gK720ReaderManager.StopReader;
+    {$ENDIF}
   {$ENDIF}
 end;
 

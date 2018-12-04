@@ -94,7 +94,7 @@ implementation
 uses
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
   UMgrHardHelper, UMgrCodePrinter, UMgrQueue, UTaskMonitor,
-  UMgrTruckProbe;
+  UMgrTruckProbe, UMgrERelay;
 
 //Date: 2012-3-13
 //Parm: 如参数护具

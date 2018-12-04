@@ -13,11 +13,16 @@ uses
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
   UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
-  UMgrTTCEK720, UMgrVoiceNet;
+  UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser;
 
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
+
+procedure WhenTTCE_K720_ReadCardByTTCEDispenser(const nItem: PDispenserItem);
+//处理网络自动发卡(新版驱动)
+function DoTTCEDispenserIssCard(const nItem: PDispenserItem): Boolean;
+//电子标签发卡(新版驱动)
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
 //有新卡号到达读头
@@ -1286,9 +1291,10 @@ begin
   gNetVoiceHelper.PlayVoice(nText);
 end;
 
-function SavePurchBillAutoOutCard(const nCard, nECard, nTunnel: string):Boolean;
+function SavePurchBillAutoOutCard(const nCard, nECard, nTunnel: string;
+                                  const nID: string = ''):Boolean;
 var
-  nTruck, nStr, nStockName :string;
+  nTruck, nStr, nStockName, nHint :string;
   nLen, nIdx: Integer;
   nWebOrderItem: TPurWebOrderItems;
   nList: TStrings;
@@ -1391,11 +1397,15 @@ begin
     if nRet then
     begin
       WriteHardHelperLog('    ' + nCard + '准备发卡');
+      {$IFDEF UseTTCEDispenser}
+      if not gDispenserManager.SendCardOut(nID, nHint) then
+      {$ELSE}
       if not gK720ReaderManager.SendCardOutF(nTunnel) then
+      {$ENDIF}
       begin
         nStr := '车辆%s自动发卡失败';
         nStr := Format(nStr, [nTruck]);
-        WriteHardHelperLog(nStr);
+        WriteHardHelperLog(nStr + ':' + nHint);
         PlayVoice(nStr);
         Exit;
       end;
@@ -1414,6 +1424,7 @@ end;
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 var
   nTruck :string;
+  nItem: PDispenserItem;
 begin
   //{$IFDEF DEBUG}
   WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
@@ -1434,9 +1445,27 @@ begin
     {$IFDEF PurELabelAutoCard}
     if (CompareText('NET', nReader.FOptions.Values['SendCard']) = 0) then
     begin
+      {$IFDEF UseTTCEDispenser}
+      nItem := gDispenserManager.FindDispenser(nReader.FOptions.Values['Dispenser']);
+
+      if Assigned(nItem) then
+      begin
+        nItem.FOptions.Values['ELabelFCard'] := nReader.FCard;
+        nItem.FOptions.Values['ELabelFTunnel'] := nReader.FTunnel;
+        WriteHardHelperLog(Format('华益标签发卡机[ %s ]SendCard %s:%s',
+                                 [nItem.FID, nReader.FCard, nReader.FTunnel]));
+        DoTTCEDispenserIssCard(nItem);
+      end
+      else
+      begin
+        WriteHardHelperLog(Format('华益标签未找到发卡机[ %s ],无法执行发卡业务',
+                                 [nItem.FID]));
+      end;
+      {$ELSE}
       gELabelFCard := nReader.FCard;
       gELabelFTunnel := nReader.FTunnel;
       WriteHardHelperLog(Format('华益标签SendCard %s:%s', [gELabelFCard, gELabelFTunnel]));
+      {$ENDIF}
     end;
     {$ENDIF}
   end else
@@ -1585,6 +1614,100 @@ begin
       gLastTime := GetTickCount;
       gLastECard := gECard;
       gECard := '';
+    end;
+  end;
+end;
+
+
+// 2018-11-28
+//处理网络自动发卡(新版驱动)
+procedure WhenTTCE_K720_ReadCardByTTCEDispenser(const nItem: PDispenserItem);
+var
+  nStr: string;
+begin
+  //{$IFDEF DEBUG}
+  nStr := '网络发卡机'  + nItem.FID + ' ::: ' + nItem.FNowCard;
+  WriteHardHelperLog(nStr);
+  //{$ENDIF}
+end;
+
+// 2018-11-29
+//电子标签自动发卡(新版驱动)
+function DoTTCEDispenserIssCard(const nItem: PDispenserItem): Boolean;
+var
+  nStr, nCard, nECard, nETunnel, nHint: string;
+  nLast, nLastTime: Int64;
+begin
+  Result := False;
+
+  if not Assigned(nItem.FOptions) then
+  begin
+    nStr := '网络发卡机'  + nItem.FID + ' ::: Option节点未配置' ;
+    Exit;
+  end;
+
+  with nItem.FOptions do
+  begin
+    //if Values['ECard'] <> Values['ELabelFCard'] then
+    begin
+      Values['ECard'] := Values['ELabelFCard'];//gELabelItem.FCard;
+      nETunnel := Values['ELabelFTunnel'];//gELabelItem.FTunnel;
+      WriteHardHelperLog(' ::: 上次电子标签：' + Values['LastECard']
+                          + '   当前电子标签：' + Values['ECard']);
+
+      nLastTime := StrToIntDef(Values['LastTime'], 0);
+      nLast := Trunc((GetTickCount - nLastTime) / 1000);
+      WriteHardHelperLog(' ::: 间隔时长：' + IntToStr(nLast) + 's');
+
+      if (Values['ECard'] = Values['LastECard']) and (nLastTime <> 0) and (nLast < 300) then
+      begin
+        WriteHardHelperLog(' ::: 电子标签'+Values['ECard']+'读取间隔时间小于300s');
+        Values['LastECard'] := Values['ECard'];
+        Values['ELabelFCard'] := '';
+        Values['ECard'] := '';
+        Exit;
+      end;
+
+      nCard := gDispenserManager.GetCardNo(nItem.FID, nHint, False);
+
+      if nCard = '' then
+      begin
+        nStr := '网络发卡机'  + nItem.FID + ' ::: 读取卡号失败,' + nHint;
+        WriteHardHelperLog(nStr);
+        PlayVoice('读取卡号失败');
+        Exit;
+      end;
+
+      if (nCard = Values['LastTCard']) and (Values['ECard'] <> Values['LastECard']) then
+      begin
+        WriteHardHelperLog(' ::: 电子标签'+Values['ECard']+'当前卡号'+
+                           nCard + '与上次办卡成功卡号' + Values['LastTCard']+
+                           '一致,业务终止');
+        Exit;
+      end;
+
+      if not CheckCardOK(nCard, nStr) then
+      begin
+        WriteHardHelperLog(' ::: ' + nStr);
+        PlayVoice(nStr);
+        if gDispenserManager.RecoveryCard(nItem.FID, nHint) then
+          WriteHardHelperLog(' ::: 磁卡' + nCard + '回收完毕');
+        Exit;
+      end;
+
+      if not SavePurchBillAutoOutCard(nCard, Values['ECard'], nETunnel, nItem.FID) then
+      begin
+        WriteHardHelperLog(' ::: 通道[' + nETunnel + ']ELabel: [' + Values['ECard'] + ']保存失败！');
+        Values['LastTime'] := IntToStr(GetTickCount);
+        Values['LastECard'] := Values['ECard'];
+        Values['ECard'] := '';
+        Exit;
+      end;
+      WriteHardHelperLog(' ::: 电子标签'+Values['ECard']+'业务完毕');
+      Values['LastTime'] := IntToStr(GetTickCount);;
+      Values['LastECard'] := Values['ECard'];
+      Values['LastTCard'] := nCard;
+      Values['ECard'] := '';
     end;
   end;
 end;

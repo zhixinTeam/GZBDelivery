@@ -50,8 +50,44 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBZX}
+{$DEFINE GZBSZ}
 //特定系统
+
+//葛洲坝老河口
+{$IFDEF GZBLHK}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE SyncRemote}
+  //远程同步
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE MicroMsg}
+  //微信支持
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
+  {.$DEFINE ERROPENONEDOOR}
+  //过磅失败倒车下磅
+  {$DEFINE MultiOrderOfTruck}
+  //允许车辆办理多张采购单
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
+  {$DEFINE EnableWebMall}
+  //使用网上商城
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
+  {$DEFINE TruckParkReady}
+  //验证车辆是否在停车场
+  {$DEFINE PurELabelAutoCard}
+  //采购电子标签自动发卡
+  {$DEFINE MultiReplay}
+  //JSQ应答模式
+  {$DEFINE MITTruckProber}
+  //服务器操作车检
+{$ENDIF}
 
 //葛洲坝兴山
 {$IFDEF GZBXS}
@@ -99,6 +135,8 @@
   //过磅失败向门岗播报语音
   {$DEFINE SpecifyCk}
   //指定仓库
+  {$DEFINE DeleteBillOnlyLocal}
+  //删除本地交货单时不再同步云天
 {$ENDIF}
 
 //葛洲坝松滋
@@ -131,6 +169,8 @@
   //验证车辆是否在停车场
   {$DEFINE PurELabelAutoCard}
   //采购电子标签自动发卡
+  {$DEFINE UseTTCEDispenser}
+  //新版发卡驱动
 {$ENDIF}
 
 //葛洲坝荆门
@@ -211,5 +251,7 @@
   //骨料发运
   {$DEFINE SaveEmptyTruck}
   //空车出厂保存净重为0
+  {$DEFINE DeleteBillOnlyLocal}
+  //删除本地交货单时不再同步云天
 {$ENDIF}
 

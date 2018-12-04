@@ -30,6 +30,7 @@ type
     procedure ListQueryDblClick(Sender: TObject);
   private
     { Private declarations }
+    FCusNo, FStockNo: string;
     function QueryData: Boolean;
     //查询数据
     procedure GetResult;
@@ -66,6 +67,8 @@ begin
   try
     gCementData.Text := nP.FParamA;
     EditCus.Text := gCementData.Values['XCB_CementName'];
+    FCusNo := gCementData.Values['XCB_Client'];
+    FStockNo := gCementData.Values['XCB_Cement'];
 
     Caption := '选择批次';
     dxLayout1Item5.Caption := '批次号选择';
@@ -121,9 +124,16 @@ function TfFormGetYTBatch.QueryData: Boolean;
 var nStr: string;
     nIdx: Integer;
     nListA, nListB: TStrings;
+    nCK: string;
 begin
   Result := False;
   ListQuery.Items.Clear;
+
+  nCK := '';
+  {$IFDEF SpecifyCk}
+  GetCusSpecialSet(FCusNo, FStockNo, nCk);
+  {$ENDIF}
+
   gCementData.Text := YT_GetBatchCode(gCementData);
 
   nListA := TStringList.Create;
@@ -133,16 +143,23 @@ begin
     if nListA.Count < 1 then Exit;
 
     for nIdx := 0 to nListA.Count - 1 do
-    with ListQuery.Items.Add do
     begin
       nListB.Text := PackerDecodeStr(nListA[nIdx]);
+      if nCK <> '' then
+      begin
+        if nCK <> nListB.Values['XCB_OutASH'] then
+          Continue;
+      end;
+      with ListQuery.Items.Add do
+      begin
 
-      Caption := gCementData.Values['XCB_Cement'];
-      SubItems.Add(nListB.Values['XCB_CementCode']);
-      SubItems.Add(nListB.Values['XCB_CementValue']);
-      SubItems.Add(nListB.Values['XCB_OutASH']);
-      SubItems.Add(nListB.Values['XCB_CementCodeID']);
-      ImageIndex := cItemIconIndex;
+        Caption := gCementData.Values['XCB_Cement'];
+        SubItems.Add(nListB.Values['XCB_CementCode']);
+        SubItems.Add(nListB.Values['XCB_CementValue']);
+        SubItems.Add(nListB.Values['XCB_OutASH']);
+        SubItems.Add(nListB.Values['XCB_CementCodeID']);
+        ImageIndex := cItemIconIndex;
+      end;
     end;
 
   finally
@@ -170,6 +187,7 @@ begin
   begin
     gCementData.Values['XCB_CementCode'] := SubItems[0];
     gCementData.Values['XCB_CementCodeID'] := SubItems[3];
+    gCementData.Values['XCB_CementValue'] := SubItems[1];
   end;
 end;
 

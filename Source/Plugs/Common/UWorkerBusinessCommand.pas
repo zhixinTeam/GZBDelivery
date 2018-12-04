@@ -2959,11 +2959,11 @@ begin
         First;
         //init cursor
 
-        if nBills[nIdx].FValue<=0 then Continue;
+        {if nBills[nIdx].FValue<=0 then Continue;
         //发货量为0
 
         if nBills[nIdx].FYSValid = sFlag_Yes then Continue;
-        //空车出厂
+        //空车出厂 }//空车出厂继续上传用以更新云天发货量
 
         while not Eof do
         begin
@@ -4033,10 +4033,18 @@ begin
 
         if FIn.FExtParam = sFlag_BillDel then
         begin
+          {$IFDEF DeleteBillOnlyLocal}
+          nSQL := SF('XLB_ID', nBills[nIdx].FYTID);
+          nSQL := MakeSQLByStr([
+                  SF('XLB_Del', '0'),
+                  SF('XLB_FactNum', '0', sfVal)
+                  ], 'XS_Lade_Base', nSQL, False);
+          {$ELSE}
           nSQL := SF('XLB_ID', nBills[nIdx].FYTID);
           nSQL := MakeSQLByStr([
                   SF('XLB_Del', '1')
                   ], 'XS_Lade_Base', nSQL, False);
+          {$ENDIF}
           FListA.Add(nSQL + ';'); //销售提货单表
 
           nSQL := YT_NewInsertLog(nSQL+';', nWorker);

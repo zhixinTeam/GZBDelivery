@@ -237,6 +237,7 @@ begin
     begin
       Values['XCB_CementCode'] := FComentData.Values['XCB_CementCode'];
       Values['XCB_CementCodeID'] := FComentData.Values['XCB_CementCodeID'];
+      Values['XCB_CementValue'] := FComentData.Values['XCB_CementValue'];
     end;
     //批次号
 
@@ -288,9 +289,24 @@ end;
 procedure TfFormBill.BtnOKClick(Sender: TObject);
 var nPrint: Boolean;
     nList,nTmp,nStocks: TStrings;
+    nCK: string;
 begin
   if not IsDataValid then Exit;
   //check valid
+
+  nCK := '';
+  {$IFDEF SpecifyCk}
+  GetCusSpecialSet(FCardData.Values['XCB_Client'], FCardData.Values['XCB_Cement'], nCk);
+  if nCK <> '' then
+  begin
+    if IsNumber(FCardData.Values['XCB_CementValue'], True) and
+    (StrToFloat(FCardData.Values['XCB_CementValue']) < StrToFloat(EditValue.Text)) then
+    begin
+      ShowMsg('特殊客户批次量不足',sHint);
+      Exit;
+    end;
+  end;
+  {$ENDIF}
 
   nStocks := TStringList.Create;
   nList := TStringList.Create;

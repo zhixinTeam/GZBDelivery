@@ -368,6 +368,9 @@ function SaveLadingBillsSingle(const nPost: string; const nData: TLadingBillItem
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的交货单
 function IsLocalStock(const nStockNo: string): Boolean;
+function GetCusSpecialSet(const nCusID, nStockNo: string;
+                          var nCk: string): Boolean;
+//获取客户特殊设定
 //-----------------------------------------------------------------
 
 implementation
@@ -3337,6 +3340,27 @@ begin
     if RecordCount>0 then
     begin
       Result := True;
+    end;
+  end;
+end;
+
+//Desc: 获取客户特殊设定
+function GetCusSpecialSet(const nCusID, nStockNo: string;
+                          var nCk: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+  nCk := '';
+
+  nStr := 'Select * From %s Where M_CusID like ''%s'' and M_StockNo = ''%s'' ';
+  nStr := Format(nStr, [sTable_YT_CusBatMap, nCusID, nStockNo]);
+
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      nCk := Trim(FieldByName('M_Ck').AsString);
+      Result := FieldByName('M_IsVip').AsString = sFlag_TypeVIP;
     end;
   end;
 end;
