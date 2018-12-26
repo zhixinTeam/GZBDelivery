@@ -511,7 +511,8 @@ begin
   begin
     nOutFact := FormatDateTime('yyyyƒÍmm‘¬dd»’',SQLQuery.FieldByName('L_OutFact').AsDateTime);
     PrintHuaYanReport(SQLQuery.FieldByName('L_HYDan').AsString,
-      SQLQuery.FieldByName('L_StockName').AsString, nOutFact, True);
+      SQLQuery.FieldByName('L_StockName').AsString, nOutFact,
+      SQLQuery.FieldByName('L_ID').AsString, True);
   end;
 end;
 

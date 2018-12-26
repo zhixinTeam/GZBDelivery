@@ -29,7 +29,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object BtnCancel: TSpeedButton
         StyledSettings = [Family, Style, FontColor]
         Position.X = 192.000000000000000000
-        Position.Y = 392.000000000000000000
+        Position.Y = 384.000000000000000000
         Size.Width = 73.000000000000000000
         Size.Height = 48.000000000000000000
         Size.PlatformDefault = False
@@ -40,7 +40,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object BtnOK: TSpeedButton
         StyledSettings = [Family, Style, FontColor]
         Position.X = 72.000000000000000000
-        Position.Y = 392.000000000000000000
+        Position.Y = 384.000000000000000000
         Size.Width = 73.000000000000000000
         Size.Height = 48.000000000000000000
         Size.PlatformDefault = False
@@ -166,7 +166,7 @@ inherited FrmShowOrderInfo: TFrmShowOrderInfo
       object CheckBox1: TCheckBox
         StyledSettings = [Family, Style, FontColor]
         Position.X = 8.000000000000000000
-        Position.Y = 344.000000000000000000
+        Position.Y = 338.000000000000000000
         Size.Width = 265.000000000000000000
         Size.Height = 33.000000000000000000
         Size.PlatformDefault = False

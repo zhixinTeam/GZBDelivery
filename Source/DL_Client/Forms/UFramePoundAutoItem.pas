@@ -1146,6 +1146,27 @@ begin
     end;
   end;
 
+  if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) and
+     (FUIData.FYSValid = sFlag_Yes) then //出厂模式,过重车
+  with FUIData do
+  begin
+    nNet := FUIData.FMData.FValue - FUIData.FPData.FValue;
+    nNet := Trunc(nNet * 1000);
+    //净重
+
+    if nNet > 0 then
+    if nNet > gSysParam.FEmpTruckWc then
+    begin
+      nVal := nNet - gSysParam.FEmpTruckWc;
+      nStr := '车辆[n1]%s[p500]空车出厂超差[n2]%.2f公斤,请司机联系司磅管理员检查车厢';
+      nStr := Format(nStr, [FBillItems[0].FTruck, Float2Float(nVal, cPrecision, True)]);
+      WriteSysLog(nStr);
+      PlayVoice(nStr);
+      Exit;
+    end;
+    FUIData.FMData.FValue := FUIData.FPData.FValue;
+  end;
+
   with FBillItems[0] do
   begin
     FPModel := FUIData.FPModel;

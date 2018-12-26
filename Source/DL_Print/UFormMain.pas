@@ -353,7 +353,7 @@ begin
     nField := FindField('L_PrintHY');
     if Assigned(nField) and (nField.AsString <> sFlag_Yes) then
     begin
-      nHint := '交货单[ %s ]无需打印合格证.';
+      nHint := '交货单[ %s ]无需打印化验单.';
       nHint := Format(nHint, [nBill]);
       Exit;
     end;
@@ -372,8 +372,8 @@ begin
     Exit;
   end;
 
-  nStr := 'Select OutFact=''%s'',* From %s Where Paw_Analy=''%s''';
-  nStr := Format(nStr, [nOF, sTable_YT_Batchcode, nHY]);
+  nStr := 'Select OutFact=''%s'', * From %s a , %s b Where a.PAW_Analy = b.L_HYDan and b.L_ID=''%s''';
+  nStr := Format(nStr, [nOF, sTable_YT_Batchcode, sTable_Bill, nBill]);
 
   if FDM.SQLQuery(nStr, FDM.SqlTemp).RecordCount < 1 then
   begin
@@ -396,6 +396,20 @@ function PrintHeGeReport(const nBill: string; var nHint: string;
  const nPrinter: string = ''): Boolean;
 var nStr: string;
 begin
+  nHint := '';
+  Result := False;
+
+  nStr := 'Select * From %s ' +
+          'Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, nBill]);
+
+  if FDM.SQLQuery(nStr, FDM.SqlTemp).RecordCount < 1 then
+  begin
+    nHint := '交货单[ %s ]已无效';
+    nHint := Format(nHint, [nBill]);
+    Exit;
+  end;
+
   nStr := gPath + 'Report\HeGeZheng.fr3';
   if not FDR.LoadReportFile(nStr) then
   begin

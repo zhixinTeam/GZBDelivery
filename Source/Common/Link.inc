@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE GZBLHK}
 //特定系统
 
 //葛洲坝老河口
@@ -87,6 +87,24 @@
   //JSQ应答模式
   {$DEFINE MITTruckProber}
   //服务器操作车检
+  {$DEFINE SaveEmptyTruck}
+  //空车出厂保存净重为0
+  {$DEFINE AllowMultiM}
+  //允许多次过重车
+  {$DEFINE SpecifyCk}
+  //指定仓库
+  {$DEFINE TruckAutoIn}
+  //车辆自动进厂
+  {$DEFINE PurAutoOutByStokNo}
+  //采购车辆根据物料号自动出厂
+  {$DEFINE GlLade}
+  //骨料发运
+  {$DEFINE PrintHYEach}
+  //随车开化验单
+  {$DEFINE PrintHuaYanDan}
+  //打印化验单
+  {$DEFINE PrintHeGeZheng}
+  //打印合格证
 {$ENDIF}
 
 //葛洲坝兴山

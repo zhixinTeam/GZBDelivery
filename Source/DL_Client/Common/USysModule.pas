@@ -184,6 +184,9 @@ begin
 
       if nStr = sFlag_PSanWuChaF then
         gSysParam.FPoundSanF := Fields[0].AsFloat;
+
+      if nStr = sFlag_PEmpTWuCha then
+        gSysParam.FEmpTruckWc := Fields[0].AsFloat;
       Next;
     end;
 

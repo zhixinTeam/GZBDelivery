@@ -293,7 +293,7 @@ function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
 //打印榜单
 function PrintDuanDaoReport(const nID: string; nAsk: Boolean): Boolean;
 //打印短倒单
-function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
+function PrintHuaYanReport(const nHID, nStockName,nOutFact,nLID: string;
   const nAsk: Boolean): Boolean;
 function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 //化验单,合格证
@@ -2487,7 +2487,7 @@ begin
 end;
 
 //Desc: 打印标识为nHID的化验单
-function PrintHuaYanReport(const nHID, nStockName,nOutFact: string;
+function PrintHuaYanReport(const nHID, nStockName,nOutFact,nLID: string;
   const nAsk: Boolean): Boolean;
 var nStr: string;
     nOut: TWorkerBusinessCommand;
@@ -2501,8 +2501,16 @@ begin
 
   if not CallBusinessCommand(cBC_SyncYTBatchCodeInfo, nHID, '', @nOut) then Exit;
 
-  nStr := 'Select OutFact=''%s'',* From %s Where Paw_Analy=''%s''';
-  nStr := Format(nStr, [nOutFact,sTable_YT_Batchcode, nHID]);
+  if nLID = '' then
+  begin
+    nStr := 'Select OutFact=''%s'',* From %s Where Paw_Analy=''%s''';
+    nStr := Format(nStr, [nOutFact,sTable_YT_Batchcode, nHID]);
+  end
+  else
+  begin
+    nStr := 'Select * From %s a , %s b Where a.PAW_Analy = b.L_HYDan and b.L_ID=''%s''';
+    nStr := Format(nStr, [sTable_YT_Batchcode, sTable_Bill, nLID]);
+  end;
 
   if FDM.QueryTemp(nStr).RecordCount < 1 then
   begin

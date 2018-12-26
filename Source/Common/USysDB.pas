@@ -206,7 +206,8 @@ ResourceString
   sFlag_DispatchPound = 'PoundDispatch';             //磅站调度
   sFlag_NOBatchCode   = 'NoBatchcode';               //无需批次号
   sFlag_DaiPercentToZero = 'DaiPercentToZero';       //不统计为发货量的比例
-
+  sFlag_PEmpTWuCha    = 'EmpTruckWuCha';             //空车出厂误差
+  
   sFlag_CommonItem    = 'CommonItem';                //公共信息
   sFlag_CardItem      = 'CardItem';                  //磁卡信息项
   sFlag_AreaItem      = 'AreaItem';                  //区域信息项

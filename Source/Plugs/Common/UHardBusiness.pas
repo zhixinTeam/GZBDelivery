@@ -15,6 +15,18 @@ uses
   UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
   UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser;
 
+type
+
+  PZTBDSet = ^TZTBDSet;
+  TZTBDSet = record
+    FCompensateDai: Integer;
+    FOwnBD: Integer;
+    FLastBD: Integer;
+    FLastPCode: string;
+  end;
+const
+  cSizeZTBDSet       = SizeOf(TZTBDSet);
+
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
@@ -897,9 +909,7 @@ var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
     nTrucks: TLadingBillItems;
-    {$IFDEF PrintBillMoney}
     nOut: TWorkerBusinessCommand;
-    {$ENDIF}
 begin
   {$IFDEF DEBUG}
   WriteHardHelperLog('MakeTruckOut进入.' + ':::Reader [ ' + nReader + ' ] ');
@@ -988,9 +998,29 @@ begin
     else
       nStr := nStr + #7 + nCardType;
     //磁卡类型
+
+    {$IFDEF PrintHYEach}
+    if Trim(FHYDan) <> '' then
+    begin
+      if CallBusinessCommand(cBC_SyncYTBatchCodeInfo, FHYDan,'',@nOut) then
+      begin
+        if nHYPrinter <> '' then
+          nStr := nStr + #6 + nHYPrinter;
+        //化验单打印机
+      end
+      else
+      begin
+        nStr := '车辆[ %s ]单据[ %s ]同步云天化验单[ %s ]信息失败.';
+        nStr := Format(nStr, [FTruck, FID, FHYDan]);
+
+        WriteHardHelperLog(nStr, sPost_Out);
+      end;
+    end;
+    {$ELSE}
     if nHYPrinter <> '' then
       nStr := nStr + #6 + nHYPrinter;
     //化验单打印机
+    {$ENDIF}
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
@@ -1018,9 +1048,7 @@ var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
     nTrucks: TLadingBillItems;
-    {$IFDEF PrintBillMoney}
     nOut: TWorkerBusinessCommand;
-    {$ENDIF}
 begin
   Result := False;
   nCardType := '';
@@ -1108,9 +1136,28 @@ begin
     else
       nStr := nStr + #7 + nCardType;
     //磁卡类型
+    {$IFDEF PrintHYEach}
+    if Trim(FHYDan) <> '' then
+    begin
+      if CallBusinessCommand(cBC_SyncYTBatchCodeInfo, FHYDan,'',@nOut) then
+      begin
+        if nHYPrinter <> '' then
+          nStr := nStr + #6 + nHYPrinter;
+        //化验单打印机
+      end
+      else
+      begin
+        nStr := '车辆[ %s ]单据[ %s ]同步云天化验单[ %s ]信息失败.';
+        nStr := Format(nStr, [FTruck, FID, FHYDan]);
+
+        WriteHardHelperLog(nStr, sPost_Out);
+      end;
+    end;
+    {$ELSE}
     if nHYPrinter <> '' then
       nStr := nStr + #6 + nHYPrinter;
     //化验单打印机
+    {$ENDIF}
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
@@ -1655,7 +1702,7 @@ begin
       WriteHardHelperLog(' ::: 上次电子标签：' + Values['LastECard']
                           + '   当前电子标签：' + Values['ECard']);
 
-      nLastTime := StrToIntDef(Values['LastTime'], 0);
+      nLastTime := StrToInt64Def(Values['LastTime'], 0);
       nLast := Trunc((GetTickCount - nLastTime) / 1000);
       WriteHardHelperLog(' ::: 间隔时长：' + IntToStr(nLast) + 's');
 

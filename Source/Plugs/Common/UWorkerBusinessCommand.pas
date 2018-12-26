@@ -2860,6 +2860,11 @@ begin
         FValue      := FieldByName('L_Value').AsFloat;
         FYSValid    := FieldByName('L_IsEmpty').AsString;
 
+        {$IFDEF SaveEmptyTruck}
+        if FYSValid = sFlag_Yes then
+          FValue := 0;
+        {$ENDIF}
+
         if FListA.IndexOf(FZhiKa) < 0 then
           FListA.Add(FZhiKa);
         //¶©µ¥Ïî

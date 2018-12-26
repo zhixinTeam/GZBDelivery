@@ -56,6 +56,7 @@ type
     FNormal     : Integer;     //正常总装
     FBuCha      : Integer;     //补差总装
     FStarted    : Boolean;     //是否启动
+    FCusName    : string;      //客户名称
   end;
 
   TQueueParam = record

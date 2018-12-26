@@ -1588,9 +1588,22 @@ begin
 
   if FIn.FExtParam = sFlag_TruckBFM then //称量毛重
   begin
+    {$IFDEF PurAutoOutByStokNo}
+    nSQL := 'Select D_Value From %s Where D_Name=''AutoOutStock'' and D_Value=''%s''';
+    nSQL := Format(nSQL, [sTable_SysDict, nPound[0].FStockNo]);
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      gHardShareData('TruckOut:' + nPound[0].FCard);
+      //磅房处理自动出厂
+      WriteLog('磅房处理自动出厂:' +nPound[0].FCard);
+    end;
+    {$ELSE}
     if Assigned(gHardShareData) then
       gHardShareData('TruckOut:' + nPound[0].FCard);
     //磅房处理自动出厂
+    {$ENDIF}
   end;
 end;
 

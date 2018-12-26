@@ -127,6 +127,8 @@ type
     //起停喷码机
     property EnablePrinter: Boolean read FEnablePrinter;
     //属性相关
+    property TunnelCode: TStrings read FTunnelCode;
+    //属性相关
   end;
 
 var

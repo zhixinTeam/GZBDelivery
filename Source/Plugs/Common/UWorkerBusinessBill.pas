@@ -2015,6 +2015,10 @@ begin
               ], sTable_PoundLog, '', True);
       FListA.Add(nSQL);
     end;
+    nSQL := 'Update %s Set T_PDate=%s Where T_Truck=''%s''';
+    nSQL := Format(nSQL, [sTable_ZTTrucks, sField_SQLServer_Now,
+                          nBills[nInt].FTruck]);
+    FListA.Add(nSQL); //更新过皮时间,厂内排队时可参考该时间排队
   end else
 
   //----------------------------------------------------------------------------

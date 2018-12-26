@@ -150,6 +150,7 @@ type
     FYSValid    : string;          //验收通过'Y';拒收'N'
     FKZValue    : Double;          //供应扣除
     FMemo       : string;          //动作备注
+    FJSMemo     : string;          //拒收原因
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -217,7 +218,7 @@ begin
     begin
       nListB.Text := PackerDecodeStr(nListA[nIdx]);
       //bill item
-      
+
       with nListB,nItems[nInt] do
       begin
         FID         := Values['ID'];
@@ -283,6 +284,7 @@ begin
         FHKRecord:= Values['HKRecord'];
         FYSValid := Values['YSValid'];
         FMemo := Values['Memo'];
+        FJSMemo := Values['JSMemo'];
       end;
 
       Inc(nInt);
@@ -361,6 +363,7 @@ begin
         Values['YSValid']    := FYSValid;
         Values['KZValue']    := FloatToStr(FKZValue);
         Values['Memo']       := FMemo;
+        Values['JSMemo']     := FJSMemo;
       end;
 
       nListA.Add(PackerEncodeStr(nListB.Text));

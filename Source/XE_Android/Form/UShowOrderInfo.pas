@@ -61,15 +61,31 @@ begin
 end;
 
 procedure TFrmShowOrderInfo.BtnOKClick(Sender: TObject);
-var nYSVaid: string;
+var nYSVaid, nStr: string;
 begin
   inherited;
+  nStr := Trim(EditKZMemo.Text);
+  if CheckBox1.IsChecked then
+  begin
+    if nStr = '' then
+    begin
+      ShowMessage('请输入拒收原因');
+      Exit;
+    end;
+  end;
+
   if Length(gOrders)>0 then
   with gOrders[0] do
   begin
     if CheckBox1.IsChecked then
-          nYSVaid := 'N'
-    else  nYSVaid := 'Y';
+    begin
+      nYSVaid := 'N';
+    end
+    else
+    begin
+      nYSVaid := 'Y';
+      nStr := '';
+    end;
 
     FYSValid := nYSVaid;
     FKZValue := StrToFloatDef(EditKZValue.Text, 0);
@@ -179,6 +195,12 @@ begin
     lblTruck.Text    := FTruck;
 
     EditKZValue.Text := FloatToStr(FKZValue);
+    EditKZMemo.Text := FMemo;
+
+    if FYSValid = 'N' then
+      CheckBox1.IsChecked := True
+    else
+      CheckBox1.IsChecked := False;
   end;
 
   BtnOK.Enabled := True;

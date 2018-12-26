@@ -248,7 +248,8 @@ type
     FPicBase    : Integer;                           //图片索引
     FPicPath    : string;                            //图片目录
     FVoiceUser  : Integer;                           //语音计数
-    FProberUser : Integer;                           //检测器技术 
+    FProberUser : Integer;                           //检测器技术
+    FEmpTruckWc : Double;                            //空车出厂误差
   end;
   //系统参数
 
