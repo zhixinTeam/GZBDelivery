@@ -493,11 +493,12 @@ begin
       FNextStatus := sFlag_TruckBFP;
     //状态校正
 
-    {$IFDEF AllowMultiM}
-    if (FStatus = sFlag_TruckBFM) and AllowMultiM(FStockNo) then
-      FNextStatus := sFlag_TruckBFM;
-    //允许多次过重
-    {$ENDIF}
+//    {$IFDEF AllowMultiM}
+//    if (FStatus = sFlag_TruckBFM) and AllowMultiM(FStockNo) then
+//      FNextStatus := sFlag_TruckBFM;
+//    //允许多次过重
+//    {$ENDIF}
+//防止司机现场不刷卡 引起多次过磅异常
 
     FSelected := (FNextStatus = sFlag_TruckBFP) or
                  (FNextStatus = sFlag_TruckBFM);

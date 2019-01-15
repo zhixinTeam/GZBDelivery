@@ -2318,6 +2318,9 @@ begin
 
   gERelayManager.ShowTxt(nLine.FLineID, nStr);
   //显示内容
+  {$IFDEF SanLed}
+  gDisplayManager.Display(nLine.FLineID, nStr);
+  {$ENDIF}
 end;
 
 //Date: 2012-4-24
@@ -2408,6 +2411,9 @@ begin
     else
       nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '请换库装车';
     gERelayManager.ShowTxt(nTunnel, nStr);
+    {$IFDEF SanLed}
+    gDisplayManager.Display(nTunnel, nStr);
+    {$ENDIF}
     Exit;
   end; //检查通道
 

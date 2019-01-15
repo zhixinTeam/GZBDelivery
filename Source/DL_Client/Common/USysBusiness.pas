@@ -2963,7 +2963,11 @@ begin
 
           FPoundID := sFlag_Yes;
           //标记该项有称重数据
+          {$IFDEF SanCFNeedPound}
+          Result := SaveLadingBills(sFlag_TruckFH, nBills);
+          {$ELSE}
           Result := SaveLadingBills(sFlag_TruckBFM, nBills);
+          {$ENDIF}
           //保存称重
         end;
       finally

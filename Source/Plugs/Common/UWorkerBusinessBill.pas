@@ -1742,12 +1742,22 @@ begin
     end;
   end;
 
+
+  {$IFDEF SanCFNeedPound}
+  nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
+          'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
+          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate,L_HDValue '+
+          'From $Bill b ';
+  //xxxxx
+  {$ELSE}
   nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
           'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
           'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
           'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate '+
           'From $Bill b ';
   //xxxxx
+  {$ENDIF}
 
   if nIsBill then
        nStr := nStr + 'Where L_ID=''$CD'''
@@ -1821,6 +1831,14 @@ begin
       Ftransname := FieldByName('L_TransName').AsString;
 
       FHdOrderId := FieldByName('L_HdOrderId').AsString;
+      {$IFDEF SanCFNeedPound}
+      if (FStatus = sFlag_TruckFH) and
+         (FHdOrderId <> '') and (FieldByName('L_HDValue').AsFloat > 0) then
+      begin
+        FMemo := FHdOrderId;
+        FKZValue := FieldByName('L_HDValue').AsFloat;
+      end;
+      {$ENDIF}
       FSelected := True;
 
       Inc(nIdx);
@@ -2121,6 +2139,38 @@ begin
            nStr := sFlag_Yes
       else nStr := sFlag_No;
 
+      {$IFDEF SanCFNeedPound}
+      if (FMemo <> '') and (FKZValue > 0) then
+      begin
+        nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckFH),
+                SF('L_NextStatus', sFlag_TruckBFM),
+                SF('L_LineGroup', FLineGroup),
+                SF('L_IsEmpty', nStr),
+
+                SF('L_HdOrderId', FMemo),
+                SF('L_HDValue', FKZValue, sfVal),
+
+                SF('L_LadeTime', sField_SQLServer_Now, sfVal),
+                SF('L_LadeMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Bill, SF('L_ID', FID), False);
+        FListA.Add(nSQL);
+      end
+      else
+      begin
+        nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckFH),
+                SF('L_NextStatus', sFlag_TruckBFM),
+                SF('L_LineGroup', FLineGroup),
+                SF('L_IsEmpty', nStr),
+
+                {$IFDEF SanCFNeedPound}
+                SF('L_HDValue', FKZValue, sfVal),
+                {$ENDIF}
+                SF('L_LadeTime', sField_SQLServer_Now, sfVal),
+                SF('L_LadeMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Bill, SF('L_ID', FID), False);
+        FListA.Add(nSQL);
+      end;
+      {$ELSE}
       nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckFH),
               SF('L_NextStatus', sFlag_TruckBFM),
               SF('L_LineGroup', FLineGroup),
@@ -2130,6 +2180,7 @@ begin
               SF('L_LadeMan', FIn.FBase.FFrom.FUser)
               ], sTable_Bill, SF('L_ID', FID), False);
       FListA.Add(nSQL);
+      {$ENDIF}
 
       nSQL := 'Update %s Set T_InLade=%s Where T_HKBills Like ''%%%s%%''';
       nSQL := Format(nSQL, [sTable_ZTTrucks, sField_SQLServer_Now, FID]);

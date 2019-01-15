@@ -556,6 +556,10 @@ begin
       System.Insert(nStr, nCode, 7);
       nCode := Dbc2Sbc(nCode);
       {$ENDIF}
+
+      {$IFDEF GZBQJ}
+      nCode := FieldByName('L_HYDan').AsString;
+      {$ENDIF}
     end;
   end;
 

@@ -1283,12 +1283,21 @@ begin
     //--------------------------------------------------------------------------
     nWorker := nil;
     try
+      {$IFDEF OrderRemainValueEx}
+      nVal := StrToFloat(Values['XCB_RemainNum']);
+
+      {.$IFDEF DEBUG}
+      nStr := '单据:[ %s ]云天系统剩余量[ %.2f ]';
+      nStr := Format(nStr, [Values['XCB_ID'], nVal]);
+      WriteLog(nStr);
+      {.$ENDIF}
+      {$ELSE}
       nStr := 'select XCB_FactRemain from V_CARD_BASE1 t where XCB_ID=''%s''';
       //nStr := 'select XCB_FactRemain from V_CARD_BASE t where XCB_ID=''%s''';
       //支持查询补货
       nStr := Format(nStr, [Values['XCB_ID']]);
       //查询剩余量
-      
+
       with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT) do
       begin
         if RecordCount > 0 then
@@ -1301,6 +1310,7 @@ begin
         WriteLog(nStr);
         {.$ENDIF}
       end;
+      {$ENDIF}
 
       if nVal > 0 then
       begin

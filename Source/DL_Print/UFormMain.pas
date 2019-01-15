@@ -449,6 +449,16 @@ begin
     Exit;
   end;
 
+  {$IFDEF PurGCardOutFactWithOutPrint}
+  if nDS.FieldByName('O_CType').AsString = sFlag_OrderCardG then
+  begin
+    nHint := '采购单[ %s ] 卡类型为长期卡,不执行打印';
+    nHint := Format(nHint, [nOrder]);
+    Result := True;
+    Exit;
+  end;
+  {$ENDIF}
+
   nStr := gPath + 'Report\PurchaseOrder.fr3';
   if not FDR.LoadReportFile(nStr) then
   begin
