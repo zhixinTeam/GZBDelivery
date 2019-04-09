@@ -768,7 +768,7 @@ begin
   ModifyWebOrderStatus(sFlag_Provide,nOut.FData,'SaveOrder', '创建单据',
                        c_WeChatStatusCreateCard,nWeborder);
   //发送微信消息
-  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Provide);
+  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Provide, nWeborder);
 end;
 
 //Date: 2015-8-5

@@ -27,6 +27,7 @@ const
   cBC_GetCardUsed             = $0004;   //获取卡片类型
   cBC_UserLogin               = $0005;   //用户登录
   cBC_UserLogOut              = $0006;   //用户注销
+  cBC_GetOrderCType           = $0007;   //获取采购单卡类型
 
   cBC_GetCustomerMoney        = $0010;   //获取客户可用金
   cBC_GetZhiKaMoney           = $0011;   //获取纸卡可用金
@@ -133,6 +134,7 @@ const
   cBC_GetBatcodeAfterLine          = $0193;   //现场刷卡后获取批次号
   cBC_GetLineGroupByCustom         = $0194;   //获取客户指定分组编号
 
+  cBC_GetWebOrderID              = $0195;   //获取网上下单申请单号
   cBC_GetStockBatcode            = $1100;   //获取批次编号(单厂)
 
   cSendWeChatMsgType_AddBill       = 1;       //开提货单

@@ -558,7 +558,17 @@ begin
       {$ENDIF}
 
       {$IFDEF GZBQJ}
-      nCode := FieldByName('L_HYDan').AsString;
+      nCode := FieldByName('L_HYDan').AsString + '/' + FieldByName('L_Project').AsString;
+      {$ENDIF}
+
+      {$IFDEF GZBLHK}
+      nCode := FieldByName('L_ID').AsString;
+      System.Delete(nCode, 1, nPrefixLen + 4);
+      //日期(YYMMDD) + 流水(XXX)
+
+      nStr := 'P' + FieldByName('L_HYDan').AsString;
+      System.Insert(nStr, nCode, 3);
+      nCode := Dbc2Sbc(nCode);
       {$ENDIF}
     end;
   end;

@@ -110,7 +110,10 @@ type
     //现场刷卡后获取批次号
     function GetLineGroupByCustom(var nData: string): Boolean;
     //根据客户信息获取通道分组
-
+    function GetOrderCType(var nData: string): Boolean;
+    //获取采购订单类型(临时卡,固定卡)
+    function GetWebOrderID(var nData: string): Boolean;
+    //获取网上下单申请单号
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
     function SyncRemoteCustomer(var nData: string): Boolean;
@@ -472,6 +475,8 @@ begin
    cBC_SyncYTBatchCodeInfo : Result := SyncYT_BatchCodeInfo(nData);
    cBC_GetBatcodeAfterLine : Result := GetBatcodeAfterLine(nData);
    cBC_GetLineGroupByCustom: Result := GetLineGroupByCustom(nData);
+   cBC_GetOrderCType       : Result := GetOrderCType(nData);
+   cBC_GetWebOrderID       : Result := GetWebOrderID(nData);
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -3531,6 +3536,21 @@ begin
 
     for nIdx:=Low(nBills) to High(nBills) do
     begin
+      nSQL := 'select DTM_ScaleBill From %s Where DTM_ScaleBill =''%s''';
+      nSQL := Format(nSQL, ['DB_Turn_MaterIn', nBills[nIdx].FID]);
+      //查询订单表
+
+      //with gDBConnManager.SQLQuery(nSQL, nWorker, sFlag_DB_YT) do
+      with gDBConnManager.WorkerQuery(nWorker, nSQL) do
+      if RecordCount > 0 then
+      begin
+        Result := True;
+        nSQL := '云天系统: 采购明细单[ %s ]信息已存在,上传跳过';
+        nSQL := Format(nSQL, [nBills[nIdx].FID]);
+        WriteLog(nSQL);
+        Exit;
+      end;
+
       if nBills[nIdx].FPData.FDate < nBills[nIdx].FMData.FDate then
       begin
         nDateIn := nBills[nIdx].FPData.FDate;
@@ -3895,7 +3915,7 @@ begin
   nSQL := 'select * From %s Where XCB_ID in (%s)';
   nSQL := Format(nSQL, ['XS_Card_Base', nStr]);
   //查询订单表
-  
+
   nWorker := nil;
   try
     with gDBConnManager.SQLQuery(nSQL, nWorker, sFlag_DB_YT) do
@@ -4338,12 +4358,23 @@ function TWorkerBusinessCommander.GetYTBatchCode(var nData: string): Boolean;
 var nStr: string;
     nVal: Double;
     nSelect: Boolean;
-    nIdx,nInt: Integer;
+    nIdx,nInt,nNum: Integer;
     nDBWorker: PDBWorker;
 begin
   Result := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
   //Init
+
+  nNum := 30;
+
+  nStr := 'Select D_Value From %s Where D_Name=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_BatMaxNum]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount > 0 then
+  begin
+    nNum := FieldByName('D_Value').AsInteger;
+  end;
 
   with FListA do
   begin
@@ -4462,6 +4493,21 @@ begin
 
       begin
         //----------------------------------------------------------------------
+        {$IFDEF GZBSZ}
+        nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count,cnd.cnd_OutASH from ' +
+                'CF_Notify_OutWorkDtl cnd' +
+                ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
+                'where (cnd.Cnd_Cement = ''%s'') and' +
+                '      (cno.cno_cementcode <> '' '') and' +
+                '      (cno.cno_status = 1) AND' +
+                '      (cno.CNO_Del = 0) AND' +
+                '      (cno.CNO_SetDate<=Sysdate AND cno.CNO_SetDate>=Sysdate - %d) ' +
+                'order by cno.cno_setdate';
+        //xxxxx
+
+        nStr := Format(nStr, [Values['XCB_Cement'], nNum]);
+        //查询批次号记录
+        {$ELSE}
         nStr := 'select cno.cno_id,cno.cno_cementcode,cno.cno_count,cnd.cnd_OutASH from ' +
                 'CF_Notify_OutWorkDtl cnd' +
                 ' Left Join CF_Notify_OutWork cno On cno.cno_id=cnd.cnd_notifyid ' +
@@ -4475,7 +4521,9 @@ begin
 
         nStr := Format(nStr, [Values['XCB_Cement']]);
         //查询批次号记录
+        {$ENDIF}
 
+        WriteLog('查询批次号SQL:' + nStr);
         with gDBConnManager.SQLQuery(nStr, nDBWorker, sFlag_DB_YT) do
         if RecordCount > 0 then
         begin
@@ -4536,7 +4584,7 @@ begin
 
           FListB.Clear;
           //保存剩余量大于0的记录
-        
+
           for nIdx := 0 to FListD.Count - 1 do
           begin
             FListC.Text := PackerDecodeStr(FListD[nIdx]);
@@ -5416,6 +5464,85 @@ begin
   finally
     gDBConnManager.ReleaseConnection(nDBWorker);
   end;
+end;
+
+//Date: 2019-04-05
+//Desc: 获取采购订单类型(临时卡,固定卡)
+function TWorkerBusinessCommander.GetOrderCType(var nData: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+
+  FOut.FData := '';
+
+  nStr := 'select O_CType from %s Where O_Card=''%s'' ';
+  nStr := Format(nStr, [sTable_Order, FIn.FData]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount<1 then
+    begin
+      nData := '采购单'+ FIn.FData + '信息已丢失';
+      Exit;
+    end;
+
+    FOut.FData := Fields[0].AsString;
+    Result := True;
+  end;
+end;
+
+//Date: 2019-04-05
+//Desc: 获取网上下单申请单号
+function TWorkerBusinessCommander.GetWebOrderID(var nData: string): Boolean;
+var nStr,nsql: string;
+begin
+  Result := False;
+  WriteLog('单据号' + FIn.FData +'查询网上申请单入参:' + FIn.FExtParam);
+  FOut.FData := '';
+  FOut.FExtParam := '';
+
+  //查询网上商城订单
+  nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
+  nSql := Format(nSql,[sTable_WebOrderMatch,FIn.FData]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nSql) do
+  begin
+    if recordcount>0 then
+    begin
+      FOut.FData := FieldByName('WOM_WebOrderID').asstring;
+    end;
+  end;
+
+  if (FIn.FExtParam = sFlag_Sale) or (FIn.FExtParam = sFlag_SaleSingle) then //销售净重
+  begin
+    nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
+    nSql := Format(nSql,[sTable_Bill,FIn.FData,sFlag_TruckOut]);
+    with gDBConnManager.WorkerQuery(FDBConn, nSql) do
+    begin
+      if recordcount>0 then
+      begin
+        FOut.FExtParam := FieldByName('L_Value').AsString;
+      end;
+    end;
+  end else
+
+  if FIn.FExtParam = sFlag_Provide then //采购净重
+  begin
+    nSql := 'select sum(d_mvalue) d_mvalue,sum(d_pvalue) d_pvalue from %s ' +
+            'where d_oid=''%s'' and d_status=''%s''';
+    nSql := Format(nSql,[sTable_OrderDtl,FIn.FData,sFlag_TruckOut]);
+    with gDBConnManager.WorkerQuery(FDBConn, nSql) do
+    begin
+      if recordcount>0 then
+      begin
+        FOut.FExtParam := FloatToStr(FieldByName('d_mvalue').asFloat -
+                                     FieldByName('d_pvalue').asFloat);
+      end;
+    end;
+  end;
+  WriteLog('单据号' + FIn.FData +'查询网上申请单出参:申请单号' + FOut.FData
+                    + ',净重' + FOut.FExtParam);
+  Result := True;
 end;
 
 initialization

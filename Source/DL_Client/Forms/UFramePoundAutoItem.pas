@@ -1402,7 +1402,7 @@ begin
   {$ENDIF}
   begin
     PlayVoice('车辆未停到位,请移动车辆.');
-    LEDDisplay(nStr);
+    //LEDDisplay(nStr);
 
     InitSamples;
     Exit;

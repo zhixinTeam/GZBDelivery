@@ -128,7 +128,7 @@ begin
     Inc(FNumUploadSync);
     //inc counter
 
-    if FNumUploadSync >= 10 then
+    if FNumUploadSync >= 2 then
        FNumUploadSync :=0 ;
     //上传至微信： 6次/小时
 
@@ -201,6 +201,24 @@ begin
 
       case nInt of
        cBC_WeChat_complete_shoporders: //业务完成,更新状态
+        begin
+          nStr := FieldByName('S_Data').AsString;
+          if TWorkerBusinessCommander.CallMe(nInt, nStr, '', @nOut) then
+          begin
+            nStr := 'Update %s Set S_SyncFlag=''%s'' Where R_ID=%s';
+            nStr := Format(nStr, [sTable_WeixinSync, sFlag_Yes,
+                    FieldByName('R_ID').AsString]);
+            gDBConnManager.WorkerExec(FDBConn, nStr);
+          end else
+          begin
+            nStr := 'Update %s Set S_SyncTime=S_SyncTime+1,S_SyncMemo=''%s'' ' +
+                    'Where R_ID=%s';
+            nStr := Format(nStr, [sTable_WeixinSync, nOut.FData,
+                    FieldByName('R_ID').AsString]);
+            gDBConnManager.WorkerExec(FDBConn, nStr);
+          end;
+        end;
+      cBC_WeChat_send_event_msg: //业务完成,推送消息
         begin
           nStr := FieldByName('S_Data').AsString;
           if TWorkerBusinessCommander.CallMe(nInt, nStr, '', @nOut) then

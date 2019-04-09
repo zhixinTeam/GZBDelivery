@@ -37,7 +37,7 @@ uses
   UMgrQueue, UMgrLEDCard, UMgrHardHelper, UMgrRemotePrint, U02NReader,
   UMgrERelay,   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF}
   UMgrRemoteVoice, UMgrCodePrinter, UMgrLEDDisp, UMgrRFID102, UMgrVoiceNet,
-  UMgrTTCEM100, UMgrTTCEK720, UMgrTTCEDispenser;
+  UMgrTTCEM100, UMgrTTCEK720, UMgrTTCEDispenser, UMgrBXFontCard;
 
 class function THardwareWorker.ModuleInfo: TPlugModuleInfo;
 begin
@@ -137,6 +137,15 @@ begin
         gK720ReaderManager.LoadConfig(nCfg + cTTCE_K720_Config);
       end;
       {$ENDIF}
+    {$ENDIF}
+
+    {$IFDEF SanLed}
+    nStr := '散装网口小屏(新驱动)';
+    if not Assigned(gBXFontCardManager) then
+    begin
+      gBXFontCardManager := TBXFontCardManager.Create;
+      gBXFontCardManager.LoadConfig(nCfg + 'BXFontLED.xml');
+    end;
     {$ENDIF}
   except
     on E:Exception do
@@ -250,6 +259,11 @@ begin
     end;
     {$ENDIF}
   {$ENDIF}
+
+  {$IFDEF SanLed}
+  if Assigned(gBXFontCardManager) then
+    gBXFontCardManager.StartService;
+  {$ENDIF}
 end;
 
 procedure THardwareWorker.AfterStopServer;
@@ -313,6 +327,11 @@ begin
     {$ELSE}
     gK720ReaderManager.StopReader;
     {$ENDIF}
+  {$ENDIF}
+
+  {$IFDEF SanLed}
+  if Assigned(gBXFontCardManager) then
+    gBXFontCardManager.StopService;
   {$ENDIF}
 end;
 

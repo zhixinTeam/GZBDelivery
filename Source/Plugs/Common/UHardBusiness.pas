@@ -13,7 +13,7 @@ uses
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
   UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
-  UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser;
+  UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser, UMgrBXFontCard;
 
 type
 
@@ -59,6 +59,9 @@ procedure ModifyWebOrderStatus(const nType,nLId,nSender,nDesc:string;
  nStatus:Integer=c_WeChatStatusFinished;const AWebOrderID:string='');
 //修改网上订单状态
 function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
+
+procedure LEDDisplayNew(const nTunnel: string; nContent: string = '';
+                     nTitle: string = '');
 
 implementation
 
@@ -331,6 +334,38 @@ begin
   //xxxxx
 end;
 
+//Date: 2019-04-05
+//Parm: 磁卡号
+//Desc: 获取采购单卡类型
+function GetOrderCType(const nCard: string; var nOrderCType: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_GetOrderCType, nCard, '', @nOut);
+
+  if Result then
+       nOrderCType := nOut.FData
+  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
+//Date: 2019-04-05
+//Parm: 单据号 类型
+//Desc: 获取单据网上下单信息
+function GetWebOrderID(const nID, nType: string; var nWebOrderID: string;
+                       var nWeight: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_GetWebOrderID, nID, nType, @nOut);
+
+  if Result then
+  begin
+    nWebOrderID := nOut.FData;
+    nWeight     := nOut.FExtParam;
+  end
+  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
 //Date: 2015-08-06
 //Parm: 磁卡号;岗位;采购单列表
 //Desc: 获取nPost岗位上磁卡为nCard的交货单列表
@@ -394,6 +429,18 @@ end;
 procedure WriteHardHelperLog(const nEvent: string; nPost: string = '');
 begin
   gSysLoger.AddLog(THardwareHelper, '硬件守护辅助', nEvent);
+end;
+
+procedure LEDDisplayNew(const nTunnel: string; nContent: string = '';
+                     nTitle: string = '');
+begin
+  WriteHardHelperLog(Format('LEDDisplayNew:%s.Content:%s.Title:%s',
+                          [nTunnel, nContent, nTitle]));
+  if Trim(nTitle) = '' then
+    nTitle := cBXDataNull;
+  if Trim(nContent) = '' then
+    nContent := cBXDataNull;
+  gBXFontCardManager.Display(nTitle, nContent, nTunnel);
 end;
 
 //Date: 2016/5/5
@@ -645,8 +692,9 @@ var nBills: TLadingBillItems;
     nIdx:Integer;
     nNetWeight:Double;
     nTransName:string;
-    nDBConn: PDBWorker;
-    nWebOrderId, nSQL:string;
+    nWebOrderId, nSQL, nWeight:string;
+    nList: TStrings;
+    nOut: TWorkerBusinessCommand;
 begin
   {$IFNDEF EnableWebMall}
   Exit;
@@ -672,36 +720,13 @@ begin
     Exit;
   end;
 
-  nDBConn := nil;
   nWebOrderId := nWOID;
   if nWebOrderId = '' then
   begin
-    with gParamManager.ActiveParam^ do
-    begin
-      try
-        nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
-        if Assigned(nDBConn) then
-        begin
-          if not nDBConn.FConn.Connected then
-          nDBConn.FConn.Connected := True;
-
-          //查询网上商城订单
-          nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
-          nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
-
-          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
-          begin
-            if recordcount>0 then
-            begin
-              nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
-            end;
-          end;
-        end;
-      finally
-        gDBConnManager.ReleaseConnection(nDBConn);
-      end;
-    end;
+    GetWebOrderID(nLid,nBillType,nWebOrderId,nWeight);
   end;
+
+  if nWebOrderId='' then Exit;
 
   for nIdx := Low(nBills) to High(nBills) do
   with nBills[nIdx] do
@@ -743,11 +768,39 @@ begin
                FID, FCard, FTruck, FStockNo, FStockName, FCusID,
                FCusName, nTransName, nNetWeight, Fworkaddr, nWebOrderId]);
     nXmlStr := PackerEncodeStr(nXmlStr);
-    nData := Do_send_event_msg(nXmlStr);
 
-    if ndata<>'' then
-    begin
-      WriteHardHelperLog(nData, sPost_Out);
+    {$IFDEF MicroMsgDelaySend}
+    nData := '微信消息延迟推送';
+    {$ELSE}
+    nData := Do_send_event_msg(nXmlStr);
+    {$ENDIF}
+
+
+    nList := TStringList.Create;
+    try
+      nList.Values['WXData'] := nXmlStr;
+
+      if nData <> '' then
+      begin
+        WriteHardHelperLog(nData, sPost_Out);
+        //loged
+
+        with nList do
+        begin
+          Values['Type'] := nBillType;
+          Values['Sender'] := '';
+          Values['SenderDesc'] := '';
+          Values['Key'] := nLId;
+          Values['Business'] := IntToStr(cBC_WeChat_send_event_msg);
+          //Values['WXData'] := nXmlStr;
+        end;
+
+        TWorkerBusinessCommander.CallMe(cBC_WeChat_SaveAutoSync,
+          PackerEncodeStr(nList.Text), '', @nOut);
+        //save autuo sync
+      end;
+    finally
+      nList.Free;
     end;
   end;
 end;
@@ -767,11 +820,10 @@ procedure ModifyWebOrderStatus(const nType,nLId,nSender,nDesc:string;
   nStatus:Integer;const AWebOrderID:string);
 var
   nXmlStr,nData,nSql:string;
-  nDBConn: PDBWorker;
   nWebOrderId:string;
   nIdx:Integer;
   FNetWeight:Double;
-
+  nWeight: string;
   nList: TStrings;
   nOut: TWorkerBusinessCommand;
 begin
@@ -781,64 +833,13 @@ begin
 
   FNetWeight := 0;
   nWebOrderId := AWebOrderID;
-  nDBConn := nil;
-
-  if nWebOrderId='' then
+  nWeight := '';
+//  {$IFNDEF GZBXS}
+  if nWebOrderId='' then//开卡不执行 出厂执行
+//  {$ENDIF}
   begin
-    with gParamManager.ActiveParam^ do
-    begin
-      try
-        nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
-        if not Assigned(nDBConn) then
-        begin
-  //        WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
-          Exit;
-        end;
-        if not nDBConn.FConn.Connected then
-        nDBConn.FConn.Connected := True;
-
-        //查询网上商城订单
-        nSql := 'select WOM_WebOrderID from %s where WOM_LID=''%s''';
-        nSql := Format(nSql,[sTable_WebOrderMatch,nLId]);
-
-        with gDBConnManager.WorkerQuery(nDBConn, nSql) do
-        begin
-          if recordcount>0 then
-          begin
-            nWebOrderId := FieldByName('WOM_WebOrderID').asstring;
-          end;
-        end;
-
-        if (nType = sFlag_Sale) or (nType = sFlag_SaleSingle) then //销售净重
-        begin
-          nSql := 'select L_Value from %s where l_id=''%s'' and l_status=''%s''';
-          nSql := Format(nSql,[sTable_Bill,nLId,sFlag_TruckOut]);
-          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
-          begin
-            if recordcount>0 then
-            begin
-              FNetWeight := FieldByName('L_Value').asFloat;
-            end;
-          end;
-        end else
-
-        if nType = sFlag_Provide then //采购净重
-        begin
-          nSql := 'select sum(d_mvalue) d_mvalue,sum(d_pvalue) d_pvalue from %s ' +
-                  'where d_oid=''%s'' and d_status=''%s''';
-          nSql := Format(nSql,[sTable_OrderDtl,nLId,sFlag_TruckOut]);
-          with gDBConnManager.WorkerQuery(nDBConn, nSql) do
-          begin
-            if recordcount>0 then
-            begin
-              FNetWeight := FieldByName('d_mvalue').asFloat-FieldByName('d_pvalue').asFloat;
-            end;
-          end;
-        end;
-      finally
-        gDBConnManager.ReleaseConnection(nDBConn);
-      end;
-    end;
+    GetWebOrderID(nLId,nType,nWebOrderId,nWeight);
+    FNetWeight := StrToFloatDef(nWeight, 0);
   end;
 
   if (nType = sFlag_Sale) or (nType = sFlag_SaleSingle) then
@@ -865,7 +866,11 @@ begin
   nList := TStringList.Create;
   try
     nList.Values['WXData'] := nXmlStr;
+    {$IFDEF MicroMsgDelaySend}
+    nData := '微信状态延迟推送';
+    {$ELSE}
     nData := Do_ModifyWebOrderStatus(nXmlStr);
+    {$ENDIF}
 
     if nData <> '' then
     begin
@@ -979,7 +984,10 @@ begin
   BlueOpenDoor(nReader);
   //抬杆
   //发送微信商城
-  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+  if nCardType = sFlag_Provide then
+    SendMsgToWebMall(nTrucks[0].FZhiKa,cSendWeChatMsgType_OutFactory,nCardType)
+  else
+    SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
 
   //for nIdx:=Low(nTrucks) to High(nTrucks) do
@@ -1042,7 +1050,7 @@ end;
 //Date: 2016-5-4
 //Parm: 卡号;读头;打印机;化验单打印机
 //Desc: 对nCard放行出
-function MakeTruckOutM100(const nCard,nReader,nPrinter: string;
+function MakeTruckOutM100(var nCType: string;const nCard,nReader,nPrinter: string;
   const nHYPrinter: string = ''): Boolean;
 var nStr,nCardType: string;
     nIdx: Integer;
@@ -1053,7 +1061,7 @@ begin
   Result := False;
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
-
+  nCType := nCardType;
   if nCardType = sFlag_Provide then
     nRet := GetLadingOrders(nCard, sFlag_TruckOut, nTrucks) else
   if nCardType = sFlag_Sale then
@@ -1117,8 +1125,27 @@ begin
   BlueOpenDoor(nReader);
   //抬杆
   //发送微信商城
-  SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+  if nCardType = sFlag_Provide then
+    SendMsgToWebMall(nTrucks[0].FZhiKa,cSendWeChatMsgType_OutFactory,nCardType)
+  else
+    SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
   //发起一次打印
+
+  {$IFDEF PrintHYEach}
+  with nTrucks[0] do
+  begin
+    if Trim(FHYDan) <> '' then
+    begin
+      if not CallBusinessCommand(cBC_SyncYTBatchCodeInfo, FHYDan,'',@nOut) then
+      begin
+        nStr := '车辆[ %s ]单据[ %s ]同步云天化验单[ %s ]信息失败.';
+        nStr := Format(nStr, [FTruck, FID, FHYDan]);
+
+        WriteHardHelperLog(nStr, sPost_Out);
+      end;
+    end;
+  end;
+  {$ENDIF}
 
   //for nIdx:=Low(nTrucks) to High(nTrucks) do
   with nTrucks[0] do
@@ -1136,28 +1163,10 @@ begin
     else
       nStr := nStr + #7 + nCardType;
     //磁卡类型
-    {$IFDEF PrintHYEach}
-    if Trim(FHYDan) <> '' then
-    begin
-      if CallBusinessCommand(cBC_SyncYTBatchCodeInfo, FHYDan,'',@nOut) then
-      begin
-        if nHYPrinter <> '' then
-          nStr := nStr + #6 + nHYPrinter;
-        //化验单打印机
-      end
-      else
-      begin
-        nStr := '车辆[ %s ]单据[ %s ]同步云天化验单[ %s ]信息失败.';
-        nStr := Format(nStr, [FTruck, FID, FHYDan]);
 
-        WriteHardHelperLog(nStr, sPost_Out);
-      end;
-    end;
-    {$ELSE}
     if nHYPrinter <> '' then
       nStr := nStr + #6 + nHYPrinter;
     //化验单打印机
-    {$ENDIF}
 
     if nPrinter = '' then
          gRemotePrinter.PrintBill(FID + nStr)
@@ -1544,9 +1553,7 @@ end;
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 var nStr: string;
     nRetain: Boolean;
-    nCType: string;
-    nDBConn: PDBWorker;
-    nErrNum: Integer;
+    nCType,nOrderCType: string;
 begin
   nRetain := False;
   //init
@@ -1561,38 +1568,15 @@ begin
     case nItem.FVType of
     rtOutM100 :
     begin
-      nRetain := MakeTruckOutM100(nItem.FCard, nItem.FVReader,
+      nRetain := MakeTruckOutM100(nCType,nItem.FCard, nItem.FVReader,
                                   nItem.FVPrinter, nItem.FVHYPrinter);
-
-      if not GetCardUsed(nItem.FCard, nCType) then
-        nCType := '';
 
       if nCType = sFlag_Provide then
       begin
-        nDBConn := nil;
-        with gParamManager.ActiveParam^ do
-        Try
-          nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
-          if not Assigned(nDBConn) then
-          begin
-            WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
-            Exit;
-          end;
-
-          if not nDBConn.FConn.Connected then
-            nDBConn.FConn.Connected := True;
-          //conn db
-          nStr := 'select O_CType from %s Where O_Card=''%s'' ';
-          nStr := Format(nStr, [sTable_Order, nItem.FCard]);
-          with gDBConnManager.WorkerQuery(nDBConn,nStr) do
-          if RecordCount > 0 then
-          begin
-            if FieldByName('O_CType').AsString = sFlag_OrderCardG then
-              nRetain := False;
-          end;
-        finally
-          gDBConnManager.ReleaseConnection(nDBConn);
-        end;
+        GetOrderCType(nItem.FCard, nOrderCType);
+        WriteHardHelperLog('采购单卡类型:' + nOrderCType);
+        if nOrderCType = sFlag_OrderCardG then
+          nRetain := False;
       end;
       if nRetain then
         WriteHardHelperLog('吞卡机执行状态:'+'卡类型:'+nCType+'动作:吞卡')
@@ -1706,9 +1690,9 @@ begin
       nLast := Trunc((GetTickCount - nLastTime) / 1000);
       WriteHardHelperLog(' ::: 间隔时长：' + IntToStr(nLast) + 's');
 
-      if (Values['ECard'] = Values['LastECard']) and (nLastTime <> 0) and (nLast < 300) then
+      if (Values['ECard'] = Values['LastECard']) and (nLastTime <> 0) and (nLast < 60) then
       begin
-        WriteHardHelperLog(' ::: 电子标签'+Values['ECard']+'读取间隔时间小于300s');
+        WriteHardHelperLog(' ::: 电子标签'+Values['ECard']+'读取间隔时间小于60s');
         Values['LastECard'] := Values['ECard'];
         Values['ELabelFCard'] := '';
         Values['ECard'] := '';
@@ -2319,7 +2303,9 @@ begin
   gERelayManager.ShowTxt(nLine.FLineID, nStr);
   //显示内容
   {$IFDEF SanLed}
-  gDisplayManager.Display(nLine.FLineID, nStr);
+  nStr := nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
+          FloatToStr(nTruck.FValue);
+  LEDDisplayNew(nLine.FLineID, nStr, nTruck.FTruck);
   {$ENDIF}
 end;
 
@@ -2412,7 +2398,10 @@ begin
       nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '请换库装车';
     gERelayManager.ShowTxt(nTunnel, nStr);
     {$IFDEF SanLed}
-    gDisplayManager.Display(nTunnel, nStr);
+    if nBool and (Pos('等候', nStr) > 0) then
+      LEDDisplayNew(nTunnel, '请排队等候', nTrucks[0].FTruck)
+    else
+      LEDDisplayNew(nTunnel, '请换库装车', nTrucks[0].FTruck);
     {$ENDIF}
     Exit;
   end; //检查通道

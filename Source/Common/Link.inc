@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBXS}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝潜江
@@ -159,8 +159,10 @@
   //打印化验单
   {$DEFINE PrintHeGeZheng}
   //打印合格证
-  {$DEFINE PurGCardOutFactWithOutPrint}
+  {.$DEFINE PurGCardOutFactWithOutPrint}
   //采购长期卡出厂不打印
+  {$DEFINE CODECOMMON}
+  //通用喷码
 {$ENDIF}
 
 //葛洲坝兴山
@@ -245,6 +247,10 @@
   //采购电子标签自动发卡
   {$DEFINE UseTTCEDispenser}
   //新版发卡驱动
+  {$DEFINE PurAutoOutByStokNo}
+  //采购车辆根据物料号自动出厂
+  {$DEFINE MicroMsgDelaySend}
+  //微信数据延迟推送(MicroMsg开关下子开关)
 {$ENDIF}
 
 //葛洲坝荆门
