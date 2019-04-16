@@ -572,7 +572,11 @@ begin
       {$ENDIF}
     end;
   end;
-
+  {$IFDEF SaveCODENO}
+  nStr := 'Update %s Set L_Marking=''%s'' Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, nCode, FIn.FData]);
+  gDBConnManager.WorkerExec(FDBConn, nStr);
+  {$ENDIF}
   if not gCodePrinterManager.PrintCode(FIn.FExtParam, nCode, nStr) then
   begin
     Result := False;

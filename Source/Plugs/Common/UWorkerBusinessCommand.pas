@@ -4159,6 +4159,22 @@ begin
         gDBConnManager.ASyncApply(nItem.FSerialNo, 10 * 1000);
         //start write
         {$ENDIF}
+        {$IFDEF  SaveYTLadeID}
+        for nIdx:=Low(nBills) to High(nBills) do
+        begin
+          nSQL := ' Select XLB_LadeId From %s Where XLB_ID = ''%s'' ';
+          nSQL := Format(nSQL, ['XS_Lade_Base', nBills[nIdx].FYTID]);
+          with gDBConnManager.WorkerQuery(nWorker, nSQL) do
+          begin
+            if RecordCount > 0 then
+            begin
+              nSQL := ' Update %s Set L_YTNO = ''%s'' Where L_ID = ''%s'' ';
+              nSQL := Format(nSQL, [sTable_Bill, FieldByName('XLB_LadeId').AsString,nBills[nIdx].FID]);
+              gDBConnManager.WorkerExec(FDBConn, nSQL);
+            end;
+          end;
+        end;
+        {$ENDIF}
       end;
     end;
   finally

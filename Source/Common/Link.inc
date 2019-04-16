@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE GZBLHK}
 //特定系统
 
 //葛洲坝潜江
@@ -163,6 +163,10 @@
   //采购长期卡出厂不打印
   {$DEFINE CODECOMMON}
   //通用喷码
+  {$DEFINE SaveCODENO}
+  //保存喷码编号
+  {$DEFINE SaveYTLadeID}
+  //保存云天发货单号
 {$ENDIF}
 
 //葛洲坝兴山

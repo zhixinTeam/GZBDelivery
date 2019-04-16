@@ -774,7 +774,8 @@ const
        'L_Lading Char(1),L_IsVIP Char(1),L_Seal varChar(100),' +
        'L_HYDan varChar(32),L_PrintHY Char(1),L_Man varChar(32),L_Date DateTime,' +
        'L_Order varChar(20),' +
-       'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500))';
+       'L_DelMan varChar(32),L_DelDate DateTime, L_Memo varChar(500), ' +
+       'L_Marking varChar(100), L_YTNO varchar(30))';
   {-----------------------------------------------------------------------------
    交货单表: Bill
    *.R_ID: 编号
