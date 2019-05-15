@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBLHK}
+{$DEFINE GZBSZ}
 //特定系统
 
 //葛洲坝潜江

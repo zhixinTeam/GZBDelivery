@@ -1347,7 +1347,8 @@ begin
   gNetVoiceHelper.PlayVoice(nText);
 end;
 
-function SavePurchBillAutoOutCard(const nCard, nECard, nTunnel: string;
+function SavePurchBillAutoOutCard(var nOrderFailed: Boolean;
+                                  const nCard, nECard, nTunnel: string;
                                   const nID: string = ''):Boolean;
 var
   nTruck, nStr, nStockName, nHint :string;
@@ -1358,7 +1359,7 @@ var
   nRet: Boolean;
 begin
   Result := False;
-
+  nOrderFailed := False;
   nTruck := GetTruckNoByELabel(nECard);
   if nTruck = '' then
   begin
@@ -1394,6 +1395,7 @@ begin
   
   if not GetPurchWebOrders(nTruck) then
   begin
+    nOrderFailed := True;
     nStr := '%s获取网上下单信息失败';
     nStr := Format(nStr, [nTruck]);
     WriteHardHelperLog(nStr);
@@ -1597,6 +1599,7 @@ procedure WhenTTCE_K720_ReadCard(const nItem: PK720ReaderItem);
 var
   nStr, nCard, nECard, nETunnel: string;
   nLast: Int64;
+  nGetPurFailed: Boolean;
 begin
   //{$IFDEF DEBUG}
   nStr := '网络发卡机'  + nItem.FID + ' ::: ' + nItem.FCard;
@@ -1633,7 +1636,7 @@ begin
         Exit;
       end;
       
-      if not SavePurchBillAutoOutCard(nCard, gECard, nETunnel) then
+      if not SavePurchBillAutoOutCard(nGetPurFailed, nCard, gECard, nETunnel) then
       begin
         WriteHardHelperLog(' ::: 通道[' + nETunnel + ']ELabel: [' + gECard + ']保存失败！');
         gLastTime := GetTickCount;
@@ -1668,6 +1671,7 @@ function DoTTCEDispenserIssCard(const nItem: PDispenserItem): Boolean;
 var
   nStr, nCard, nECard, nETunnel, nHint: string;
   nLast, nLastTime: Int64;
+  nGetPurFailed : Boolean;
 begin
   Result := False;
 
@@ -1726,10 +1730,13 @@ begin
         Exit;
       end;
 
-      if not SavePurchBillAutoOutCard(nCard, Values['ECard'], nETunnel, nItem.FID) then
+      if not SavePurchBillAutoOutCard(nGetPurFailed, nCard, Values['ECard'], nETunnel, nItem.FID) then
       begin
         WriteHardHelperLog(' ::: 通道[' + nETunnel + ']ELabel: [' + Values['ECard'] + ']保存失败！');
-        Values['LastTime'] := IntToStr(GetTickCount);
+        if nGetPurFailed then//读取订单失败调整间隔为10秒
+          Values['LastTime'] := IntToStr(GetTickCount - 50000)
+        else
+          Values['LastTime'] := IntToStr(GetTickCount);
         Values['LastECard'] := Values['ECard'];
         Values['ECard'] := '';
         Exit;
