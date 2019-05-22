@@ -1709,51 +1709,70 @@ begin
   Exit;
   {$ENDIF}
 
-  nStr := 'Select B_Prefix, B_IDLen From %s ' +
-          'Where B_Group=''%s'' And B_Object=''%s''';
-  nStr := Format(nStr, [sTable_SerialBase, sFlag_BusGroup, sFlag_BillNo]);
-  nDs :=  gDBConnManager.WorkerQuery(FDBConn, nStr);
+  {$IFDEF SaveCODENO}
+    //查询数据库
+    nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
+        'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
+        'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue,l_project,l_area,'+
+        'l_workaddr,l_transname,l_hydan,l_outfact From $Bill b ';
+    nStr := nStr + 'Where L_Marking=''$CD''';
+    nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill), MI('$CD', Trim(nCode))]);
 
-  if nDs.RecordCount>0 then
-  begin
-    nSprefix := nDs.FieldByName('B_Prefix').AsString;
-    nIdlen := nDs.FieldByName('B_IDLen').AsInteger;
-    nIdlen := nIdlen-length(nSprefix);
-  end;
+    nDs := gDBConnManager.WorkerQuery(FDBConn, nStr);
+    if nDs.RecordCount<1 then
+    begin
+      SetLength(nBills, 1);
+      InitLadingBillItem(nBills[0]);
+      FOut.FData := CombineBillItmes(nBills);
+      Exit;
+    end;
+  {$ELSE}
+    nStr := 'Select B_Prefix, B_IDLen From %s ' +
+            'Where B_Group=''%s'' And B_Object=''%s''';
+    nStr := Format(nStr, [sTable_SerialBase, sFlag_BusGroup, sFlag_BillNo]);
+    nDs :=  gDBConnManager.WorkerQuery(FDBConn, nStr);
 
-  {$IFDEF CODECOMMON}
-  //生成提货单号
-  nBill_id := nSprefix+Copy(nCode, 1, 6) + //YYMMDD
-              Copy(nCode, 12, Length(nCode) - 11); //XXXX
+    if nDs.RecordCount>0 then
+    begin
+      nSprefix := nDs.FieldByName('B_Prefix').AsString;
+      nIdlen := nDs.FieldByName('B_IDLen').AsInteger;
+      nIdlen := nIdlen-length(nSprefix);
+    end;
+
+    {$IFDEF CODECOMMON}
+    //生成提货单号
+    nBill_id := nSprefix+Copy(nCode, 1, 6) + //YYMMDD
+                Copy(nCode, 12, Length(nCode) - 11); //XXXX
+    {$ENDIF}
+
+    {$IFDEF CODEAREA}
+    //生成提货单号
+    nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
+    {$ENDIF}
+
+    {$IFDEF CODEBATCODE}
+    //生成提货单号
+    nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
+    {$ENDIF}
+
+
+    //查询数据库
+    nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
+        'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
+        'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue,l_project,l_area,'+
+        'l_workaddr,l_transname,l_hydan,l_outfact From $Bill b ';
+    nStr := nStr + 'Where L_ID=''$CD''';
+    nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill), MI('$CD', nBill_id)]);
+
+    nDs := gDBConnManager.WorkerQuery(FDBConn, nStr);
+    if nDs.RecordCount<1 then
+    begin
+      SetLength(nBills, 1);
+      InitLadingBillItem(nBills[0]);
+      FOut.FData := CombineBillItmes(nBills);
+      Exit;
+    end;
   {$ENDIF}
-
-  {$IFDEF CODEAREA}
-  //生成提货单号
-  nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
-  {$ENDIF}
-
-  {$IFDEF CODEBATCODE}
-  //生成提货单号
-  nBill_id := nSprefix+Copy(nCode, 1, nIdlen); //YYMMDDXXXX
-  {$ENDIF}
-
-
-  //查询数据库
-  nStr := 'Select L_ID,L_ZhiKa,L_CusID,L_CusName,L_Type,L_StockNo,' +
-      'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,' +
-      'L_NextStatus,L_Card,L_IsVIP,L_PValue,L_MValue,l_project,l_area,'+
-      'l_workaddr,l_transname,l_hydan,l_outfact From $Bill b ';
-  nStr := nStr + 'Where L_ID=''$CD''';
-  nStr := MacroValue(nStr, [MI('$Bill', sTable_Bill), MI('$CD', nBill_id)]);
-
-  nDs := gDBConnManager.WorkerQuery(FDBConn, nStr);
-  if nDs.RecordCount<1 then
-  begin
-    SetLength(nBills, 1);
-    InitLadingBillItem(nBills[0]);
-    FOut.FData := CombineBillItmes(nBills);
-    Exit;
-  end;
 
   SetLength(nBills, nDs.RecordCount);
   nIdx := 0;

@@ -84,6 +84,7 @@ const
   cFI_FrameOrder        = $0107;                     //采购订单
   cFI_FrameOrderBase    = $0108;                     //采购申请单
   cFI_FrameOrderDetail  = $0109;                     //采购明细
+  cFI_FramePro_Order    = $0188;                     //供应商原材料管理
 
   cFI_FrameWXAccount    = $0110;                     //微信账户
   cFI_FrameWXSendLog    = $0111;                     //发送日志
@@ -152,6 +153,7 @@ const
   cFI_FormGetPOrderBase  = $1056;                     //采购订单
   cFI_FormGetYTBatch    = $1057;                     //获取云天批次
   cFI_FormGetWechartAccount = $1058;                 //获取商城注册信息
+  cFI_FormPro_Order  = $1154;                        //供应商进场量限制
 
   cFI_FormStockParam    = $1065;                     //品种管理
   cFI_FormStockHuaYan   = $1066;                     //开化验单
@@ -411,6 +413,7 @@ begin
   AddMenuModuleItem('MAIN_M09', cFI_FrameOrderBase);
   AddMenuModuleItem('MAIN_M10', cFI_FrameMaterailTunnels);
   AddMenuModuleItem('MAIN_M11', cFI_FramePurchaseContract);
+  AddMenuModuleItem('MAIN_M12', cFI_FramePro_Order);
 
   AddMenuModuleItem('MAIN_W01', cFI_FrameWXAccount);
   AddMenuModuleItem('MAIN_W02', cFI_FrameWXSendLog);

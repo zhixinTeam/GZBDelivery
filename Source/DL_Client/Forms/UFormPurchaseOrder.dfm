@@ -12,19 +12,19 @@ inherited fFormPurchaseOrder: TfFormPurchaseOrder
     Height = 334
     AutoControlTabOrders = False
     inherited BtnOK: TButton
-      Left = 331
-      Top = 301
+      Left = 332
+      Top = 284
       Caption = #24320#21333
       TabOrder = 8
     end
     inherited BtnExit: TButton
-      Left = 401
-      Top = 301
+      Left = 402
+      Top = 284
       TabOrder = 10
     end
     object EditValue: TcxTextEdit [2]
       Left = 279
-      Top = 236
+      Top = 224
       ParentFont = False
       TabOrder = 7
       Text = '0.00'
@@ -89,7 +89,7 @@ inherited fFormPurchaseOrder: TfFormPurchaseOrder
     end
     object EditTruck: TcxButtonEdit [9]
       Left = 81
-      Top = 236
+      Top = 224
       ParentFont = False
       Properties.Buttons = <
         item
@@ -103,7 +103,7 @@ inherited fFormPurchaseOrder: TfFormPurchaseOrder
     end
     object EditCardType: TcxComboBox [10]
       Left = 81
-      Top = 261
+      Top = 249
       ParentFont = False
       Properties.DropDownListStyle = lsEditFixedList
       Properties.Items.Strings = (
@@ -114,7 +114,7 @@ inherited fFormPurchaseOrder: TfFormPurchaseOrder
     end
     object cxLabel1: TcxLabel [11]
       Left = 221
-      Top = 261
+      Top = 249
       Caption = #27880':'#20020#26102#21345#20986#21378#26102#22238#25910';'#22266#23450#21345#20986#21378#26102#19981#22238#25910
       ParentFont = False
     end

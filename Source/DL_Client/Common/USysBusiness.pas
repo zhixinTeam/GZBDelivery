@@ -103,6 +103,10 @@ function GetZhikaValidMoney(nZhiKa: string; var nFixMoney: Boolean): Double;
 function GetCustomerValidMoney(nCID: string; const nLimit: Boolean = True;
  const nCredit: PDouble = nil): Double;
 //客户可用金额
+function GetDayNumInfo(const nStockNo:string; const nProID:string;var nMsg:string):Boolean;
+//获取当日供应商已进厂量
+function GetProMaxNum(const nStockNo:string):Double;
+//获取供应商可设置的最大日进场量
 
 function SyncRemoteCustomer: Boolean;
 //同步远程用户
@@ -1471,6 +1475,93 @@ begin
       nCredit^ := 0;
     //xxxxx
   end;
+end;
+
+function GetDayNumInfo(const nStockNo:string; const nProID:string;var nMsg:string):Boolean;
+var
+  nSql :string;
+  nSumNum,nOutNum,nNum: Double;
+  FStart, FEnd : TDate;
+begin
+  Result := True;
+  nMsg   := '';
+  nSql := ' Select M_Status, M_DayNum From %s where M_ID = ''%s'' ';
+  nSql := Format(nSql,[sTable_Materails,nStockNo]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount < 1) or (Fields[0].AsString <> sFlag_Yes) then Exit;
+    nSumNum := Fields[1].AsFloat;
+  end;
+
+  nSql := ' Select P_Status, P_Value, P_EndDate From %s where P_StockNo = ''%s'' and P_ID = ''%s'' ';
+  nSql := Format(nSql,[sTable_Pro_Order, nStockNo,nProID]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount > 0) and (Fields[0].AsString = sFlag_Yes) then
+    begin
+      if Str2DateTime(FieldByName('P_EndDate').AsString) < Now then
+        nMsg := '当日限制进厂时间已过,无法开单';
+      nSumNum := Fields[1].AsFloat;
+    end;
+  end;
+  //查询当日对应供应商原材料已出厂量
+  FStart := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+  FEnd   := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+
+  nSql := ' Select sum(D_Value) From %s od, %s o Where od.D_OID=o.O_ID and od.D_OutFact is not null '+
+    ' and o.O_ProID=''%s'' and o.O_StockNo =''%s'' and  (o.O_Date >=''%s'' and o.O_Date<''%s'') ';
+  nSql := Format(nSql,[sTable_OrderDtl,sTable_Order,nProID,nStockNo,Date2Str(FStart),Date2Str(FEnd+1)]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount < 1) then
+      nOutNum := 0
+    else
+    begin
+      nOutNum := Fields[0].AsFloat;
+    end;
+  end;
+  //查询当日供应商原材料当日未出厂量
+  nSql := ' Select COUNT(*) from %s o where o.O_ProID=''%s'' and o.O_StockNo = ''%s'' ' +
+    ' and (o.O_Date >=''%s'' and o.O_Date<''%s'') and  ' +
+    ' not exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID and od.D_Status = ''O'' ) ';
+  nSql := Format(nSql,[sTable_Order,nProID,nStockNo,Date2Str(FStart),Date2Str(FEnd+1)]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount < 1) then
+      nNum := 50
+    else
+    begin
+      nNum := (Fields[0].AsInteger+1) * 50;
+    end;
+  end;
+  if nNum + nOutNum > nSumNum then
+    Result := False;
+end;
+
+function GetProMaxNum(const nStockNo:string):Double;
+var
+  nSql :string;
+  nSumNum, nUsedNum: Double;
+begin
+  Result := 0;
+  nSql := ' Select M_DayNum From %s where M_ID = ''%s'' ';
+  nSql := Format(nSql,[sTable_Materails,nStockNo]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount < 1) then Exit;
+    nSumNum := Fields[0].AsFloat;
+  end;
+
+  nSql := ' Select  sum(P_Value) From %s where P_StockNo = ''%s'' ';
+  nSql := Format(nSql,[sTable_Pro_Order, nStockNo]);
+  with FDM.QueryTemp(nSql) do
+  begin
+    if (RecordCount < 1)  then
+      nUsedNum := 0
+    else
+      nUsedNum := Fields[0].AsFloat;
+  end;
+  Result := nSumNum - nUsedNum;
 end;
 
 //Date: 2014-10-16

@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormPMaterails;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -11,7 +12,7 @@ uses
   UDataModule, UFormBase, cxGraphics, dxLayoutControl, StdCtrls,
   cxMaskEdit, cxDropDownEdit, cxMCListBox, cxMemo, cxContainer, cxEdit,
   cxTextEdit, cxControls, cxLookAndFeels, cxLookAndFeelPainters,
-  dxSkinsCore, dxSkinsDefaultPainters;
+  dxSkinsCore, dxSkinsDefaultPainters, cxCheckBox;
 
 type
   TfFormMaterails = class(TBaseForm)
@@ -54,6 +55,10 @@ type
     dxLayoutControl1Group10: TdxLayoutGroup;
     dxLayoutControl1Item13: TdxLayoutItem;
     EditID: TcxTextEdit;
+    EditDayNum: TcxTextEdit;
+    dxLayoutControl1Item15: TdxLayoutItem;
+    EditStatus: TcxComboBox;
+    dxLayoutControl1Item16: TdxLayoutItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnAddClick(Sender: TObject);
@@ -62,6 +67,7 @@ type
     procedure BtnExitClick(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure EditStatusPropertiesChange(Sender: TObject);
   private
     { Private declarations }
     FRecordID: string;
@@ -170,6 +176,17 @@ begin
 
   ResetHintAllForm(Self, 'T', sTable_Materails);
   //重置表名称
+  {$IFDEF UseOrderDayNum}
+    dxLayoutControl1Item15.Visible := True;
+    EditDayNum.Text :='0';
+    dxLayoutControl1Item16.Visible := True;
+    EditStatus.ItemIndex := 0;
+  {$ELSE}
+    dxLayoutControl1Item15.Visible := False;
+    EditDayNum.Text :='0';
+    dxLayoutControl1Item16.Visible := True;
+    EditStatus.ItemIndex := 1;
+  {$ENDIF}
 end;
 
 procedure TfFormMaterails.FormClose(Sender: TObject;
@@ -210,6 +227,12 @@ begin
     if EditPValue.ItemIndex = 0 then
          nData := sFlag_Yes
     else nData := sFlag_No;
+  end
+  else if Sender = EditStatus then
+  begin
+    if EditStatus.ItemIndex = 0 then
+         nData := sFlag_Yes
+    else nData := sFlag_No;
   end;
 end;
 
@@ -220,10 +243,18 @@ begin
   if Sender = EditPValue then
   begin
     Result := True;
-    
+
     if nData = sFlag_Yes then
          EditPValue.ItemIndex := 0
     else EditPValue.ItemIndex := 1;
+  end
+  else if Sender = EditStatus then
+  begin
+    Result := True;
+
+    if nData = sFlag_Yes then
+         EditStatus.ItemIndex := 0
+    else EditStatus.ItemIndex := 1;
   end;
 end;
 
@@ -314,17 +345,17 @@ begin
     ShowMsg('请填写原材料名称', sHint); Exit;
   end;
 
-  if not IsNumber(EditPrice.Text, True) then
-  begin
-    EditPrice.SetFocus;
-    ShowMsg('请输入有效的单价', sHint); Exit;
-  end;
+//  if not IsNumber(EditPrice.Text, True) then
+//  begin
+//    EditPrice.SetFocus;
+//    ShowMsg('请输入有效的单价', sHint); Exit;
+//  end;
 
-  if (not IsNumber(EditPTime.Text, False)) or (StrToInt(EditPTime.Text) < 1) then
-  begin
-    EditPTime.SetFocus;
-    ShowMsg('时限为>0的整数', sHint); Exit;
-  end;
+//  if (not IsNumber(EditPTime.Text, False)) or (StrToInt(EditPTime.Text) < 1) then
+//  begin
+//    EditPTime.SetFocus;
+//    ShowMsg('时限为>0的整数', sHint); Exit;
+//  end;
 
   nList := TStringList.Create;
   nList.Text := SF('M_PY', GetPinYinOfStr(EditName.Text));
@@ -375,6 +406,13 @@ begin
     FDM.ADOConn.RollbackTrans;
     ShowMsg('数据保存失败', '未知原因');
   end;
+end;
+
+procedure TfFormMaterails.EditStatusPropertiesChange(Sender: TObject);
+begin
+  inherited;
+  if EditStatus.ItemIndex = 1 then
+    EditDayNum.Text := '0';  
 end;
 
 initialization

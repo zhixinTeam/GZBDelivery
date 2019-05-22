@@ -56,6 +56,8 @@ function SaveWebOrderMatch(const nBillID, nWebOrderID: string): Boolean;
 //保存电子单号
 function CheckCardOK(const nCard:string; var nMsg:string):Boolean;
 //检查磁卡是否被占用
+function GetDayNumInfo(const nStockNo:string; const nProID:string;var nMsg:string):Boolean;
+//获取当日供应商已进厂量
 
 var
   gPurWebOrderItems: array of TPurWebOrderItems;
@@ -382,6 +384,85 @@ begin
     end;
 
     Result := True;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+end;
+
+function GetDayNumInfo(const nStockNo:string; const nProID:string;var nMsg:string):Boolean;
+var
+  nSql :string;
+  nSumNum,nOutNum,nNum: Double;
+  FStart, FEnd : TDate;
+  nErrNum: Integer;
+  nDBConn: PDBWorker;
+begin
+  Result := True;
+  nDBConn := nil;
+
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
+    if not Assigned(nDBConn) then
+    begin
+      WriteLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+    nSql := ' Select M_Status, M_DayNum From %s where M_ID = ''%s'' ';
+    nSql := Format(nSql,[sTable_Materails,nStockNo]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if (RecordCount < 1) or (Fields[0].AsString <> sFlag_Yes) then Exit;
+      nSumNum := Fields[1].AsFloat;
+    end;
+
+    nSql := ' Select P_Status, P_Value, P_EndDate From %s where P_StockNo = ''%s'' and P_ID = ''%s'' ';
+    nSql := Format(nSql,[sTable_Pro_Order, nStockNo,nProID]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if (RecordCount > 0) and (Fields[0].AsString = sFlag_Yes) then
+      begin
+        if Str2DateTime(FieldByName('P_EndDate').AsString) < Now then
+          nMsg := '当日限制进厂时间已过,无法开单';
+        nSumNum := Fields[1].AsFloat;
+      end;
+    end;
+    //查询当日对应供应商原材料已出厂量
+    FStart := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+    FEnd   := Str2DateTime(Date2Str(Now) + ' 00:00:00');
+
+    nSql := ' Select sum(D_Value) From %s od, %s o Where od.D_OID=o.O_ID and od.D_OutFact is not null '+
+      ' and o.O_ProID=''%s'' and o.O_StockNo =''%s'' and  (o.O_Date >=''%s'' and o.O_Date<''%s'') ';
+    nSql := Format(nSql,[sTable_OrderDtl,sTable_Order,nProID,nStockNo,Date2Str(FStart),Date2Str(FEnd+1)]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if (RecordCount < 1) then
+        nOutNum := 0
+      else
+      begin
+        nOutNum := Fields[0].AsFloat;
+      end;
+    end;
+    //查询当日供应商原材料当日未出厂量
+    nSql := ' Select COUNT(*) from %s o where o.O_ProID=''%s'' and o.O_StockNo = ''%s'' ' +
+      ' and (o.O_Date >=''%s'' and o.O_Date<''%s'') and  ' +
+      ' not exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID and od.D_Status = ''O'' ) ';
+    nSql := Format(nSql,[sTable_Order,nProID,nStockNo,Date2Str(FStart),Date2Str(FEnd+1)]);
+    with gDBConnManager.WorkerQuery(nDBConn, nSQL) do
+    begin
+      if (RecordCount < 1) then
+        nNum := 50
+      else
+      begin
+        nNum := (Fields[0].AsInteger+1) * 50;
+      end;
+    end;
+    if nNum + nOutNum > nSumNum then
+      Result := False;
   finally
     gDBConnManager.ReleaseConnection(nDBConn);
   end;

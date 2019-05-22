@@ -520,7 +520,11 @@ begin
       //时间日期+流水号
 
       nStr := UpperCase(GetPinYinOfStr(FieldByName('L_Area').AsString));
-      nCode:= nCode + Copy(nStr, 1, 2);
+      {$IFDEF CODEAREAEX}
+        nCode:= nCode + Copy(nStr, 1, 3);
+      {$ELSE}
+        nCode:= nCode + Copy(nStr, 1, 2);
+      {$ENDIF}
       //销售片区前两位
       {$IFDEF XSCODE}
       nCode:= 'P03' + nCode;//兴山工厂代码P03

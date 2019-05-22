@@ -326,6 +326,7 @@ ResourceString
   sTable_OrderBaseBak = 'P_OrderBaseBak';            //已删除采购申请订单
   sTable_OrderDtl     = 'P_OrderDtl';                //采购订单明细
   sTable_OrderDtlBak  = 'P_OrderDtlBak';             //采购订单明细
+  sTable_Pro_Order    = 'P_Pro_Order';               //供应商原材料管理
 
   sTable_TransBase    = 'P_TransBase';                //短倒明细单
   sTable_TransBaseBak = 'P_TransBaseBak';             //短倒明细单
@@ -856,6 +857,24 @@ const
    *.B_DelMan: 采购申请单删除人员
    *.B_DelDate: 采购申请单删除时间
    *.B_Memo: 动作备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPro_Order = 'Create Table $Table(R_ID $Inc, P_ID varChar(32),' +
+       ' P_Name varChar(80), P_PY varChar(80),' +
+       ' P_StockNo varChar(32), P_StockName varChar(80), P_Value $Float,' +
+       ' P_Status Char(1), P_Man varChar(32), P_Memo varChar(500))';
+  {-----------------------------------------------------------------------------
+   采购申请单表: Order
+   *.R_ID: 编号
+   *.P_ID: 供应商编号
+   *.P_Name: 供应商名称
+   *.P_PY: 供应商拼音
+   *.P_StockNo:原材料编号
+   *.P_StockName: 原材料名称
+   *.P_Value:每天限制进货量
+   *.P_Status:是否启用限制
+   *.P_Man: 操作人员
+   *.P_Memo: 动作备注
   -----------------------------------------------------------------------------}
 
   sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, pcid varchar(32),O_ID varChar(20),' +
@@ -1934,6 +1953,7 @@ begin
   AddSysTableItem(sTable_OrderBaseBak, sSQL_NewOrderBase);
   AddSysTableItem(sTable_OrderDtl, sSQL_NewOrderDtl);
   AddSysTableItem(sTable_OrderDtlBak, sSQL_NewOrderDtl);
+  AddSysTableItem(sTable_Pro_Order, sSQL_NewPro_Order);
 
   AddSysTableItem(sTable_TransBase, sSQL_NewTransBase);
   AddSysTableItem(sTable_TransBaseBak, sSQL_NewTransBase);

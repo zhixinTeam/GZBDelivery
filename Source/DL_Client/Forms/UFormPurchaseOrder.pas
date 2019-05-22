@@ -68,7 +68,7 @@ implementation
 {$R *.dfm}
 uses
   ULibFun, DB, IniFiles, UMgrControl, UAdjustForm, UFormBase, UBusinessPacker,
-  UDataModule, USysBusiness, USysDB, USysGrid, USysConst;
+  UDataModule, USysBusiness, USysDB, USysGrid, USysConst,Dialogs;
 
 var
   gForm: TfFormPurchaseOrder = nil;
@@ -228,9 +228,24 @@ end;
 //Desc: 保存
 procedure TfFormPurchaseOrder.BtnOKClick(Sender: TObject);
 var nOrder, nCardType: string;
+  nSql,Amsg: string;
 begin
   if not IsDataValid then Exit;
   //check valid
+  //开单校验进厂量
+  {$IFDEF UseOrderDayNum}
+    Amsg := '';
+    if not GetDayNumInfo(FCardData.Values['SQ_StockNo'],FCardData.Values['SQ_ProID'],Amsg) then
+    begin
+      Showmessage('供应商:'+FCardData.Values['SQ_ProName']+' 物料:'+FCardData.Values['SQ_StockName']+'当日已达限制进厂量,无法开单！');
+      Exit;
+    end;
+    if Amsg <> '' then
+    begin
+      Showmessage('供应商:'+FCardData.Values['SQ_ProName']+' 物料:'+FCardData.Values['SQ_StockName']+'当日限制进厂时间已过,无法开单！');
+      Exit;
+    end;
+  {$ENDIF}
 
   with FListA do
   begin

@@ -233,6 +233,8 @@
   //微信支持
   {$DEFINE CODEAREA}
   //喷码打印销售区域
+ {$DEFINE CODEAREAEX}
+ //喷码打印销售区域3位
   {.$DEFINE ERROPENONEDOOR}
   //过磅失败倒车下磅
   {$DEFINE MultiOrderOfTruck}
@@ -255,6 +257,8 @@
   //采购车辆根据物料号自动出厂
   {$DEFINE MicroMsgDelaySend}
   //微信数据延迟推送(MicroMsg开关下子开关)
+  {$DEFINE UseOrderDayNum}
+  //原材料日进厂量限制
 {$ENDIF}
 
 //葛洲坝荆门

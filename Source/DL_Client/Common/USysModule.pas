@@ -34,8 +34,8 @@ uses
   UFormTruckEmpty, UFormReadCard, UFormTransfer, UFrameTransfer,
   UFrameQueryTransferDetail, UFormGetYTBatch,
 
-  UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing,
-  UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,
+  UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing, UFormPro_Order,
+  UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,UFramePro_Order,
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
   UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
   UFrameImportOrderDetail, UFormTodo, UFormTodoSend, UFrameManualEvent,

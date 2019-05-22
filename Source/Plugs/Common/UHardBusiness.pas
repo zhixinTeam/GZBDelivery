@@ -1357,6 +1357,7 @@ var
   nList: TStrings;
   nOrder: string;
   nRet: Boolean;
+  Amsg: string;
 begin
   Result := False;
   nOrderFailed := False;
@@ -1416,7 +1417,26 @@ begin
       PlayVoice(nStr);
       Exit;
     end;
-
+    //校验供应商进厂量限制
+    {$IFDEF UseOrderDayNum}
+      Amsg := '';
+      if not GetDayNumInfo(nWebOrderItem.FGoodsID,nWebOrderItem.FProvID,Amsg) then
+      begin
+        nStr := '%s厂内仓库已满无法进厂卸货';
+        nStr := Format(nStr, [nTruck]);
+        WriteHardHelperLog(nStr);
+        PlayVoice(nStr);
+        Exit;
+      end;
+      if Amsg <> '' then
+      begin
+        nStr := '%s当日限制进厂时间已过,无法开单';
+        nStr := Format(nStr, [nTruck]);
+        WriteHardHelperLog(nStr);
+        PlayVoice(nStr);
+        Exit;
+      end;
+    {$ENDIF}
     nList := TStringList.Create;
     try
       with nList, nWebOrderItem do
