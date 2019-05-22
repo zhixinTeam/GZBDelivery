@@ -862,7 +862,7 @@ const
   sSQL_NewPro_Order = 'Create Table $Table(R_ID $Inc, P_ID varChar(32),' +
        ' P_Name varChar(80), P_PY varChar(80),' +
        ' P_StockNo varChar(32), P_StockName varChar(80), P_Value $Float,' +
-       ' P_Status Char(1), P_Man varChar(32), P_Memo varChar(500))';
+       ' P_Status Char(1), P_Man varChar(32), P_Memo varChar(500), P_EndDate DateTime)';
   {-----------------------------------------------------------------------------
    采购申请单表: Order
    *.R_ID: 编号
@@ -875,6 +875,7 @@ const
    *.P_Status:是否启用限制
    *.P_Man: 操作人员
    *.P_Memo: 动作备注
+   *.P_EndDate:当日有效截止进厂时间
   -----------------------------------------------------------------------------}
 
   sSQL_NewOrder = 'Create Table $Table(R_ID $Inc, pcid varchar(32),O_ID varChar(20),' +
