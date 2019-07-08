@@ -72,6 +72,8 @@ type
     function TruckProbe_IsTunnelOK(var nData: string): Boolean;
     function TruckProbe_TunnelOC(var nData: string): Boolean;
     //车辆检测控制器业务
+    function GetIsTruckQueue(var nData: string): Boolean;
+    //判断是否在排队队列中
     function GetQueueList(var nData: string): Boolean;
     //获取通道信息
     function OpenDoorByReader(var nData: string): Boolean;
@@ -258,6 +260,8 @@ begin
    cBC_TunnelOC             : Result := TruckProbe_TunnelOC(nData);
 
    cBC_OpenDoorByReader     : Result := OpenDoorByReader(nData);
+
+   cBC_IsTruckQueue         : Result := GetIsTruckQueue(nData);
    else
     begin
       Result := False;
@@ -770,6 +774,17 @@ begin
 
   nData := Format('TunnelOC -> %s:%s', [FIn.FData, FIn.FExtParam]);
   WriteLog(nData);
+end;
+
+function THardwareCommander.GetIsTruckQueue(var nData: string): Boolean;
+var
+  nIdx : Integer;
+begin
+  Result := True;
+
+  nIdx   := gTruckQueueManager.TruckInQueue(FIn.FData);
+  if nIdx <= -1 then
+    Result := False;
 end;
 
 type

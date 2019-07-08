@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="gb2312"?>
+<plcs>
+<items>
+  <item>
+    <id>FH001</id>
+    <name>散装装车1线</name>
+    <ip>192.168.207.10</ip>
+    <port>5050</port>
+  </item>
+  <item>
+    <id>FH002</id>
+    <name>散装装车2线</name>
+    <ip>192.168.207.10</ip>
+    <port>5050</port>
+  </item>
+  <item>
+    <id>FH003</id>
+    <name>散装装车3线</name>
+    <ip>192.168.207.10</ip>
+    <port>5050</port>
+  </item>
+</items>
+</plcs>

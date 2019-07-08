@@ -8,7 +8,8 @@ unit UEventHardware;
 interface
 
 uses
-  Windows, Classes, UMgrPlug, UBusinessConst, ULibFun, UMITConst, UPlugConst;
+  Windows, Classes, UMgrPlug, UBusinessConst, ULibFun, UMITConst,
+  UPlugConst,UMgrSendCardNo;
 
 type
   THardwareWorker = class(TPlugEventWorker)
@@ -147,6 +148,10 @@ begin
       gBXFontCardManager.LoadConfig(nCfg + 'BXFontLED.xml');
     end;
     {$ENDIF}
+    {$IFDEF FixLoad}
+    nStr := '¶¨ÖÃ×°³µ';
+    gSendCardNo.LoadConfig(nCfg + 'PLCController.xml');
+    {$ENDIF}
   except
     on E:Exception do
     begin
@@ -185,6 +190,9 @@ begin
 
   gHardShareData := WhenBusinessMITSharedDataIn;
   //hard monitor share
+  {$IFDEF FixLoad}
+  gSendCardNo := TReaderHelper.Create;
+  {$ENDIF}
 end;
 
 procedure THardwareWorker.BeforeStartServer;
@@ -264,6 +272,12 @@ begin
   if Assigned(gBXFontCardManager) then
     gBXFontCardManager.StartService;
   {$ENDIF}
+  
+  {$IFDEF FixLoad}
+  if Assigned(gSendCardNo) then
+  gSendCardNo.StartPrinter;
+  //sendcard
+  {$ENDIF}
 end;
 
 procedure THardwareWorker.AfterStopServer;
@@ -332,6 +346,12 @@ begin
   {$IFDEF SanLed}
   if Assigned(gBXFontCardManager) then
     gBXFontCardManager.StopService;
+  {$ENDIF}
+  
+  {$IFDEF FixLoad}
+  if Assigned(gSendCardNo) then
+  gSendCardNo.StopPrinter;
+  //sendcard
   {$ENDIF}
 end;
 

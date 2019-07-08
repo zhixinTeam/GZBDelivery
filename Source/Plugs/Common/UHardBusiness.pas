@@ -13,8 +13,12 @@ uses
   UMgrHardHelper, U02NReader, UMgrERelay,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
   UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
-  UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser, UMgrBXFontCard;
+  UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser, UMgrSendCardNo, UMgrBXFontCard;
 
+const
+  sBlueCard  = 'bluecard';
+  sHyCard    = 'hycard';
+  
 type
 
   PZTBDSet = ^TZTBDSet;
@@ -446,17 +450,30 @@ end;
 //Date: 2016/5/5
 //Parm: 读卡器编号
 //Desc: 蓝卡读卡器抬杆
-procedure BlueOpenDoor(const nReader: string);
+procedure BlueOpenDoor(const nReader: string;const nReaderType: string = '');
 var nIdx: Integer;
 begin
   nIdx := 0;
   if nReader <> '' then
   while nIdx < 5 do
   begin
-    if gHardwareHelper.ConnHelper then
-         gHardwareHelper.OpenDoor(nReader)
-    else gHYReaderManager.OpenDoor(nReader);
-    //else gBlueReader.OpenDoor(nReader);
+    if nReaderType = sBlueCard then
+    begin
+      gHardwareHelper.OpenDoor(nReader);
+      WriteHardHelperLog('蓝卡读卡器抬杆:' + nReader);
+    end
+    else
+    if nReaderType = sHyCard then
+    begin
+      gHYReaderManager.OpenDoor(nReader);
+      WriteHardHelperLog('华益读卡器抬杆:' + nReader);
+    end
+    else
+    begin
+      if gHardwareHelper.ConnHelper then
+           gHardwareHelper.OpenDoor(nReader)
+      else gHYReaderManager.OpenDoor(nReader);
+    end;
     
     Inc(nIdx);
   end;
@@ -465,7 +482,8 @@ end;
 //Date: 2012-4-22
 //Parm: 卡号
 //Desc: 对nCard放行进厂
-procedure MakeTruckIn(const nCard,nReader: string; const nDB: PDBWorker);
+procedure MakeTruckIn(const nCard,nReader: string; const nDB: PDBWorker;
+                      const nReaderType: string = '');
 var nStr,nTruck,nCardType: string;
     nIdx,nInt: Integer;
     nPLine: PLineItem;
@@ -539,7 +557,7 @@ begin
       if gTruckQueueManager.TruckReInfactFobidden(nTrucks[0].FTruck) or
          (nCardType <> sFlag_Sale) then
       begin
-        BlueOpenDoor(nReader);
+        BlueOpenDoor(nReader, nReaderType);
         //抬杆
 
         nStr := '车辆[ %s ]再次抬杆操作.';
@@ -582,7 +600,7 @@ begin
       gHardwareHelper.SetReaderCard(nReader, nCard);
     end else
     begin
-      BlueOpenDoor(nReader);
+      BlueOpenDoor(nReader, nReaderType);
       //抬杆
     end;
 
@@ -680,7 +698,7 @@ begin
     gHardwareHelper.SetReaderCard(nReader, nCard);
   end else
   begin
-    BlueOpenDoor(nReader);
+    BlueOpenDoor(nReader, nReaderType);
     //抬杆
   end;
 end;
@@ -909,7 +927,7 @@ end;
 //Parm: 卡号;读头;打印机;化验单打印机
 //Desc: 对nCard放行出厂
 procedure MakeTruckOut(const nCard,nReader,nPrinter: string;
-  const nHYPrinter: string = '');
+  const nHYPrinter: string = '';const nReaderType: string = '');
 var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
@@ -981,7 +999,7 @@ begin
     Exit;
   end;
 
-  BlueOpenDoor(nReader);
+  BlueOpenDoor(nReader, nReaderType);
   //抬杆
   //发送微信商城
   if nCardType = sFlag_Provide then
@@ -1051,7 +1069,7 @@ end;
 //Parm: 卡号;读头;打印机;化验单打印机
 //Desc: 对nCard放行出
 function MakeTruckOutM100(var nCType: string;const nCard,nReader,nPrinter: string;
-  const nHYPrinter: string = ''): Boolean;
+  const nHYPrinter: string = '';const nReaderType: string = ''): Boolean;
 var nStr,nCardType: string;
     nIdx: Integer;
     nRet: Boolean;
@@ -1122,7 +1140,7 @@ begin
     Exit;
   end;
 
-  BlueOpenDoor(nReader);
+  BlueOpenDoor(nReader, nReaderType);
   //抬杆
   //发送微信商城
   if nCardType = sFlag_Provide then
@@ -1184,7 +1202,8 @@ end;
 //Date: 2012-10-19
 //Parm: 卡号;读头
 //Desc: 检测车辆是否在队列中,决定是否抬杆
-procedure MakeTruckPassGate(const nCard,nReader: string; const nDB: PDBWorker);
+procedure MakeTruckPassGate(const nCard,nReader: string; const nDB: PDBWorker;
+                            const nReaderType: string = '');
 var nStr: string;
     nIdx: Integer;
     nTrucks: TLadingBillItems;
@@ -1216,7 +1235,7 @@ begin
     Exit;
   end;
 
-  BlueOpenDoor(nReader);
+  BlueOpenDoor(nReader, nReaderType);
   //抬杆
 
   for nIdx:=Low(nTrucks) to High(nTrucks) do
@@ -1233,7 +1252,7 @@ end;
 //Parm: 读头数据
 //Desc: 对nReader读到的卡号做具体动作
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
-var nStr,nSQL,nHYStr : string;
+var nStr,nSQL,nHYStr,nReaderType : string;
     nErrNum: Integer;
     nDBConn: PDBWorker;
 begin
@@ -1303,10 +1322,14 @@ begin
       Exit;
     end;
 
+    if Assigned(nReader.FOptions) then
+         nReaderType := nReader.FOptions.Values['ReaderType']
+    else nReaderType := '';
+
     try
       if nReader.FType = rtIn then
       begin
-        MakeTruckIn(nStr, nReader.FID, nDBConn);
+        MakeTruckIn(nStr, nReader.FID, nDBConn, nReaderType);
       end else
 
       if nReader.FType = rtOut then
@@ -1314,20 +1337,20 @@ begin
         if Assigned(nReader.FOptions) then
              nHYStr := nReader.FOptions.Values['HYPrinter']
         else nHYStr := '';
-        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter, nHYStr);
+        MakeTruckOut(nStr, nReader.FID, nReader.FPrinter, nHYStr, nReaderType);
       end else
 
       if nReader.FType = rtGate then
       begin
         if nReader.FID <> '' then
-          BlueOpenDoor(nReader.FID);
+          BlueOpenDoor(nReader.FID, nReaderType);
         //抬杆
       end else
 
       if nReader.FType = rtQueueGate then
       begin
         if nReader.FID <> '' then
-          MakeTruckPassGate(nStr, nReader.FID, nDBConn);
+          MakeTruckPassGate(nStr, nReader.FID, nDBConn, nReaderType);
         //抬杆
       end;
     except
@@ -2440,6 +2463,13 @@ begin
     WriteNearReaderLog(nStr);
 
     TruckStartFH(nPTruck, nPLine);
+
+    {$IFDEF FixLoad}
+    WriteNearReaderLog('启动定置装车::'+nTunnel+'@'+nCard);
+    //发送卡号和通道号到定置装车服务器
+    gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
+    {$ENDIF}
+    
     Exit;
   end;
 
@@ -2461,6 +2491,11 @@ begin
 
   TruckStartFH(nPTruck, nPLine);
   //执行放灰
+  {$IFDEF FixLoad}
+  WriteNearReaderLog('启动定置装车::'+nTunnel+'@'+nCard);
+  //发送卡号和通道号到定置装车服务器
+  gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
+  {$ENDIF}
 end;
 
 //Date: 2012-4-24
@@ -2488,6 +2523,16 @@ procedure WhenReaderCardOut(const nCard: string; const nHost: PReaderHost);
 begin
   {$IFDEF DEBUG}
   WriteHardHelperLog('WhenReaderCardOut退出.');
+  {$ENDIF}
+
+  {$IFDEF FixLoad}
+  WriteHardHelperLog('停止定置装车::'+nHost.FTunnel+'@Close');
+  //发送卡号和通道号到定置装车服务器
+  gSendCardNo.SendCardNo(nHost.FTunnel+'@Close');
+  {$ENDIF}
+
+  {$IFDEF SanLed}
+  LEDDisplayNew(nHost.FTunnel, '请刷卡', '欢迎光临');
   {$ENDIF}
 
   gERelayManager.LineClose(nHost.FTunnel);
