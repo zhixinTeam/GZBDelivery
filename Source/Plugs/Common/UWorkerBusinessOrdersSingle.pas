@@ -2,7 +2,7 @@
   作者: fendou116688@163.com 2016-02-27
   描述: 模块业务对象
 *******************************************************************************}
-unit UWorkerBusinessOrders;
+unit UWorkerBusinessOrdersSingle;
 
 {$I Link.Inc}
 interface
@@ -13,7 +13,7 @@ uses
   USysDB, UMITConst, UWorkerBusinessCommand, UHardBusiness;
 
 type
-  TWorkerBusinessOrders = class(TMITDBWorker)
+  TWorkerBusinessOrdersSingle = class(TMITDBWorker)
   private
     FListA,FListB,FListC,FListD: TStrings;
     //list
@@ -45,9 +45,6 @@ type
 
     function ImportOrderPoundS(var nData: string): Boolean;
     //插入磅单信息
-    function GetCardUsed(const nCard: string;var nCardType: string): Boolean;
-    //获取卡片类型
-    function GetOrderInfo(const nOID: string;var nBID: string): Boolean;
   public
     constructor Create; override;
     destructor destroy; override;
@@ -63,12 +60,12 @@ type
 implementation
 
 //------------------------------------------------------------------------------
-class function TWorkerBusinessOrders.FunctionName: string;
+class function TWorkerBusinessOrdersSingle.FunctionName: string;
 begin
-  Result := sBus_BusinessPurchaseOrder;
+  Result := sBus_BusinessPurchaseOrderSingle;
 end;
 
-constructor TWorkerBusinessOrders.Create;
+constructor TWorkerBusinessOrdersSingle.Create;
 begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
@@ -77,7 +74,7 @@ begin
   inherited;
 end;
 
-destructor TWorkerBusinessOrders.destroy;
+destructor TWorkerBusinessOrdersSingle.destroy;
 begin
   FreeAndNil(FListA);
   FreeAndNil(FListB);
@@ -86,7 +83,7 @@ begin
   inherited;
 end;
 
-function TWorkerBusinessOrders.GetFlagStr(const nFlag: Integer): string;
+function TWorkerBusinessOrdersSingle.GetFlagStr(const nFlag: Integer): string;
 begin
   Result := inherited GetFlagStr(nFlag);
 
@@ -95,7 +92,7 @@ begin
   end;
 end;
 
-procedure TWorkerBusinessOrders.GetInOutData(var nIn,nOut: PBWDataBase);
+procedure TWorkerBusinessOrdersSingle.GetInOutData(var nIn,nOut: PBWDataBase);
 begin
   nIn := @FIn;
   nOut := @FOut;
@@ -105,7 +102,7 @@ end;
 //Date: 2015-8-5
 //Parm: 输入数据
 //Desc: 执行nData业务指令
-function TWorkerBusinessOrders.DoDBWork(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.DoDBWork(var nData: string): Boolean;
 begin
   with FOut.FBase do
   begin
@@ -137,7 +134,7 @@ begin
   end;
 end;
 
-function TWorkerBusinessOrders.SaveOrderBase(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.SaveOrderBase(var nData: string): Boolean;
 var nStr: string;
     nIdx: Integer;
     nOut: TWorkerBusinessCommand;
@@ -190,9 +187,6 @@ begin
             SF('B_StockName', FListA.Values['StockName']),
 
             SF('B_Man', FIn.FBase.FFrom.FUser),
-            {$IFDEF UseWLFYInfo}
-            SF('B_SynStatus', 0, sfVal),
-            {$ENDIF}
             SF('B_Date', sField_SQLServer_Now, sfVal)
             ], sTable_OrderBase, '', True);
     gDBConnManager.WorkerExec(FDBConn, nStr);
@@ -213,7 +207,7 @@ end;
 //Date: 2015/9/19
 //Parm:
 //Desc: 删除采购申请单
-function TWorkerBusinessOrders.DeleteOrderBase(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.DeleteOrderBase(var nData: string): Boolean;
 var nStr,nP: string;
     nIdx: Integer;
 begin
@@ -275,7 +269,7 @@ end;
 //Date: 2017/3/16
 //Parm: 
 //Desc: 保存采购合同
-function TWorkerBusinessOrders.SavePurchaseContract(var nData: string):Boolean;
+function TWorkerBusinessOrdersSingle.SavePurchaseContract(var nData: string):Boolean;
 var nStr: string;
     nIdx: Integer;
     nOut: TWorkerBusinessCommand;
@@ -317,9 +311,6 @@ begin
           SF('con_quantity', StrToFloatDef(Values['quantity'],0),sfVal),
           SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
           SF('con_Man', FIn.FBase.FFrom.FUser),
-          {$IFDEF UseWLFYInfo}
-          SF('con_Synstatus', 0, sfVal),
-          {$ENDIF}
           SF('con_remark', Values['Remark'])
           ], sTable_PurchaseContract, '', True);
   FListB.Add(nStr);
@@ -394,7 +385,7 @@ end;
 //Date: 2017/3/16
 //Parm:
 //Desc: 修改采购合同
-function TWorkerBusinessOrders.ModifyPurchaseContract(var nData: string):Boolean;
+function TWorkerBusinessOrdersSingle.ModifyPurchaseContract(var nData: string):Boolean;
 var nStr: string;
     nIdx: Integer;
     nName,nCondition,nValue:string;
@@ -424,9 +415,6 @@ begin
             SF('con_status', StrToint(sFlag_PurchaseContract_input),sfVal),
             SF('con_MdyMan', FIn.FBase.FFrom.FUser),
             SF('con_MdyDate', sField_SQLServer_Now,sfVal),
-            {$IFDEF UseWLFYInfo}
-            SF('con_Synstatus', 0, sfVal),
-            {$ENDIF}
             SF('con_remark', Values['Remark'])
             ], sTable_PurchaseContract, SF('PCID', Values['FID']), False);
     FListD.Add(nStr);
@@ -518,7 +506,7 @@ end;
 //Date: 2017/3/16
 //Parm:
 //Desc: 删除采购合同
-function TWorkerBusinessOrders.DeletePurchaseContract(var nData: string):Boolean;
+function TWorkerBusinessOrdersSingle.DeletePurchaseContract(var nData: string):Boolean;
 var nStr:string;
 begin
   Result := False;
@@ -561,7 +549,7 @@ end;
 //Date: 2015/9/20
 //Parm:
 //Desc: 获取供应可收货量
-function TWorkerBusinessOrders.GetGYOrderValue(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.GetGYOrderValue(var nData: string): Boolean;
 var nSQL: string;
     nVal, nSent, nLim, nWarn, nFreeze,nMax: Double;
 begin
@@ -614,7 +602,7 @@ end;
 
 //Date: 2015-8-5
 //Desc: 保存采购单
-function TWorkerBusinessOrders.SaveOrder(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.SaveOrder(var nData: string): Boolean;
 var nStr, nTmp: string;
     nIdx: Integer;
     nVal: Double;
@@ -730,7 +718,6 @@ begin
 
             SF('O_Truck', FListA.Values['Truck']),
             SF('O_Man', FIn.FBase.FFrom.FUser),
-            SF('O_WebOrderID',nWeborder),
             SF('O_Date', sField_SQLServer_Now, sfVal)
             ], sTable_Order, '', True);
     gDBConnManager.WorkerExec(FDBConn, nStr);
@@ -786,7 +773,7 @@ end;
 
 //Date: 2015-8-5
 //Desc: 保存采购单
-function TWorkerBusinessOrders.DeleteOrder(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.DeleteOrder(var nData: string): Boolean;
 var nStr,nP: string;
     nIdx: Integer;
 begin
@@ -847,7 +834,7 @@ end;
 //Date: 2014-09-17
 //Parm: 采购订单[FIn.FData];磁卡号[FIn.FExtParam]
 //Desc: 为采购单绑定磁卡
-function TWorkerBusinessOrders.SaveOrderCard(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.SaveOrderCard(var nData: string): Boolean;
 var nStr,nSQL,nTruck: string;
 begin
   Result := False;
@@ -974,7 +961,7 @@ end;
 
 //Date: 2015-8-5
 //Desc: 保存采购单
-function TWorkerBusinessOrders.LogoffOrderCard(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.LogoffOrderCard(var nData: string): Boolean;
 var nStr: string;
 begin
   FDBConn.FConn.BeginTrans;
@@ -999,7 +986,7 @@ begin
   end;
 end;
 
-function TWorkerBusinessOrders.ChangeOrderTruck(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.ChangeOrderTruck(var nData: string): Boolean;
 var nStr: string;
 begin
   //Result := False;
@@ -1024,7 +1011,7 @@ end;
 //Date: 2014-09-17
 //Parm: 磁卡号[FIn.FData];岗位[FIn.FExtParam]
 //Desc: 获取特定岗位所需要的交货单列表
-function TWorkerBusinessOrders.GetPostOrderItems(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.GetPostOrderItems(var nData: string): Boolean;
 var nStr: string;
     nIdx: Integer;
     nIsOrder: Boolean;
@@ -1220,16 +1207,14 @@ end;
 //Date: 2014-09-18
 //Parm: 交货单[FIn.FData];岗位[FIn.FExtParam]
 //Desc: 保存指定岗位提交的交货单列表
-function TWorkerBusinessOrders.SavePostOrderItems(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.SavePostOrderItems(var nData: string): Boolean;
 var nVal: Double;
     nIdx, nInt: Integer;
-    nStr,nSQL, nYS, nPID: string;
-    nCardType: string;
+    nStr,nSQL, nYS: string;
     nPound: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
     npcid:string;//采购合同号
     nSum:Double;
-    nBID:string;
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nPound);
@@ -1253,15 +1238,6 @@ begin
 
   FListA.Clear;
   //用于存储SQL列表
-
-  nCardType := '';
-  if not GetCardUsed(nPound[0].Fcard, nCardType) then Exit;
-
-  nBID :='';
-  if nCardType = sFlag_Provide then
-  begin
-    GetOrderInfo(nPound[0].FZhiKa,nBID);
-  end;
 
   //----------------------------------------------------------------------------
   if FIn.FExtParam = sFlag_TruckIn then //进厂
@@ -1355,7 +1331,6 @@ begin
             SF('P_PModel', FPModel),
             SF('P_Status', sFlag_TruckBFP),
             SF('P_Valid', sFlag_Yes),
-            SF('P_BID', nBID),
             SF('P_PrintNum', 1, sfVal)
             ], sTable_PoundLog, '', True);
       FListA.Add(nSQL);
@@ -1587,36 +1562,6 @@ begin
       end;
       //如果是临时卡片，则注销卡片
     end;
-
-    nStr := nPound[0].FID;
-    if not TWorkerBusinessCommander.CallMe(cBC_SyncStockOrder, nStr, '', @nOut) then
-    begin
-      nData := nOut.FData;
-      Exit;
-    end;
-    //同步原材料
-    
-    {$IFDEF UseWLFYInfo}
-    with nPound[0] do
-    begin
-      nSQL := 'Select Top 1 P_ID,P_BID From %s Where P_Order=''%s'' order by R_ID desc ';
-      nSQL := Format(nSQL, [sTable_PoundLog, FID]);
-
-      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
-      if RecordCount > 0 then
-      begin
-        nPID := Fields[0].AsString;
-        nSQL := MakeSQLByStr([
-              SF('H_ID'   , nPID),
-              SF('H_Order' , Fields[1].AsString),
-              SF('H_Status' , '1'),
-              SF('H_BillType'   , sFlag_Provide)
-              ], sTable_HHJYSync, '', True);
-        WriteLog('采购单反馈同步消息:' + nSQL);
-        gDBConnManager.WorkerExec(FDBConn, nSQL);
-      end;
-    end;
-    {$ENDIF}
   end;
 
   //----------------------------------------------------------------------------
@@ -1654,7 +1599,7 @@ begin
   end;
 end;
 
-function TWorkerBusinessOrders.ImportOrderPoundS(var nData: string): Boolean;
+function TWorkerBusinessOrdersSingle.ImportOrderPoundS(var nData: string): Boolean;
 var nIdx: Integer;
     nSQL, nIDS: string;
     nOut: TWorkerBusinessCommand;
@@ -1749,37 +1694,13 @@ begin
   end;
   //保存磅单数据
 
-  FListC.Clear;
-  //磅单编号
-  
-  for nIdx := 0 to FListA.Count - 1 do
-  begin
-    FListB.Text := PackerDecodeStr(FListA[nIdx]);
-    FListC.Add('''' + FListB.Values['P_ID'] + '''');
-  end;
-
-  if FListC.Count < 1 then
-  begin
-    nData := '无同步信息记录';
-    Exit;
-  end;
-
-  if not TWorkerBusinessCommander.CallMe(cBC_SyncProvidePound, FListC.Text,
-     '', @nOut) then
-  begin
-    nSQL := AdjustListStrFormat2(FListC, '''', True, ',', False, False);
-    nSQL := Format('Delete From %s Where P_ID In (%s)', [sTable_PoundLog, nSQL]);
-    gDBConnManager.WorkerExec(FDBConn, nSQL);
-    raise Exception.Create(nOut.FData);
-  end;
-
   Result := True;
 end;
 
 //Date: 2014-09-15
 //Parm: 命令;数据;参数;输出
 //Desc: 本地调用业务对象
-class function TWorkerBusinessOrders.CallMe(const nCmd: Integer;
+class function TWorkerBusinessOrdersSingle.CallMe(const nCmd: Integer;
   const nData, nExt: string; const nOut: PWorkerBusinessCommand): Boolean;
 var nStr: string;
     nIn: TWorkerBusinessCommand;
@@ -1811,36 +1732,6 @@ begin
   end;
 end;
 
-function TWorkerBusinessOrders.GetOrderInfo(const nOID: string; var nBID: string): Boolean;
-var
-  nStr:string;
-begin
-  Result := False;
-  nBID :='';
-  nStr := 'select O_BID from %s where O_ID =''%s''';
-  nStr := format(nStr,[sTable_Order,nOID]);
-  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
-  begin
-    if RecordCount>0 then
-    begin
-      nBID   := FieldByName('O_BID').asString;
-      Result := True;
-    end;
-  end;
-end;
-
-function TWorkerBusinessOrders.GetCardUsed(const nCard: string;
-  var nCardType: string): Boolean;
-var nOut: TWorkerBusinessCommand;
-begin
-  Result := TWorkerBusinessCommander.Callme(cBC_GetCardUsed, nCard, '', @nOut);
-
-  if Result then
-       nCardType := nOut.FData
-  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
-  //xxxxx
-end;
-
 initialization
-  gBusinessWorkerManager.RegisteWorker(TWorkerBusinessOrders, sPlug_ModuleBus);
+  gBusinessWorkerManager.RegisteWorker(TWorkerBusinessOrdersSingle, sPlug_ModuleBus);
 end.

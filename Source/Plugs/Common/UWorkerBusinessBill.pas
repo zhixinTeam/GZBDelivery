@@ -704,6 +704,11 @@ begin
               SF('L_PrintHY', FListA.Values['PrintHY']),
               {$ENDIF} //随车打印化验单
 
+              {$IFDEF UseWLFYInfo}
+              SF('L_DispatchNo', FListA.Values['DispatchNo']),
+              SF('L_extDispatchNo', FListA.Values['extDispatchNo']),
+              {$ENDIF}
+
               SF('L_ZKMoney', sFlag_No),
               SF('L_Truck', FListA.Values['Truck']),
               SF('L_Status', sFlag_BillNew),
@@ -1759,6 +1764,14 @@ begin
   //xxxxx
   {$ENDIF}
 
+  {$IFDEF UseWLFYInfo}
+  nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
+          'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
+          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
+          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate,L_extDispatchNo '+
+          'From $Bill b ';
+  {$ENDIF}
+
   if nIsBill then
        nStr := nStr + 'Where L_ID=''$CD'''
   else nStr := nStr + 'Where L_Card=''$CD''';
@@ -1838,6 +1851,9 @@ begin
         FMemo := FHdOrderId;
         FKZValue := FieldByName('L_HDValue').AsFloat;
       end;
+      {$ENDIF}
+      {$IFDEF UseWLFYInfo}
+      FextDispatchNo := FieldByName('L_extDispatchNo').AsString;
       {$ENDIF}
       FSelected := True;
 
@@ -2288,7 +2304,7 @@ begin
         FListB.Text := PackerDecodeStr(nOut.FData);
         FListC.Text := PackerDecodeStr(FListB[0]);
         //订单信息
-
+        {$IFNDEF UseAllCusNameBillHK}
         if FCusID <> FListC.Values['XCB_Client'] then
         begin
           nData := '客户信息不一致,详情如下:' + #13#10#13#10 +
@@ -2308,6 +2324,7 @@ begin
           nData := Format(nData, [FStockName, FListC.Values['XCB_CementName']]);
           Exit;
         end;
+        {$ENDIF}
 
         if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard, FListB[0],
            sFlag_LoadExtInfo, @nOut) then
@@ -2394,6 +2411,9 @@ begin
                 {$IFNDEF BATAFTERLINE}
                 SF('L_Seal', FListB.Values['XCB_CementCodeID']),
                 SF('L_HYDan', FListB.Values['XCB_CementCode']),
+                {$ENDIF}
+                {$IFDEF UseWLFYInfo}
+                SF('L_DispatchNo', FextDispatchNo),
                 {$ENDIF}
                 SF('L_TransID', FListB.Values['XCB_TransID']),
                 SF('L_TransName', FListB.Values['XCB_TransName']),
@@ -2837,6 +2857,20 @@ begin
     nSQL := 'Delete From %s Where T_Bill In (%s)';
     nSQL := Format(nSQL, [sTable_ZTTrucks, nStr]);
     FListA.Add(nSQL); //清理装车队列
+
+    {$IFDEF UseWLFYInfo}
+    for nIdx:=Low(nBills) to High(nBills) do
+    with nBills[nIdx] do
+    begin
+      nSQL := MakeSQLByStr([
+            SF('H_ID'   , FID),
+            SF('H_Order' , FZhiKa),
+            SF('H_Status' , '1'),
+            SF('H_BillType'   , sFlag_Sale)
+            ], sTable_HHJYSync, '', True);
+      FListA.Add(nSQL);
+    end;
+    {$ENDIF}
   end;
 
   //----------------------------------------------------------------------------

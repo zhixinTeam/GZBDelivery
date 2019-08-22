@@ -459,7 +459,7 @@ end;
 //Desc: 在指定通道上喷码
 function THardwareCommander.PrintCode(var nData: string): Boolean;
 var nStr,nCode: string;
-    nPrefixLen, nIDLen: Integer;
+    nPrefixLen, nIDLen, nLength: Integer;
 begin
   Result := True;
   if not gCodePrinterManager.EnablePrinter then Exit;
@@ -563,6 +563,12 @@ begin
       nStr := 'P' + FieldByName('L_HYDan').AsString;
       System.Insert(nStr, nCode, 7);
       nCode := Dbc2Sbc(nCode);
+      {$ENDIF}
+
+      {$IFDEF CODEHCDZ}
+      //汉川喷码规则: P09+年月日+L_HYDan(#+后两位)
+      nCode := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
+      nCode := nCode + '#' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2);
       {$ENDIF}
 
       {$IFDEF GZBQJ}

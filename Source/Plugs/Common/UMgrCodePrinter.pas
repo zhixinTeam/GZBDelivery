@@ -17,17 +17,17 @@ const
 type
   PCodePrinter = ^TCodePrinter;
   TCodePrinter = record
-    FID     : string;            //标识
-    FIP     : string;            //地址
-    FPort   : Integer;           //端口
-    FTunnel : string;            //通道
+    FID        : string;            //标识
+    FIP        : string;            //地址
+    FPort      : Integer;           //端口
+    FTunnel    : string;            //通道
 
-    FDriver : string;            //驱动
-    FEnable : Boolean;           //启用
-    FOnline : Boolean;           //在线
-    FLastOn : Int64;             //上次在线
-
-    FOptions: TStrings;          //附加选项
+    FDriver    : string;            //驱动
+    FEnable    : Boolean;           //启用
+    FResponse  : Boolean;           //带应答
+    FOnline    : Boolean;           //在线
+    FLastOn    : Int64;             //上次在线
+    FOptions   : TStrings;          //附加选项
   end;
 
   TCodePrinterManager = class;
@@ -126,8 +126,6 @@ type
     procedure PrinterEnable(const nTunnel: string; const nEnable: Boolean);
     //起停喷码机
     property EnablePrinter: Boolean read FEnablePrinter;
-    //属性相关
-    property TunnelCode: TStrings read FTunnelCode;
     //属性相关
   end;
 
@@ -252,7 +250,6 @@ begin
       nPrinter := FPrinters[nIdx];
       if Assigned(nPrinter.FOptions) then
         FreeAndNil(nPrinter.FOptions);
-
       Dispose(nPrinter);
     end;
     //xxxxx
@@ -471,7 +468,7 @@ begin
     Result := True;
     Exit;
   end;
-  //喷码信息为空
+  //无喷码内容
   
   Result := False;
   nPrinter := GetPrinter(nTunnel);
@@ -500,6 +497,7 @@ end;
 //Desc: 读取nFile喷码机配置文件
 procedure TCodePrinterManager.LoadConfig(const nFile: string);
 var nIdx: Integer;
+    nResponse: Boolean;
     nXML: TNativeXml;
     nNode,nTmp: TXmlNode;
     nPrinter: PCodePrinter;
@@ -509,7 +507,9 @@ begin
     ClearPrinters(False);
     nXML.LoadFromFile(nFile);
 
+    nResponse := False;
     nTmp := nXML.Root.FindNode('config');
+
     if Assigned(nTmp) then
     begin
       nIdx := nTmp.NodeByName('enableprinter').ValueAsInteger;
@@ -517,6 +517,11 @@ begin
 
       nIdx := nTmp.NodeByName('enablejsq').ValueAsInteger;
       FEnableJSQ := nIdx = 1;
+
+      nNode := nTmp.FindNode('response');
+      if Assigned(nNode) then
+        nResponse := nNode.ValueAsInteger = 1;
+      //全局配置: 是否带应答反馈
     end;
 
     nTmp := nXML.Root.FindNode('printers');
@@ -537,6 +542,11 @@ begin
           FTunnel := nNode.NodeByName('tunnel').ValueAsString;
           FDriver := nNode.NodeByName('driver').ValueAsString;
           FEnable := nNode.NodeByName('enable').ValueAsInteger = 1;
+
+          FResponse := nResponse;
+          if Assigned(nNode.FindNode('response')) then
+            FResponse := nNode.NodeByName('response').ValueAsInteger = 1;
+          //xxxxx
 
           if Assigned(nNode.FindNode('options')) then
           begin
@@ -698,6 +708,30 @@ begin
   end;
 end;
 
+function ModbusCRC(const nData: string): Word;
+const
+  cPoly = $A001; //多项式：A001(1010 0000 0000 0001)
+var i,nIdx,nLen: Integer;
+    nNoZero: Boolean;
+begin
+  Result := $FFFF;
+  nLen := Length(nData);
+
+  for nIdx:=1 to nLen do
+  begin
+    Result := Ord(nData[nIdx]) xor Result;
+    for i:=1 to 8 do
+    begin
+      nNoZero := Result and $0001 <> 0;
+      Result := Result shr 1;
+
+      if nNoZero then
+        Result := Result xor cPoly;
+      //xxxxx
+    end;
+  end;
+end;
+
 //------------------------------------------------------------------------------
 type
   TPrinterZero = class(TCodePrinterBase)
@@ -707,7 +741,7 @@ type
   public
     class function DriverName: string; override;
   end;
-  
+
 class function TPrinterZero.DriverName: string;
 begin
   Result := 'zero';
@@ -716,11 +750,9 @@ end;
 //Desc: 打印编码
 function TPrinterZero.PrintCode(const nCode: string;
   var nHint: string): Boolean;
-  var nData: string;
+var nStr,nData: string;
     nCrc: TByteWord;
     nBuf: TIdBytes;
-    nDatatemp: string;
-    nstr: string  ;
 begin
   //protocol: 55 7F len order datas crc16 AA
   nData := Char($55) + Char($7F) + Char(Length(nCode) + 1);
@@ -729,24 +761,26 @@ begin
 
   nCrc := TByteWord(CRC16(nData, 5, Length(nData)));
   nData := nData + Char(nCrc.FH) + Char(nCrc.FL) + Char($AA);
+
   FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
 
-  SetLength(nBuf, 0);
-  FClient.Socket.ReadBytes(nBuf, 9, False);
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, 9, False);
+    nStr := BytesToString(nBuf,Indy8BitEncoding);
 
-  nstr:= BytesToString(nBuf,Indy8BitEncoding);
+    nData :=  Char($55) + Char($FF) + Char($02)+ Char($54)+ Char($4F);
+    nData :=  nData + Char($4B)+ Char($5D) + Char($E4) + Char($AA);
 
-  nDatatemp :=  Char($55) + Char($FF) + Char($02)+ Char($54)+ Char($4F);
-  nDatatemp :=  nDatatemp + Char($4B)+ Char($5D) + Char($E4) + Char($AA);
-
-
-  if nstr <> nDatatemp then
-   begin
+    if nstr <> nData then
+    begin
       nHint := '喷码机应答错误!';
       Result := False;
       Exit;
-   end;
-                    
+    end;
+  end;
 
   Result := True;
 end;
@@ -768,9 +802,8 @@ end;
 
 function TPrinterJY.PrintCode(const nCode: string;
   var nHint: string): Boolean;
-  var nData: string;
+var nStr,nData: string;
   nBuf: TIdBytes;
-  nstr: string;
 begin
 
   //久易喷码机
@@ -786,18 +819,23 @@ begin
   nData := Char($1B) + Char($41) + Char($29)+ Char(Length(nCode) + 38);
   nData := nData + Char(2 + 31) + Char($40) + Char($37);
   nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
+
   FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
 
-  SetLength(nBuf, 0);
-  FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
 
-  nstr:= BytesToString(nBuf, Indy8BitEncoding);
-  if nstr <> nData then
-   begin
+    nStr := BytesToString(nBuf, Indy8BitEncoding);
+    if nStr <> nData then
+    begin
       nHint := '喷码机应答错误!';
       Result := False;
       Exit;
-   end;
+    end;
+  end;
 
   Result := True;
 end;
@@ -820,9 +858,8 @@ end;
 
 function TPrinterWSD.PrintCode(const nCode: string;
   var nHint: string): Boolean;
-  var nData: string;
+var nStr,nData: string;
   nBuf: TIdBytes;
-  nstr: string;
 begin
   //威士德喷码机
   //1B 41 29 2A 20 40 37 32 33 34 35 40 39 0D
@@ -840,17 +877,21 @@ begin
   nData := nData+Char($40)+Char($39)+Char($0D);
 
   FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
 
-  SetLength(nBuf, 0);
-  FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
 
-  nstr:= BytesToString(nBuf, Indy8BitEncoding);
-  if nstr <> nData then
-   begin
+    nStr := BytesToString(nBuf, Indy8BitEncoding);
+    if nStr <> nData then
+    begin
       nHint := '喷码机应答错误!';
       Result := False;
       Exit;
-   end;
+    end;
+  end;
 
   Result := True;
 end;
@@ -873,7 +914,7 @@ end;
 function TPrinterSGB.PrintCode(const nCode: string;
   var nHint: string): Boolean;
 var nData: string;
-    //nBuf: TIdBytes;
+    nBuf: TIdBytes;
 begin
   //仕贵宝喷码机
   //1B 41 len(start 38) channel(start 31) 40 37 datas 40 39 0D
@@ -883,18 +924,171 @@ begin
   nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
   FClient.Socket.Write(nData, Indy8BitEncoding);
 
-  Sleep(800);
-  //for delay
-  
   nData := Char($1B) + Char($41) + Char($2C) +Char($22);
   nData := nData + Char(2 + 31) + Char($0D);
+  
   FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
 
-  //SetLength(nBuf, 0);
-  //FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+  end;
 
   Result := True;
 end;
+
+//-----------------------------------------------------------------------
+type
+  TPrinterWZP = class(TCodePrinterBase)
+  protected
+    function PrintCode(const nCode: string;
+     var nHint: string): Boolean; override;
+  public
+    class function DriverName: string; override;
+  end;
+
+class function TPrinterWZP.DriverName: string;
+begin
+  Result := 'WZP';
+end;
+
+function TPrinterWZP.PrintCode(const nCode: string;
+  var nHint: string): Boolean;
+var nData: string;
+    nBuf: TIdBytes;
+begin
+  //未知喷码机
+  //23 30 31 11 41 datas 0D 0A
+  nData := Char($23) + Char($30) + Char($31) + Char($11) + Char($41);
+  nData := nData + nCode + Char($0D) + Char($0A);
+
+  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
+
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+  end;
+
+  Result := True;
+end;
+
+//-----------------------------------------------------------------------
+type
+  TPrinterDWA = class(TCodePrinterBase)
+  protected
+    function PrintCode(const nCode: string;
+     var nHint: string): Boolean; override;
+  public
+    class function DriverName: string; override;
+  end;
+
+class function TPrinterDWA.DriverName: string;
+begin
+  Result := 'DWA';
+end;
+
+function TPrinterDWA.PrintCode(const nCode: string;
+  var nHint: string): Boolean;
+var nStr,nData: string;
+  nBuf: TIdBytes;
+begin
+
+  //大微A类喷码机
+  //1B 41 len(start 34) channel(start 32) 40 37 datas 40 39 0D
+  // 1B 41 29 为开头数据
+  // 23 表示喷码的字的个数 （23表示为1个） 计数的方式为16进制
+  // 20 表示通道的编码      （20为通道0）  计数的方式为16进制
+  // 40 37 表示喷码数据的开始
+  // ***  喷码的数据        传送的方式为ASCII码
+  // 40 39 表示喷码数据的结尾
+  // 0D   表示整体传送的结尾
+
+  nData := Char($1B) + Char($41) + Char($29)+ Char(Length(nCode) + 34);
+  nData := nData + Char(2 + 31) + Char($40) + Char($37);
+  nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
+
+  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
+
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+
+    nStr := BytesToString(nBuf, Indy8BitEncoding);
+    if nStr <> nData then
+    begin
+      nHint := '喷码机应答错误!';
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  Result := True;
+end;
+
+//------------------------------------------------------------------------------
+type
+  TPrinterWSDP011C = class(TCodePrinterBase)
+  protected
+    function PrintCode(const nCode: string;
+     var nHint: string): Boolean; override;
+  public
+    class function DriverName: string; override;
+  end;
+
+class function TPrinterWSDP011C.DriverName: string;
+begin
+  Result := 'WSDP011C';
+end;
+
+//Desc: 打印编码
+function TPrinterWSDP011C.PrintCode(const nCode: string;
+  var nHint: string): Boolean;
+var nStr,nData,nDataVerify: string;
+    nCrc: TByteWord;
+    nBuf: TIdBytes;
+begin
+  //protocol: 55 len order datas ModbusCRC AA
+  nData := Char($55) + Char($00) + Char(Length(nCode) + 17);
+  nData := nData + Char($53) + Char($4E);
+  nData := nData + Char($03) + Char($00) + Char($00) + Char($01);
+
+  nDataVerify := Char($01) + Char($00) + Char($01) + Char($00) + Char(Length(nCode));
+  nDataVerify := nDataVerify + nCode;
+
+  nCrc := TByteWord(ModbusCRC(nDataVerify));
+  nDataVerify := nDataVerify + Char(nCrc.FH) + Char(nCrc.FL) + Char($AA);
+
+  nData := nData + nDataVerify;
+
+  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
+
+  if FPrinter.FResponse then
+  begin
+    SetLength(nBuf, 0);
+    FClient.Socket.ReadBytes(nBuf, 12, False);
+    nStr := BytesToString(nBuf,Indy8BitEncoding);
+
+    nData :=  Char($55) + Char($00) + Char($0C)+ Char($4F)+ Char($4B);
+    nData :=  nData + Char($03)+ Char($00) + Char($00) + Char($01);
+    nData :=  nData + Char($FF)+ Char($FF) + Char($AA);
+    if nstr <> nData then
+    begin
+      nHint := '喷码机应答错误!';
+      Result := False;
+      Exit;
+    end;
+  end;
+
+  Result := True;
+end;
+
 
 initialization
   gCodePrinterManager := TCodePrinterManager.Create;
@@ -902,6 +1096,9 @@ initialization
   gCodePrinterManager.RegDriver(TPrinterJY);
   gCodePrinterManager.RegDriver(TPrinterWSD);
   gCodePrinterManager.RegDriver(TPrinterSGB);
+  gCodePrinterManager.RegDriver(TPrinterWZP);
+  gCodePrinterManager.RegDriver(TPrinterDWA);
+  gCodePrinterManager.RegDriver(TPrinterWSDP011C);
 finalization
   FreeAndNil(gCodePrinterManager);
 end.

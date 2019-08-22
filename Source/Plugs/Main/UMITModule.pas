@@ -17,6 +17,7 @@ uses
   UWorkerBusinessCommand, UWorkerBusinessBill,
   UWorkerBusinessDuanDao, UWorkerBusinessOrders,
   {$IFDEF GLlade}UWorkerBusinessBillSingle,{$ENDIF}
+  {$IFDEF PurchaseOrderSingle}UWorkerBusinessOrdersSingle,{$ENDIF}
   {$IFDEF MicroMsg}UMgrRemoteWXMsg, UWXSyncer,{$ENDIF}
   UMgrDBConn, UMgrParam, UMgrPlug, UMgrChannel, UChannelChooser, USAPConnection,
   UBaseObject;

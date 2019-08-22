@@ -66,6 +66,7 @@ function Do_ModifyWebOrderStatus(const nXmlStr: string): string;
 
 procedure LEDDisplayNew(const nTunnel: string; nContent: string = '';
                      nTitle: string = '');
+function SaveBusinessCardInfo(const nTruck,nCard,nBill,nLine: string): Boolean;
 
 implementation
 
@@ -192,6 +193,36 @@ begin
     nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
     nStr := nPacker.PackIn(@nIn);
     nWorker := gBusinessWorkerManager.LockWorker(sBus_BusinessPurchaseOrder);
+    //get worker
+
+    Result := nWorker.WorkActive(nStr);
+    if Result then
+         nPacker.UnPackOut(nStr, nOut)
+    else nOut.FData := nStr;
+  finally
+    gBusinessPackerManager.RelasePacker(nPacker);
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
+//Desc: 调用中间件上的采购单据对象
+function CallBusinessPurchaseOrderSingle(const nCmd: Integer;
+  const nData, nExt: string; const nOut: PWorkerBusinessCommand): Boolean;
+var nStr: string;
+    nIn: TWorkerBusinessCommand;
+    nPacker: TBusinessPackerBase;
+    nWorker: TBusinessWorkerBase;
+begin
+  nPacker := nil;
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    nPacker := gBusinessPackerManager.LockPacker(sBus_BusinessCommand);
+    nStr := nPacker.PackIn(@nIn);
+    nWorker := gBusinessWorkerManager.LockWorker(sBus_BusinessPurchaseOrderSingle);
     //get worker
 
     Result := nWorker.WorkActive(nStr);
@@ -1541,7 +1572,15 @@ begin
        rt02n :
         g02NReader.SetReaderCard(nReader.FHost, nReader.FCard);
        end;
-    end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
+    end else
+    begin
+      g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
+      if nReader.FOptions.Values['Opendoor'] = 'Y' then
+      begin
+        gHYReaderManager.OpenDoor(nReader.FID);
+      end;
+    end;
+
 
     {$IFDEF PurELabelAutoCard}
     if (CompareText('NET', nReader.FOptions.Values['SendCard']) = 0) then
@@ -1578,8 +1617,14 @@ begin
      rt02n :
       g02NReader.SetReaderCard(nReader.FHost, nReader.FCard);
      end;
-  end else g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
-
+  end else
+  begin
+    g02NReader.ActiveELabel(nReader.FTunnel, nReader.FCard);
+    if nReader.FOptions.Values['Opendoor'] = 'Y' then
+    begin
+      gHYReaderManager.OpenDoor(nReader.FID);
+    end;
+  end;
 end;
 
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
@@ -2064,6 +2109,24 @@ begin
   Result := Dbc2Sbc(nStr + StringOfChar(' ', 12 - Length(nStr)) + nExt);
 end;
 
+//Date: 2019-3-10
+//Parm: 提货单号;装车线ID;装车线名称
+//Desc: 更新装车道
+function SaveTruckLine(const nID,nLineID,nLineName: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+    nList: TStrings;
+begin
+  nList := TStringList.Create;
+  try
+    nList.Values['ID'] := nID;
+    nList.Values['LineID'] := nLineID;
+    nList.Values['LineName'] := nLineName;
+    Result := CallBusinessCommand(cBC_SaveTruckLine, nList.Text, '', @nOut);
+  finally
+    nList.Free;
+  end;
+end;
+
 //Date: 2012-4-24
 //Parm: 磁卡号;通道号
 //Desc: 对nCard执行袋装装车操作
@@ -2272,6 +2335,12 @@ begin
   for nIdx:=Low(nTrucks) to High(nTrucks) do
   with nTrucks[nIdx] do
   begin
+    SaveTruckLine(FID, nTunnel, nPLine.FName);
+  end;
+  
+  for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
+  begin
     if not FSelected then Continue;
     if FStatus <> sFlag_TruckZT then Continue;
 
@@ -2282,6 +2351,11 @@ begin
     if not TruckStartJS(nPTruck.FTruck, nTunnel, nPTruck.FBill, nStr,
        GetHasDai(nPTruck.FBill) < 1) then
       WriteNearReaderLog(nStr);
+
+      
+    {$IFDEF PackMachine}
+    SaveBusinessCardInfo(FTruck, nCard, FID, nTunnel);
+    {$ENDIF}
     Exit;
   end;
 
@@ -2300,6 +2374,11 @@ begin
 
   if not TruckStartJS(nPTruck.FTruck, nTunnel, nPTruck.FBill, nStr) then
     WriteNearReaderLog(nStr);
+
+  {$IFDEF PackMachine}
+  SaveBusinessCardInfo(nTrucks[0].FTruck, nCard, nTrucks[0].FID, nTunnel);
+  {$ENDIF}
+
   Exit;
 end;
 
@@ -2456,6 +2535,12 @@ begin
     Exit;
   end; //检查通道
 
+  for nIdx:=Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
+  begin
+    SaveTruckLine(FID, nTunnel, nPLine.FName);
+  end;
+
   if nTrucks[0].FStatus = sFlag_TruckFH then
   begin
     nStr := '散装车辆[ %s ]再次刷卡装车.';
@@ -2597,6 +2682,24 @@ begin
 
     nStr := PackerEncodeStr(nList.Text);
     CallHardwareCommand(cBC_SaveCountData, nStr, '', @nOut)
+  finally
+    nList.Free;
+  end;
+end;
+
+function SaveBusinessCardInfo(const nTruck,nCard,nBill,nLine: string): Boolean;
+var nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+    nID,nDefDept: string;
+begin
+  nList := TStringList.Create;
+  try
+    nList.Values['Truck'] := nTruck;
+    nList.Values['Bill'] := nBill;
+    nList.Values['Card'] := nCard;
+    nList.Values['Line'] := nLine;
+
+    Result := CallBusinessCommand(cBC_SaveBusinessCard, nList.Text, '', @nOut);
   finally
     nList.Free;
   end;

@@ -114,6 +114,10 @@ type
     //获取采购订单类型(临时卡,固定卡)
     function GetWebOrderID(var nData: string): Boolean;
     //获取网上下单申请单号
+    function SaveBusinessCard(var nData: string): Boolean;
+    //保存刷卡信息
+    function SaveTruckLine(var nData: string): Boolean;
+    //保存车辆通道
     function SyncRemoteTransit(var nData: string): Boolean;
     function SyncRemoteSaleMan(var nData: string): Boolean;
     function SyncRemoteCustomer(var nData: string): Boolean;
@@ -477,6 +481,10 @@ begin
    cBC_GetLineGroupByCustom: Result := GetLineGroupByCustom(nData);
    cBC_GetOrderCType       : Result := GetOrderCType(nData);
    cBC_GetWebOrderID       : Result := GetWebOrderID(nData);
+   cBC_SaveBusinessCard    : Result := SaveBusinessCard(nData);
+
+   cBC_SaveTruckLine       : Result := SaveTruckLine(nData);
+
 
    cBC_SyncCustomer        : Result := SyncRemoteCustomer(nData);
    cBC_SyncSaleMan         : Result := SyncRemoteSaleMan(nData);
@@ -1337,7 +1345,7 @@ begin
           {$ENDIF}
         end;
       end;
-
+      
       if (nVal <= 0) and (Pos(sFlag_AllowZeroNum, FIn.FExtParam) < 1) then
       begin
         nStr := '※.单据:[ %s ]可开票量为0,无法提货.' + #13#10;
@@ -1503,7 +1511,7 @@ var nStr,nSaler: string;
 begin
   FListA.Clear;
   Result := True;
-
+  WriteLog('同步云天供应商！');
   FListB.Clear;
   nStr := 'Select P_ID From P_Provider';
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -2893,10 +2901,11 @@ begin
         FStockNo    := FieldByName('L_StockNo').AsString;
         FValue      := FieldByName('L_Value').AsFloat;
         FYSValid    := FieldByName('L_IsEmpty').AsString;
-
+        WriteLog('是否空车出厂'+FYSValid);
         {$IFDEF SaveEmptyTruck}
         if FYSValid = sFlag_Yes then
           FValue := 0;
+        WriteLog('空车出厂数量值'+Floattostr(FValue));
         {$ENDIF}
 
         if FListA.IndexOf(FZhiKa) < 0 then
@@ -2997,13 +3006,6 @@ begin
       begin
         First;
         //init cursor
-
-        {if nBills[nIdx].FValue<=0 then Continue;
-        //发货量为0
-
-        if nBills[nIdx].FYSValid = sFlag_Yes then Continue;
-        //空车出厂 }//空车出厂继续上传用以更新云天发货量
-
         while not Eof do
         begin
           nStr := FieldByName('XCB_ID').AsString;
@@ -3016,6 +3018,12 @@ begin
 
         nSetDate := Now;
         //获取当前服务器时间
+
+        {$IFDEF SaveEmptyTruck}
+        if UpperCase(Trim(nBills[nIdx].FYSValid)) = sFlag_Yes then
+          nBills[nIdx].FValue := 0;
+        WriteLog('空车出厂确认值'+Floattostr(nBills[nIdx].FValue));
+        {$ENDIF}
 
         if nBills[nIdx].FYTID = '' then
         begin
@@ -3406,13 +3414,13 @@ begin
       end;
     end;
 
+    {$IFDEF ASyncWriteData}
     if Result then
     begin
-      {$IFDEF ASyncWriteData}
       gDBConnManager.ASyncApply(nItem.FSerialNo, 10 * 1000);
       //start write
-      {$ENDIF}
     end;
+    {$ENDIF}
   finally
     gDBConnManager.ReleaseConnection(nWorker);
   end;
@@ -5577,6 +5585,59 @@ begin
   end;
   WriteLog('单据号' + FIn.FData +'查询网上申请单出参:申请单号' + FOut.FData
                     + ',净重' + FOut.FExtParam);
+  Result := True;
+end;
+
+//Date: 2018-12-6
+//Parm: 车牌号(Truck); 交货单号(Bill);车道(Pos)
+//Desc: 保存当前刷卡信息
+function TWorkerBusinessCommander.SaveBusinessCard(var nData: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+  FListA.Text := FIn.FData;
+
+  nStr := 'Delete From %s Where C_Line=''%s''';
+  nStr := Format(nStr, [sTable_ZTCard, FListA.Values['Line']]);
+
+  gDBConnManager.WorkerExec(FDBConn, nStr);
+
+  nStr := MakeSQLByStr([
+      SF('C_Truck', FListA.Values['Truck']),
+      SF('C_Card', FListA.Values['Card']),
+      SF('C_Bill', FListA.Values['Bill']),
+      SF('C_Line', FListA.Values['Line']),
+      SF('C_BusinessTime', sField_SQLServer_Now, sfVal)
+      ], sTable_ZTCard, '', True);
+  gDBConnManager.WorkerExec(FDBConn, nStr);
+
+  nData := sFlag_Yes;
+  FOut.FData := nData;
+  Result := True;
+end;
+
+function TWorkerBusinessCommander.SaveTruckLine(
+  var nData: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+
+  if FIn.FData = '' then
+    Exit;
+
+  FListA.Clear;
+
+  FListA.Text := FIn.FData;
+
+  if FListA.Values['ID'] = '' then
+    Exit;
+
+  nStr := 'Update %s Set L_LadeLine=''%s'',L_LineName=''%s'' Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, FListA.Values['LineID'],
+                                     FListA.Values['LineName'],
+                                     FListA.Values['ID']]);
+  WriteLog('刷卡更新提货通道SQL:' + nStr);
+  gDBConnManager.WorkerExec(FDBConn, nStr);
   Result := True;
 end;
 
