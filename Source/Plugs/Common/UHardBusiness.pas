@@ -2099,6 +2099,40 @@ begin
   end;
 end;
 
+function IsTunnelStockNo(const nTunnel, nStockNO: string): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nDBConn: PDBWorker;
+begin
+  Result := False;
+  //init
+
+  nDBConn := nil;
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+    if not Assigned(nDBConn) then
+    begin
+      WriteNearReaderLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+
+    nStr := ' Select Z_ID From %s Where Z_ID = ''%s'' And Z_StockNo = ''%s'' ' ;
+    nStr := Format(nStr, [sTable_ZTLines, nTunnel, nStockNO]);
+
+    with gDBConnManager.WorkerQuery(nDBConn, nStr) do
+    if RecordCount > 0 then
+         Result := True
+    else Result := False;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+end;
+
 //Date: 2016/10/13
 //Parm: 车牌号;其他信息
 //Desc: 小屏显示内容
@@ -2301,6 +2335,17 @@ begin
     WriteNearReaderLog(nStr);
     Exit;
   end; //检查通道
+
+  {$IFDEF UseDaiJYStockNo}
+  if (nTunnel <> '') and (not
+      IsTunnelStockNo(nTunnel, nTrucks[0].FStockNo)) then
+  begin
+    nStr := '交货单品种与通道品种不同';
+    gDisplayManager.Display(nTunnel, nStr);
+    WriteNearReaderLog('通道'+ nTunnel + nStr);
+    Exit;
+  end;
+  {$ENDIF}
 
   nStr := '';
   nInt := 0;

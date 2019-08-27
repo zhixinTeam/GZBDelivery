@@ -568,7 +568,7 @@ begin
       {$IFDEF CODEHCDZ}
       //汉川喷码规则: P09+年月日+L_HYDan(#+后两位)
       nCode := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
-      nCode := nCode + '#' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2);
+      nCode := nCode + '@5#@7' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2);
       {$ENDIF}
 
       {$IFDEF GZBQJ}
