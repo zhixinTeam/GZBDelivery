@@ -75,6 +75,19 @@ type
     class function FunctionName: string; override;
   end;
 
+  TClientBusinessPurchaseOrderSingle = class(TClient2MITWorker)
+  public
+    function GetFlagStr(const nFlag: Integer): string; override;
+    class function FunctionName: string; override;
+  end;
+
+  TClientBusinessWechat = class(TClient2MITWorker)
+  public
+    function GetFlagStr(const nFlag: Integer): string; override;
+    class function FunctionName: string; override;
+    function GetFixedServiceURL: string; override;
+  end;
+
 implementation
 
 uses
@@ -370,6 +383,46 @@ begin
   end;
 end;
 
+{ TClientBusinessPurchaseOrderSingle }
+
+class function TClientBusinessPurchaseOrderSingle.FunctionName: string;
+begin
+  Result := sCLI_BusinessPurchaseOrderSingle;
+end;
+
+function TClientBusinessPurchaseOrderSingle.GetFlagStr(
+  const nFlag: Integer): string;
+begin
+  Result := inherited GetFlagStr(nFlag);
+
+  case nFlag of
+   cWorker_GetPackerName : Result := sBus_BusinessCommand;
+   cWorker_GetMITName    : Result := sBus_BusinessPurchaseOrderSingle;
+  end;
+end;
+
+{ TClientBusinessWechat }
+
+class function TClientBusinessWechat.FunctionName: string;
+begin
+  Result := sCLI_BusinessWebchat;
+end;
+
+function TClientBusinessWechat.GetFixedServiceURL: string;
+begin
+  Result := gSysParam.FWechatURL;
+end;
+
+function TClientBusinessWechat.GetFlagStr(const nFlag: Integer): string;
+begin
+  Result := inherited GetFlagStr(nFlag);
+
+  case nFlag of
+   cWorker_GetPackerName : Result := sBus_BusinessWebchat;
+   cWorker_GetMITName    : Result := sBus_BusinessWebchat;
+  end;
+end;
+
 initialization
   gBusinessWorkerManager.RegisteWorker(TClientWorkerQueryField);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessCommand);
@@ -378,4 +431,6 @@ initialization
   gBusinessWorkerManager.RegisteWorker(TClientBusinessDuanDao);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessPurchaseOrder);
   gBusinessWorkerManager.RegisteWorker(TClientBusinessSaleBillSingle);
+  gBusinessWorkerManager.RegisteWorker(TClientBusinessPurchaseOrderSingle);
+  gBusinessWorkerManager.RegisteWorker(TClientBusinessWechat);
 end.

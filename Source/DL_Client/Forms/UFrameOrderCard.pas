@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameOrderCard;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -495,11 +496,19 @@ begin
   nStr := Format('确定要对卡[ %s ]执行销卡操作吗?', [nCard]);
   if not QueryDlg(nStr, sAsk) then Exit;
 
+  {$IFDEF PurchaseOrderSingle}
+  if LogoutOrderCardSingle(nCard) then
+  begin
+    InitFormData(FWhere);
+    ShowMsg('注销操作成功', sHint);
+  end;
+  {$ELSE}
   if LogoutOrderCard(nCard) then
   begin
     InitFormData(FWhere);
     ShowMsg('注销操作成功', sHint);
   end;
+  {$ENDIF}
 end;
 
 //Desc: 冻结磁卡

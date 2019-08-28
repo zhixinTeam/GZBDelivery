@@ -120,7 +120,7 @@ begin
 
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
 
-  Result := 'Select * From $Bill ';
+  Result := 'Select *, c.C_NAME From $Bill Left Join S_Customer c On L_CusID=c.C_ID ';
   //提货单
 
   if (nWhere = '') or FUseDate then
@@ -176,6 +176,9 @@ begin
     if EditLID.Text = '' then Exit;
 
     FUseDate := Length(EditLID.Text) <= 3;
+    {$IFDEF AllUseDate}
+    FUseDate := True;
+    {$ENDIF}
     FWhere := 'L_ID like ''%' + EditLID.Text + '%''';
     InitFormData(FWhere);
   end else
@@ -196,6 +199,9 @@ begin
     if EditTruck.Text = '' then Exit;
 
     FUseDate := Length(EditTruck.Text) <= 3;
+    {$IFDEF AllUseDate}
+    FUseDate := True;
+    {$ENDIF}
     FWhere := Format('L_Truck like ''%%%s%%''', [EditTruck.Text]);
     InitFormData(FWhere);
   end else
@@ -206,6 +212,9 @@ begin
     if EditYTCard.Text = '' then Exit;
 
     FUseDate := Length(EditYTCard.Text) <= 3;
+    {$IFDEF AllUseDate}
+    FUseDate := True;
+    {$ENDIF}
     FWhere := Format('L_Project like ''%%%s%%''', [EditYTCard.Text]);
     InitFormData(FWhere); 
   end;
@@ -254,7 +263,9 @@ end;
 
 //Desc: 删除
 procedure TfFrameBill.BtnDelClick(Sender: TObject);
-var nStr, nHasOut: string;
+var
+  nID: string;
+  nStr, nHasOut: string;
 begin
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
@@ -275,6 +286,17 @@ begin
   nStr := Format(nStr, [SQLQuery.FieldByName('L_ID').AsString]);
   if not QueryDlg(nStr, sAsk) then Exit;
 
+  {$IFDEF UseWXServiceEx}
+  try
+    gSysLoger.AddLog(TfFrameBill, '删除销售单', SQLQuery.FieldByName('L_ID').AsString);
+    SaveWebOrderDelMsg(SQLQuery.FieldByName('L_ID').AsString,sFlag_Sale);
+  except
+    ShowMsg('插入微信端消息推送失败.',sHint);
+  end;
+  //插入删除推送
+  {$ENDIF}
+
+  {$IFDEF EnableWebMall}
   try
     //推送公众号消息
     SendMsgToWebMall(SQLQuery.FieldByName('L_ID').AsString);
@@ -286,6 +308,7 @@ begin
   except
     //不处理异常
   end;
+  {$ENDIF}
 
   if FGL then
   begin

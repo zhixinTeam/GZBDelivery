@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormPurchasing;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -79,7 +80,16 @@ begin
     nStr := Trim(nStr);
 
     if nStr = '' then Continue;
+
+    {$IFDEF UseELableAsCard}
+    nStr      := GetELabelBillOrder(nStr);
+    {$ENDIF}
+
+    {$IFDEF PurchaseOrderSingle}
+    if GetPurchaseOrdersSingle(nStr, sFlag_TruckXH, gBills) then Break;
+    {$ELSE}
     if GetPurchaseOrders(nStr, sFlag_TruckXH, gBills) then Break;
+    {$ENDIF}
   end;
 
   nInt := 0 ;
@@ -225,11 +235,19 @@ begin
     else  FYSValid := sFlag_Yes;
   end;
 
+  {$IFDEF PurchaseOrderSingle}
+  if SavePurchaseOrdersSingle(sFlag_TruckXH, gBills) then
+  begin
+    ShowMsg('原材料验收成功', sHint);
+    ModalResult := mrOk;
+  end;
+  {$ELSE}
   if SavePurchaseOrders(sFlag_TruckXH, gBills) then
   begin
     ShowMsg('原材料验收成功', sHint);
     ModalResult := mrOk;
   end;
+  {$ENDIF}
 end;
 
 procedure TfFormPurchasing.EditKZValuePropertiesEditValueChanged(

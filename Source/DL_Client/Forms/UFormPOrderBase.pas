@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormPOrderBase;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -344,7 +345,11 @@ begin
     Values['WarnValue']     := Format('%.2f', [nWarnVal]);
   end;
 
+  {$IFDEF PurchaseOrderSingle}
+  FOrderID := SaveOrderBaseSingle(PackerEncodeStr(FListA.Text));
+  {$ELSE}
   FOrderID := SaveOrderBase(PackerEncodeStr(FListA.Text));
+  {$ENDIF}
   if FOrderID='' then Exit;
 
   ModalResult := mrOK;

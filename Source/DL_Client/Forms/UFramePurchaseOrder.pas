@@ -170,6 +170,7 @@ begin
   nStr := SQLQuery.FieldByName('O_ID').AsString;
   if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的订单吗?', sAsk) then Exit;
 
+  {$IFDEF EnableWebMall}
   try
     //推送公众号消息
     SendMsgToWebMall(SQLQuery.FieldByName('O_ID').AsString);
@@ -181,9 +182,14 @@ begin
   except
     //不处理异常
   end;
+  {$ENDIF}
   nStr := SQLQuery.FieldByName('O_ID').AsString;
 
+  {$IFDEF PurchaseOrderSingle}
+  if DeleteOrderSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  {$ELSE}
   if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
+  {$ENDIF}
 
   InitFormData('');
 end;
@@ -269,9 +275,15 @@ begin
   end;
 
   nCard := SQLQuery.FieldByName('O_Card').AsString;
+  {$IFDEF PurchaseOrderSingle}
+  if LogoutOrderCardSingle(nCard) then
+    ShowMsg('注销磁卡成功', sHint);
+  //办理磁卡
+  {$ELSE}
   if LogoutOrderCard(nCard) then
     ShowMsg('注销磁卡成功', sHint);
   //办理磁卡
+  {$ENDIF}
 end;
 
 procedure TfFramePurchaseOrder.N3Click(Sender: TObject);
@@ -287,11 +299,19 @@ begin
     //无效或一致
 
     nStr := SQLQuery.FieldByName('O_ID').AsString;
+    {$IFDEF PurchaseOrderSingle}
+    if ChangeOrderTruckNoSingle(nStr, nTruck) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('车牌号修改成功', sHint);
+    end;
+    {$ELSE}
     if ChangeOrderTruckNo(nStr, nTruck) then
     begin
       InitFormData(FWhere);
       ShowMsg('车牌号修改成功', sHint);
     end;
+    {$ENDIF}
   end;
 end;
 

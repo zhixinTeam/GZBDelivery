@@ -77,6 +77,9 @@ function GetLadingStockItems(var nItems: TDynamicStockItemArray): Boolean;
 function GetCardUsed(const nCard: string): string;
 //获取卡片类型
 
+function SynEmptyBillYT(const nBillID: string): Boolean;
+//同步空车出厂到云天
+
 function LoadSysDictItem(const nItem: string; const nList: TStrings): TDataSet;
 //读取系统字典项
 function LoadSaleMan(const nList: TStrings; const nWhere: string = ''): Boolean;
@@ -183,12 +186,20 @@ function GetTruckLastTime(const nTruck: string): Integer;
 //车辆上次过磅记录
 function GetTruckRealLabel(const nTruck: string): string;
 //获取车辆绑定的电子标签
+function GetRealLabelTruck(const nELabel: string): string;
+//获取电子标签对应绑定的车辆
+function GetELabelBillOrder(const nELabel: string): string;
+//获取电子标签对应的单号
+function GetBillOrderType(const nBillID: string): string;
+//获取单号对应的类型
 function OpenDoorByReader(const nReader: string; nType: string = 'Y'): Boolean;
 //打开读卡器道闸
 function RemoteImportPounds(const nData: string): Boolean;
 //导入过磅数据
 function IsTunnelOK(const nTunnel: string): Boolean;
 //查询通道光栅是否正常
+function IsTruckQueue(const nTruck: string): Boolean;
+//查询车辆是否在队列中
 procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
 //控制通道红绿灯开合
 procedure GetPoundAutoWuCha(var nWCValZ, nWCValF: Double;
@@ -230,6 +241,8 @@ function ChangeOrderTruckNo(const nOrder,nTruck: string): Boolean;
 //修改车牌号
 function GetGYOrderBaseValue(const nOrder: string): string;
 //获取采购申请单发货信息
+procedure SaveWebOrderDelMsg(const nLID, nBillType: string);
+//插入推送消息
 
 function GetPurchaseOrders(const nCard,nPost: string;
  var nBills: TLadingBillItems): Boolean;
@@ -305,6 +318,9 @@ function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 //获取客户注册信息
 function getCustomerInfo(const nXmlStr: string): string;
 
+//获取客户注册信息
+function getCustomerInfoEx(const nData: string): string;
+
 //客户与微信账号绑定
 function get_Bindfunc(const nXmlStr: string): string;
 
@@ -313,6 +329,8 @@ function send_event_msg(const nXmlStr: string): string;
 
 //新增商城用户
 function edit_shopclients(const nXmlStr: string): string;
+//新增商城用户
+function edit_shopclientsEx(const nData: string): string;
 
 //添加商品
 function edit_shopgoods(const nXmlStr: string): string;
@@ -332,6 +350,9 @@ function AddManualEventRecord(nEID, nKey, nEvent:string;
 //添加待处理事项记录
 function VerifyManualEventRecord(const nEID: string; var nHint: string;
     const nWant: string = 'Y'; const nUpdateHint: Boolean = True): Boolean;
+//检查事件是否通过处理
+function VerifyManualEventRecordEx(const nEID: string; var nHint: string;
+ const nWant: string = 'Y'; const nUpdateHint: Boolean = True): Boolean;
 //检查事件是否通过处理
 function DealManualEvent(const nEID, nResult: string): Boolean;
 //事件处理
@@ -356,6 +377,41 @@ function GetFQValueByStockNo(const nStock: string): Double;
 //获取封签号已发量
 //----------------------------------------------------------------
 //单厂函数
+function SaveOrderBaseSingle(const nOrderData: string): string;
+//保存采购申请单
+function DeleteOrderBaseSingle(const nOrder: string): Boolean;
+//删除采购申请单
+function SavePurchaseContractSingle(const nData:string):string;
+//保存采购合同
+function ModifyPurchaseContractSingle(const nData:string):string;
+//修改采购合同
+function DeletePurchaseContractSingle(const nData: string): Boolean;
+//删除采购合同
+function SaveOrderSingle(const nOrderData: string): string;
+//保存采购单
+function DeleteOrderSingle(const nOrder: string): Boolean;
+//删除采购单
+function SaveOrderCardSingle(const nOrder, nCard: string): Boolean;
+//保存采购单磁卡
+function LogoutOrderCardSingle(const nCard: string): Boolean;
+//注销指定磁卡
+function ChangeOrderTruckNoSingle(const nOrder,nTruck: string): Boolean;
+//修改车牌号
+function GetGYOrderBaseValueSingle(const nOrder: string): string;
+//获取采购申请单发货信息
+function GetPurchaseOrdersSingle(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+//获取指定岗位的采购单列表
+function SavePurchaseOrdersSingle(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem = nil): Boolean;
+//保存指定岗位的采购单
+function RemoteImportPoundsSingle(const nData: string): Boolean;
+//导入过磅数据
+
+function IsEleCardVaidEx(const nTruckNo: string): Boolean;
+//验证车辆电子标签
+
+
 function SaveBillSingle(const nBillData: string): string;
 //保存交货单
 function DeleteBillSingle(const nBill: string): Boolean;
@@ -562,6 +618,40 @@ begin
   end;
 end;
 
+//Date: 2019-07-09
+//Parm: 命令;数据;参数;输出
+//Desc: 调用中间件上的销售单据对象
+function CallBusinessPurchaseOrderSingle(const nCmd: Integer; const nData,nExt: string;
+  const nOut: PWorkerBusinessCommand; const nWarn: Boolean = True): Boolean;
+var nIn: TWorkerBusinessCommand;
+    nWorker: TBusinessWorkerBase;
+begin
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+
+    if nWarn then
+         nIn.FBase.FParam := ''
+    else nIn.FBase.FParam := sParam_NoHintOnError;
+
+    if gSysParam.FAutoPound and (not gSysParam.FIsManual) then
+      nIn.FBase.FParam := sParam_NoHintOnError;
+    //自动称重时不提示
+
+    nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessPurchaseOrderSingle);
+    //get worker
+    Result := nWorker.WorkActive(@nIn, nOut);
+
+    if not Result then
+      WriteLog(nOut.FBase.FErrDesc);
+    //xxxxx
+  finally
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
 //Date: 2016-06-02
 //Parm: 命令;数据;参数;输出
 //Desc: 调用中间件上的短倒单据对象
@@ -630,6 +720,41 @@ begin
   end;
 end;
 
+//Date: 2017-10-26
+//Parm: 命令;数据;参数;服务地址;输出
+//Desc: 调用中间件上的销售单据对象
+function CallBusinessWechat(const nCmd: Integer; const nData,nExt,nSrvURL: string;
+  const nOut: PWorkerWebChatData; const nWarn: Boolean = True): Boolean;
+var nIn: TWorkerWebChatData;
+    nWorker: TBusinessWorkerBase;
+begin
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+    nIn.FRemoteUL := nSrvURL;
+
+    if nWarn then
+         nIn.FBase.FParam := ''
+    else nIn.FBase.FParam := sParam_NoHintOnError;
+
+    if gSysParam.FAutoPound and (not gSysParam.FIsManual) then
+      nIn.FBase.FParam := sParam_NoHintOnError;
+    //close hint param
+    
+    nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessWebchat);
+    //get worker
+    Result := nWorker.WorkActive(@nIn, nOut);
+
+    if not Result then
+      WriteLog(nOut.FBase.FErrDesc);
+    //xxxxx
+  finally
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
 //Date: 2014-09-04
 //Parm: 分组;对象;使用日期编码模式
 //Desc: 依据nGroup.nObject生成串行编号
@@ -672,6 +797,15 @@ begin
   Result := '';
   if CallBusinessCommand(cBC_GetCardUsed, nCard, '', @nOut) then
     Result := nOut.FData;
+  //xxxxx
+end;
+
+function SynEmptyBillYT(const nBillID: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := False;
+  if CallBusinessCommand(cBC_SyncStockBill, nBillID, '', @nOut) then
+    Result := True;
   //xxxxx
 end;
 
@@ -921,6 +1055,31 @@ begin
 
   AdjustStringsItem(nList, False);
   Result := nList.Count > 0;
+end;
+
+//验证车辆电子标签
+function IsEleCardVaidEx(const nTruckNo: string): Boolean;
+var
+  nSql:string;
+begin
+  Result := False;
+
+  nSql := 'select * from %s where T_Truck = ''%s'' ';
+  nSql := Format(nSql,[sTable_Truck,nTruckNo]);
+
+  with FDM.QueryTemp(nSql) do
+  begin
+    if recordcount>0 then
+    begin
+      if FieldByName('T_CardUse').AsString = sFlag_Yes then//启用
+      begin
+        if (FieldByName('T_Card').AsString <> '') or (FieldByName('T_Card2').AsString <> '') then
+        begin
+          Result := True;
+        end;
+      end;
+    end;
+  end;
 end;
 
 //Desc: 载入nCID客户的信息到nList中,并返回数据集
@@ -1769,10 +1928,25 @@ begin
   else Result := '';
 end;
 
+//Desc: 保存采购申请单
+function SaveOrderBaseSingle(const nOrderData: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrderSingle(cBC_SaveOrderBase, nOrderData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
 function DeleteOrderBase(const nOrder: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_DeleteOrderBase, nOrder, '', @nOut);
+end;
+
+function DeleteOrderBaseSingle(const nOrder: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_DeleteOrderBase, nOrder, '', @nOut);
 end;
 
 //保存采购合同
@@ -1780,6 +1954,15 @@ function SavePurchaseContract(const nData:string):string;
 var nOut: TWorkerBusinessCommand;
 begin
   if CallBusinessPurchaseOrder(cBC_SavePurchaseContract, nData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
+//保存采购合同
+function SavePurchaseContractSingle(const nData:string):string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrderSingle(cBC_SavePurchaseContract, nData, '', @nOut) then
        Result := nOut.FData
   else Result := '';
 end;
@@ -1793,11 +1976,27 @@ begin
   else Result := '';
 end;
 
+//修改采购合同
+function ModifyPurchaseContractSingle(const nData:string):string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrderSingle(cBC_ModifyPurchaseContract, nData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
 //删除采购合同
 function DeletePurchaseContract(const nData: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_DeletePurchaseContract, nData, '', @nOut);
+end;
+
+//删除采购合同
+function DeletePurchaseContractSingle(const nData: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_DeletePurchaseContract, nData, '', @nOut);
 end;
 
 //Date: 2014-09-15
@@ -1811,6 +2010,15 @@ begin
   else Result := '';
 end;
 
+//Desc: 保存采购单,返回采购单号列表
+function SaveOrderSingle(const nOrderData: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+  if CallBusinessPurchaseOrderSingle(cBC_SaveOrder, nOrderData, '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
+end;
+
 //Date: 2014-09-15
 //Parm: 交货单号
 //Desc: 删除nBillID单据
@@ -1818,6 +2026,13 @@ function DeleteOrder(const nOrder: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_DeleteOrder, nOrder, '', @nOut);
+end;
+
+//Desc: 删除nBillID单据
+function DeleteOrderSingle(const nOrder: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_DeleteOrder, nOrder, '', @nOut);
 end;
 
 //Date: 2014-09-17
@@ -1854,6 +2069,13 @@ begin
   Result := CallBusinessPurchaseOrder(cBC_SaveOrderCard, nOrder, nCard, @nOut);
 end;
 
+//Desc: 绑定nBill.nCard
+function SaveOrderCardSingle(const nOrder, nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_SaveOrderCard, nOrder, nCard, @nOut);
+end;
+
 //Date: 2014-09-17
 //Parm: 磁卡号
 //Desc: 注销nCard
@@ -1861,6 +2083,13 @@ function LogoutOrderCard(const nCard: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_LogOffOrderCard, nCard, '', @nOut);
+end;
+
+//Desc: 注销nCard
+function LogoutOrderCardSingle(const nCard: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_LogOffOrderCard, nCard, '', @nOut);
 end;
 
 //Date: 2014-09-15
@@ -1872,6 +2101,13 @@ begin
   Result := CallBusinessPurchaseOrder(cBC_ModifyBillTruck, nOrder, nTruck, @nOut);
 end;
 
+//Desc: 修改nOrder的车牌为nTruck.
+function ChangeOrderTruckNoSingle(const nOrder,nTruck: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_ModifyBillTruck, nOrder, nTruck, @nOut);
+end;
+
 //------------------------------------------------------------------------------
 //Date: 2015/9/20
 //Parm: 供应订单编号
@@ -1880,6 +2116,51 @@ function GetGYOrderBaseValue(const nOrder: string): string;
 var nOut: TWorkerBusinessCommand;
 begin
    if CallBusinessPurchaseOrder(cBC_GetGYOrderValue, nOrder, '', @nOut) and
+     (nOut.FData<>'') then
+        Result := PackerDecodeStr(nOut.FData)
+   else Result := '';
+end;
+
+//Date: 2017-11-22
+//Parm: 交货单号,商城申请单
+//Desc: 插入删除推送消息
+procedure SaveWebOrderDelMsg(const nLID, nBillType: string);
+var nStr, nWebOrderID: string;
+    nBool: Boolean;
+begin
+  nStr := 'Select WOM_WebOrderID From %s Where WOM_LID=''%s'' ';
+  nStr := Format(nStr, [sTable_WebOrderMatch, nLID]);
+
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount <= 0 then
+      Exit;
+    //手工单
+    nWebOrderID := Fields[0].AsString;
+  end;
+
+  nBool := FDM.ADOConn.InTransaction;
+  if not nBool then FDM.ADOConn.BeginTrans;
+  try
+    nStr := 'Insert Into %s(WOM_WebOrderID,WOM_LID,WOM_StatusType,' +
+            'WOM_MsgType,WOM_BillType) Values(''%s'',''%s'',%d,' +
+            '%d,''%s'')';
+    nStr := Format(nStr, [sTable_WebOrderMatch, nWebOrderID, nLID, c_WeChatStatusDeleted,
+            cSendWeChatMsgType_DelBill, nBillType]);
+    FDM.ExecuteSQL(nStr);
+
+    if not nBool then
+      FDM.ADOConn.CommitTrans;
+  except
+    if not nBool then FDM.ADOConn.RollbackTrans;
+  end;
+end;
+
+//Desc: 获取采购申请单发货信息
+function GetGYOrderBaseValueSingle(const nOrder: string): string;
+var nOut: TWorkerBusinessCommand;
+begin
+   if CallBusinessPurchaseOrderSingle(cBC_GetGYOrderValue, nOrder, '', @nOut) and
      (nOut.FData<>'') then
         Result := PackerDecodeStr(nOut.FData)
    else Result := '';
@@ -1898,6 +2179,17 @@ begin
   //xxxxx
 end;
 
+//Desc: 获取nPost岗位上磁卡为nCard的交货单列表
+function GetPurchaseOrdersSingle(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_GetPostOrders, nCard, nPost, @nOut);
+  if Result then
+    AnalyseBillItems(nOut.FData, nBills);
+  //xxxxx
+end;
+
 //Date: 2014-09-18
 //Parm: 岗位;交货单列表;磅站通道
 //Desc: 保存nPost岗位上的交货单数据
@@ -1910,6 +2202,35 @@ var nStr: string;
 begin
   nStr := CombineBillItmes(nData);
   Result := CallBusinessPurchaseOrder(cBC_SavePostOrders, nStr, nPost, @nOut);
+  if (not Result) or (nOut.FData = '') then Exit;
+
+  if Assigned(nTunnel) then //过磅称重
+  begin
+    nList := TStringList.Create;
+    try
+      CapturePicture(nTunnel, nList);
+      //capture file
+
+      for nIdx:=0 to nList.Count - 1 do
+        SavePicture(nOut.FData, nData[0].FTruck,
+                                nData[0].FStockName, nList[nIdx]);
+      //save file
+    finally
+      nList.Free;
+    end;
+  end;
+end;
+
+//Desc: 保存nPost岗位上的交货单数据
+function SavePurchaseOrdersSingle(const nPost: string; const nData: TLadingBillItems;
+ const nTunnel: PPTTunnelItem): Boolean;
+var nStr: string;
+    nIdx: Integer;
+    nList: TStrings;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessPurchaseOrderSingle(cBC_SavePostOrders, nStr, nPost, @nOut);
   if (not Result) or (nOut.FData = '') then Exit;
 
   if Assigned(nTunnel) then //过磅称重
@@ -2353,8 +2674,8 @@ begin
   nBill := AdjustListStrFormat(nBill, '''', True, ',', False);
   //添加引号
   
-  nStr := 'Select * From %s b Where L_ID In(%s)';
-  nStr := Format(nStr, [sTable_Bill, nBill]);
+  nStr := 'Select *, C_NAME From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_ID In(%s)';
+  nStr := Format(nStr, [sTable_Bill, sTable_Customer, nBill]);
   //xxxxx
 
   if FDM.QueryTemp(nStr).RecordCount < 1 then
@@ -2376,8 +2697,8 @@ begin
 
   if FDM.SqlTemp.FieldByName('L_HKRecord').AsString<>'' then
   begin
-    nStr := 'Select * From %s b Where L_HKRecord =''%s''';
-    nStr := Format(nStr, [sTable_Bill,
+    nStr := 'Select *,C_NAME From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_HKRecord =''%s''';
+    nStr := Format(nStr, [sTable_Bill, sTable_Customer,
             FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
     //xxxxx
 
@@ -2731,6 +3052,71 @@ begin
     Result := Fields[0].AsString;
 end;
 
+//获取电子标签对应绑定的车辆
+function GetRealLabelTruck(const nELabel: string): string;
+var nStr: string;
+begin
+  Result := '';
+  //默认允许
+
+  nStr := 'Select Top 1 T_Truck From %s ' +
+          'Where  T_Card=''%s'' And T_CardUse=''%s'' And T_Card Is not NULL';
+  nStr := Format(nStr, [sTable_Truck, nELabel, sFlag_Yes]);
+  //选择该车提一条有电子标签的记录
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+    Result := Fields[0].AsString;
+end;
+
+//获取电子标签对应的单号
+function GetELabelBillOrder(const nELabel: string): string;
+var nStr: string;
+begin
+  Result := '';
+  //首先从提货单里面找，找不到再去采购订单里面找
+  nStr := ' Select L_ID From %s Where L_Card = ''%s'' ';
+  nStr := Format(nStr, [sTable_Bill, nELabel]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := Fields[0].AsString;
+    Exit;
+  end;
+  //首先从提货单里面找，找不到再去采购订单里面找
+  nStr := ' Select O_ID From %s Where O_Card = ''%s'' ';
+  nStr := Format(nStr, [sTable_Order, nELabel]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := Fields[0].AsString;
+  end;
+end;
+
+//获取单号对应的类型
+function GetBillOrderType(const nBillID: string): string;
+var nStr: string;
+begin
+  Result := '';
+  //首先从提货单里面找，找不到再去采购订单里面找
+  nStr := ' Select L_ID From %s Where L_ID = ''%s'' ';
+  nStr := Format(nStr, [sTable_Bill, nBillID]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := sFlag_SaleSingle;
+    Exit;
+  end;
+  //首先从提货单里面找，找不到再去采购订单里面找
+  nStr := ' Select O_ID From %s Where O_ID = ''%s'' ';
+  nStr := Format(nStr, [sTable_Order, nBillID]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := sFlag_Provide;
+  end;
+end;
+
 //Date: 2017/3/6
 //Parm: 读卡器编号[nReader];读卡器类型[nType]
 //Desc: 打开道闸
@@ -2747,6 +3133,12 @@ begin
   Result := CallBusinessPurchaseOrder(cBC_ImportOrderPoundS, nData, '', @nOut);
 end;
 
+function RemoteImportPoundsSingle(const nData: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrderSingle(cBC_ImportOrderPoundS, nData, '', @nOut);
+end;
+
 //Date: 2014-07-03
 //Parm: 通道号
 //Desc: 查询nTunnel的光栅状态是否正常
@@ -2756,6 +3148,12 @@ begin
   Result := CallBusinessHardware(cBC_IsTunnelOK, nTunnel, '', @nOut);
   if not Result then Exit;
   Result := nOut.FData = sFlag_Yes;
+end;
+
+function IsTruckQueue(const nTruck: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessHardware(cBC_IsTruckQueue, nTruck, '', @nOut);
 end;
 
 procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
@@ -2775,6 +3173,16 @@ begin
   Result := '';
   if CallBusinessCommand(cBC_WeChat_getCustomerInfo, nXmlStr, '', @nOut) then
     Result := nOut.FData;
+end;
+
+//------------------------------------------------------------------------------
+//获取客户注册信息
+function getCustomerInfoEx(const nData: string): string;
+var nOut: TWorkerWebChatData;
+begin
+  if CallBusinessWechat(cBC_WX_getCustomerInfo, nData, '', '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
 end;
 
 //客户与微信账号绑定
@@ -2802,6 +3210,15 @@ begin
   Result := '';
   if CallBusinessCommand(cBC_WeChat_edit_shopclients, nXmlStr, '', @nOut) then
     Result := nOut.FData;
+end;
+
+//新增商城用户
+function edit_shopclientsEx(const nData: string): string;
+var nOut: TWorkerWebChatData;
+begin
+  if CallBusinessWechat(cBC_WX_edit_shopclients, nData, '', '', @nOut) then
+       Result := nOut.FData
+  else Result := '';
 end;
 
 //添加商品
@@ -2939,6 +3356,40 @@ begin
 
     if nUpdateHint then
       nHint  := FieldByName('E_ParamB').AsString;
+    Result := True;
+  end;
+end;
+
+//Parm: 事件ID;预期结果;错误返回
+//Desc: 判断事件是否处理
+function VerifyManualEventRecordEx(const nEID: string; var nHint: string;
+ const nWant: string; const nUpdateHint: Boolean): Boolean;
+var nStr: string;
+begin
+  Result := True;
+  nStr := 'Select E_Result, E_Event From %s Where E_ID=''%s''';
+  nStr := Format(nStr, [sTable_ManualEvent, nEID]);
+
+  with FDM.QuerySQL(nStr) do
+  if RecordCount > 0 then
+  begin
+    nStr := Trim(FieldByName('E_Result').AsString);
+    if nStr = '' then
+    begin
+      if nUpdateHint then
+        nHint := FieldByName('E_Event').AsString;
+      Result := False;
+      Exit;
+    end;
+
+    if nStr <> nWant then
+    begin
+      if nUpdateHint then
+        nHint := '请联系管理员，做换票处理';
+      Result := False;
+      Exit;
+    end;
+
     Result := True;
   end;
 end;

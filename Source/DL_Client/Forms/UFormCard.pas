@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormCard;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -207,7 +208,11 @@ begin
   end;
 
   if FParam.FParamC = sFlag_Provide then
+    {$IFDEF PurchaseOrderSingle}
+       nRet := SaveOrderCardSingle(EditBill.Text, EditCard.Text)
+    {$ELSE}
        nRet := SaveOrderCard(EditBill.Text, EditCard.Text)
+    {$ENDIF}
   else
 
   if FParam.FParamC = sFlag_DuanDao then

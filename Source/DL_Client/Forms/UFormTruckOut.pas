@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormTruckOut;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -73,6 +74,14 @@ begin
 
     if nStr = '' then Continue;
 
+    {$IFDEF UseELableAsCard}
+      nStr      := GetELabelBillOrder(nStr);
+      gCardUsed := GetBillOrderType(nStr);
+      if gCardUsed = sFlag_Provide then
+         nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed=sFlag_SaleSingle then
+         nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+    {$ELSE}
     gCardUsed := GetCardUsed(nStr);
     if gCardUsed = sFlag_Provide then
       nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills) else
@@ -82,6 +91,7 @@ begin
       nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else
     if gCardUsed = sFlag_SaleSingle then
       nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+    {$ENDIF} 
 
     if nRet and (Length(gBills)>0) then Break;
   end;
@@ -221,7 +231,12 @@ procedure TfFormTruckOut.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
 begin
   if gCardUsed = sFlag_Provide then
-    nRet := SavePurchaseOrders(sFlag_TruckOut, gBills) else
+    {$IFDEF PurchaseOrderSingle}
+    nRet := SavePurchaseOrdersSingle(sFlag_TruckOut, gBills)
+    {$ELSE}
+    nRet := SavePurchaseOrders(sFlag_TruckOut, gBills)
+    {$ENDIF}
+  else
   if gCardUsed = sFlag_Sale then
     nRet := SaveLadingBills(sFlag_TruckOut, gBills) else
   if gCardUsed = sFlag_SaleSingle then

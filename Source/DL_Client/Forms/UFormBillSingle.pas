@@ -589,14 +589,15 @@ procedure TfFormBillSingle.BtnOKClick(Sender: TObject);
 var nIdx: Integer;
     nPrint: Boolean;
     nList,nTmp,nStocks: TStrings;
+    nCard, nStr : string;
 begin
   if ListBill.Items.Count < 1 then
   begin
     ShowMsg('请先办理提货单', sHint); Exit;
   end;
   
-  {$IFDEF ForceEleCard}
-  if not IsEleCardVaid(EditTruck.Text) then
+  {$IFDEF UseELableAsCard}
+  if not IsEleCardVaidEx(EditTruck.Text) then
   begin
     ShowMsg('车辆未办理电子标签或电子标签未启用！请联系管理员', sHint); Exit;
   end;
@@ -685,9 +686,24 @@ begin
     nStocks.Free;
   end;
 
+  {$IFNDEF UseELableAsCard}
   if (FBuDanFlag <> sFlag_Yes) and (gInfo.FCard = '') then
     SetBillCard(gInfo.FIDList, EditTruck.Text, True, sFlag_SaleSingle);
   //办理磁卡
+  {$ELSE}
+    nCard := '';
+    nStr := 'Select T_Card From %s Where T_Truck = ''%s'' and T_CardUse=''%s'' ';
+    nStr := Format(nStr, [sTable_Truck, EditTruck.Text, sFlag_Yes]);
+
+    with FDM.QueryTemp(nStr) do
+    if RecordCount > 0 then
+    begin
+      nCard := Fields[0].AsString;
+    end;
+    nStr := 'Update %s Set L_Card=''%s'' Where L_ID=''%s''';
+    nStr := Format(nStr, [sTable_Bill, nCard, gInfo.FIDList]);
+    FDM.ExecuteSQL(nStr);
+  {$ENDIF}
 
   if nPrint then
     PrintBillReport(gInfo.FIDList, True);

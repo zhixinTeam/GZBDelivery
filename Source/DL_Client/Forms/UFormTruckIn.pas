@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormTruckIn;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -70,18 +71,33 @@ begin
   begin
     if not ShowInputBox('请输入提货磁卡号:', '进厂', nStr) then Exit;
     nStr := Trim(nStr);
-    
+
     if nStr = '' then Continue;
 
-    gCardUsed := GetCardUsed(nStr);
-    if gCardUsed = sFlag_Provide then
-      nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills) else
-    if gCardUsed = sFlag_Sale then
-      nRet := GetLadingBills(nStr, sFlag_TruckIn, gBills) else
-    if gCardUsed = sFlag_DuanDao then
-      nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else
-    if gCardUsed = sFlag_SaleSingle then
-      nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+
+    {$IFDEF UseELableAsCard}
+      nStr      := GetELabelBillOrder(nStr);
+      gCardUsed := GetBillOrderType(nStr);
+      if gCardUsed = sFlag_Provide then
+         nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed=sFlag_SaleSingle then
+         nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+    {$ELSE}
+      gCardUsed := GetCardUsed(nStr);
+      if gCardUsed = sFlag_Provide then
+        {$IFDEF PurchaseOrderSingle}
+        nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills)
+        {$ELSE}
+        nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills)
+        {$ENDIF}
+      else
+      if gCardUsed = sFlag_Sale then
+        nRet := GetLadingBills(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed = sFlag_DuanDao then
+        nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed = sFlag_SaleSingle then
+        nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+    {$ENDIF}
 
     if nRet and (Length(gBills)>0) then Break;
   end;
@@ -221,7 +237,12 @@ procedure TfFormTruckIn.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
 begin
   if gCardUsed = sFlag_Provide then
-    nRet := SavePurchaseOrders(sFlag_TruckIn, gBills) else
+    {$IFDEF PurchaseOrderSingle}
+    nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, gBills)
+    {$ELSE}
+    nRet := SavePurchaseOrders(sFlag_TruckIn, gBills)
+    {$ENDIF}
+  else
   if gCardUsed = sFlag_Sale then
     nRet := SaveLadingBills(sFlag_TruckIn, gBills) else
   if gCardUsed = sFlag_SaleSingle then

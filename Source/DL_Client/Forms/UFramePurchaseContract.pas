@@ -161,11 +161,19 @@ begin
   nStr := Format(nStr, [SQLQuery.FieldByName('pcId').AsString]);
   if not QueryDlg(nStr, sAsk) then Exit;
 
+  {$IFDEF PurchaseOrderSingle}
+  if DeletePurchaseContractSingle(SQLQuery.FieldByName('pcId').AsString) then
+  begin
+    InitFormData(FWhere);
+    ShowMsg('采购合同已删除', sHint);
+  end;
+  {$ELSE}
   if DeletePurchaseContract(SQLQuery.FieldByName('pcId').AsString) then
   begin
     InitFormData(FWhere);
     ShowMsg('采购合同已删除', sHint);
   end;
+  {$ENDIF}
 end;
 
 //Desc: 查询

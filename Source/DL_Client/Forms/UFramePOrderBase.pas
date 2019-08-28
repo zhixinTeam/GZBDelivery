@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFramePOrderBase;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -170,7 +171,11 @@ begin
   nStr := SQLQuery.FieldByName('B_ID').AsString;
   if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的申请单吗?', sAsk) then Exit;
 
+  {$IFDEF PurchaseOrderSingle}
+  if DeleteOrderBaseSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  {$ELSE}
   if DeleteOrderBase(nStr) then ShowMsg('已成功删除记录', sHint);
+  {$ENDIF}
 
   InitFormData('');
 end;

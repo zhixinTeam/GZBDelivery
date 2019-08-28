@@ -22,7 +22,10 @@ const
   cSendWeChatMsgType_OutFactory=2; //车辆出厂
   cSendWeChatMsgType_Report=3; //报表
   cSendWeChatMsgType_DelBill=4; //删提货单  
-  
+
+  c_WeChatStatusCreateCard=0;  //订单已办卡
+  c_WeChatStatusFinished=1;  //订单已完成
+  c_WeChatStatusDeleted=2;  //订单已删除
 
 const
   {*Frame ID*}
@@ -153,6 +156,7 @@ const
   cFI_FormGetPOrderBase  = $1056;                     //采购订单
   cFI_FormGetYTBatch    = $1057;                     //获取云天批次
   cFI_FormGetWechartAccount = $1058;                 //获取商城注册信息
+  cFI_FormGetWXAccount  = $5058;                     //获取商城注册信息
   cFI_FormPro_Order  = $1154;                        //供应商进场量限制
 
   cFI_FormStockParam    = $1065;                     //品种管理
@@ -232,6 +236,7 @@ type
     FHardMonURL : string;                            //硬件守护
     FMITServURL : string;                            //业务地址
     FDepartment : string;                            //部门地址
+    FWechatURL  : string;                            //微信服务
 
     FFactNum    : string;                            //工厂编号
     FSerialID   : string;                            //电脑编号

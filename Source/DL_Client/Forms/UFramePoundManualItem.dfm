@@ -388,7 +388,7 @@ inherited fFrameManualPoundItem: TfFrameManualPoundItem
     Top = 50
     ParentFont = False
     Properties.ItemHeight = 22
-    Properties.MaxLength = 15
+    Properties.MaxLength = 100
     Properties.ReadOnly = True
     Properties.OnEditValueChanged = EditBillPropertiesEditValueChanged
     Style.Font.Charset = GB2312_CHARSET

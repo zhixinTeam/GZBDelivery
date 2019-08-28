@@ -175,8 +175,9 @@ begin
 
   if FQueryHas then
   begin
-    nStr := 'Select bc.*,L_ID,L_CusID,L_CusName,L_Truck From $BC bc ' +
-            ' Left Join $Bill b On b.L_Card=bc.C_Card ';
+    nStr := ' Select bc.*,L_ID,L_CusID,L_CusName,L_Truck, c.C_NAME From $BC bc ' +
+            ' Left Join $Bill b On b.L_Card=bc.C_Card ' +
+            ' Left Join S_Customer c On b.L_CusID=c.C_ID ';
     //xxxxx
 
     if FWhere = '' then

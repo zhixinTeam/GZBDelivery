@@ -155,6 +155,14 @@ begin
     end;
   end;
 
+  nStr := 'select d_value from %s where d_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict,sFlag_WXServiceMIT]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    gSysParam.FWechatURL := Fields[0].AsString;
+  end;
+
   nStr := 'Select D_Value,D_Memo From %s Where D_Name=''%s''';
   nStr := Format(nStr, [sTable_SysDict, sFlag_PoundWuCha]);
 
@@ -246,8 +254,8 @@ begin
     gSysParam.FFactory := Trim(Fields[0].AsString);
   //xxxxx
 
-  if gSysParam.FFactory = '' then
-    ShowMsg('请设置工厂ID', sHint);
+//  if gSysParam.FFactory = '' then
+//    ShowMsg('请设置工厂ID', sHint);
   //xxxxx
            
   CreateBaseFormItem(cFI_FormTodo);

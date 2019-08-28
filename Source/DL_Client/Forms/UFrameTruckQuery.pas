@@ -91,7 +91,8 @@ function TfFrameTruckQuery.InitFormDataSQL(const nWhere: string): string;
 begin
   EditDate.Text := Format('%s жа %s', [Date2Str(FStart), Date2Str(FEnd)]);
   //xxxxx
-  Result := 'Select * from $Bill b ';
+  Result := ' Select *, c.C_NAME from $Bill b ' +
+            ' Left Join S_Customer c On L_CusID=c.C_ID ';
                
   if FFilteDate then
     Result := Result + 'Where ((L_InTime>=''$S'' and L_InTime <''$End'') Or ' +

@@ -84,7 +84,7 @@ type
     procedure Timer_SavefailTimer(Sender: TObject);
   private
     { Private declarations }
-    FCardUsed: string;
+    FCardUsed, FCardTmp: string;
     //卡片类型
     FPoundTunnel: PPTTunnelItem;
     //磅站通道
@@ -113,6 +113,8 @@ type
     //读取磅重
     procedure LoadBillItems(const nCard: string);
     //读取交货单
+    procedure LoadBillItemsELabel(const nCard: string);
+    //读取交货单(电子标签)
     procedure LoadTruckPoundItem(const nTruck: string);
     //读取车辆称重
     function VerifySanValue(var nValue: Double): Boolean;
@@ -636,6 +638,8 @@ end;
 
 procedure TfFrameManualPoundItem.EditBillKeyPress(Sender: TObject;
   var Key: Char);
+var
+  nStr: string;
 begin
   if Key = #13 then
   begin
@@ -643,7 +647,13 @@ begin
     if EditBill.Properties.ReadOnly then Exit;
 
     EditBill.Text := Trim(EditBill.Text);
+    FCardTmp      := EditBill.Text;
+    {$IFDEF UseELableAsCard}
+      nStr      := GetELabelBillOrder(EditBill.Text);
+      LoadBillItemsELabel(nStr);
+    {$ELSE}
     LoadBillItems(EditBill.Text);
+    {$ENDIF}
   end;
 end;
 
@@ -914,7 +924,11 @@ begin
   begin
     //xxxxx
     FListB.Clear;
+    {$IFDEF PurchaseOrderSingle}
+    FListB.Text := GetGYOrderBaseValueSingle(FBillItems[0].FZhiKa);
+    {$ELSE}
     FListB.Text := GetGYOrderBaseValue(FBillItems[0].FZhiKa);
+    {$ENDIF}
     with FListB do
     begin
       nLimite := Values['NoLimite'] <> sFlag_Yes;
@@ -930,7 +944,11 @@ begin
       Exit;
     end;
 
+    {$IFDEF PurchaseOrderSingle}
+    Result := SavePurchaseOrdersSingle(nNextStatus, FBillItems,FPoundTunnel);
+    {$ELSE}
     Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel);
+    {$ENDIF}
 
     if nLimite and
       (nMax-(FBillItems[0].FMData.FValue-FBillItems[0].FPData.FValue)<nWarn)
@@ -1412,6 +1430,164 @@ begin
   except
     raise;
   end;
+end;
+
+procedure TfFrameManualPoundItem.LoadBillItemsELabel(const nCard: string);
+var nRet: Boolean;
+    nStr,nHint: string;
+    nIdx,nInt: Integer;
+    nBills: TLadingBillItems;
+begin
+  if nCard = '' then
+  begin
+    EditBill.SetFocus;
+    EditBill.SelectAll;
+    ShowMsg('请输入磁卡号', sHint); Exit;
+  end;
+
+  FCardUsed := GetBillOrderType(nCard);
+  if FCardUsed = sFlag_Provide then
+     nRet := GetPurchaseOrdersSingle(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_SaleSingle then
+     nRet := GetLadingBillsSingle(nCard, sFlag_TruckBFP, nBills) else nRet := False;
+
+  if (not nRet) or (Length(nBills) < 1) then
+  begin
+    SetUIData(True);
+    Exit;
+  end;
+
+  FCardNo := nCard;
+  nHint := '';
+  nInt := 0;
+
+  for nIdx:=Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
+  begin
+    {$IFDEF TruckAutoIn}
+    if FStatus=sFlag_TruckNone then
+    begin
+      if FCardUsed = sFlag_Provide then
+      begin
+        {$IFDEF PurchaseOrderSingle}
+        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        {$ELSE}
+        nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
+        {$ENDIF}
+        if nRet then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_Sale then
+      begin
+        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_SaleSingle then
+      begin
+        if SaveLadingBillsSingle(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_DuanDao then
+      begin
+        if SaveDuanDaoItems(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end;
+    end;
+    {$ENDIF}
+    
+    if (FStatus <> sFlag_TruckBFP) and (FNextStatus = sFlag_TruckZT) then
+      FNextStatus := sFlag_TruckBFP;
+    //状态校正
+
+    FSelected := (FNextStatus = sFlag_TruckBFP) or
+                 (FNextStatus = sFlag_TruckBFM);
+    //可称重状态判定
+
+    if FSelected then
+    begin
+      Inc(nInt);
+      Continue;
+    end;
+
+    nStr := '※.单号:[ %s ] 状态:[ %-6s -> %-6s ]   ';
+    if nIdx < High(nBills) then nStr := nStr + #13#10;
+
+    if FCardUsed=sFlag_Provide then
+         nStr := Format(nStr, [FZhiKa,
+                        TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)])
+    else nStr := Format(nStr, [FID,
+                        TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)]);
+    nHint := nHint + nStr;
+  end;
+
+  if nInt = 0 then
+  begin
+    nHint := '该车辆当前不能过磅,详情如下: ' + #13#10#13#10 + nHint;
+    ShowDlg(nHint, sHint);
+    Exit;
+  end;
+
+  EditBill.Properties.Items.Clear;
+  SetLength(FBillItems, nInt);
+  nInt := 0;
+
+  for nIdx:=Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
+  begin
+    if FSelected then
+    begin
+      FPoundID := '';
+      //该标记有特殊用途
+      
+      if nInt = 0 then
+           FInnerData := nBills[nIdx]
+      else FInnerData.FValue := FInnerData.FValue + FValue;
+      //累计量
+
+      EditBill.Properties.Items.Add(FID);
+      FBillItems[nInt] := nBills[nIdx];
+      Inc(nInt);
+    end;
+  end;
+
+  FInnerData.FPModel := sFlag_PoundPD;
+  FUIData := FInnerData;
+  SetUIData(False);
+
+  if not FPoundTunnel.FUserInput then
+    gPoundTunnelManager.ActivePort(FPoundTunnel.FID, OnPoundData, True);
+  //xxxxx
 end;
 
 end.

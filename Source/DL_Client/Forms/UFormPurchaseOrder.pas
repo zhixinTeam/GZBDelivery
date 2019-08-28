@@ -229,6 +229,7 @@ end;
 procedure TfFormPurchaseOrder.BtnOKClick(Sender: TObject);
 var nOrder, nCardType: string;
   nSql,Amsg: string;
+  nCard, nStr: string;
 begin
   if not IsDataValid then Exit;
   //check valid
@@ -272,11 +273,30 @@ begin
     else  Values['Value']   := '0.00';
   end;
 
+  {$IFDEF PurchaseOrderSingle}
+  nOrder := SaveOrderSingle(PackerEncodeStr(FListA.Text));
+  {$ELSE}
   nOrder := SaveOrder(PackerEncodeStr(FListA.Text));
+  {$ENDIF}
   if nOrder='' then Exit;
 
+  {$IFNDEF UseELableAsCard}
   SetOrderCard(nOrder, FListA.Values['Truck'], True);
   //办理磁卡
+  {$ELSE}
+    nCard := '';
+    nStr := 'Select T_Card From %s Where T_Truck = ''%s'' and T_CardUse=''%s'' ';
+    nStr := Format(nStr, [sTable_Truck, EditTruck.Text, sFlag_Yes]);
+
+    with FDM.QueryTemp(nStr) do
+    if RecordCount > 0 then
+    begin
+      nCard := Fields[0].AsString;
+    end;
+    nStr := 'Update %s Set O_Card=''%s'' Where O_ID=''%s''';
+    nStr := Format(nStr, [sTable_Order, nCard, nOrder]);
+    FDM.ExecuteSQL(nStr);
+  {$ENDIF}
 
   ModalResult := mrOK;
   ShowMsg('采购订单保存成功', sHint);

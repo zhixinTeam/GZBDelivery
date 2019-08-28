@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormRFIDCard;
 
+{$I Link.inc}
 interface
 
 uses
@@ -136,6 +137,10 @@ end;
 procedure TfFormRFIDCard.FormCreate(Sender: TObject);
 begin
   LoadFormConfig(Self);
+  {$IFDEF EnableELabel}
+   chkValue.Visible := False;
+   chkValue.Checked := True;
+  {$ENDIF}
 end;
 
 procedure TfFormRFIDCard.FormClose(Sender: TObject;

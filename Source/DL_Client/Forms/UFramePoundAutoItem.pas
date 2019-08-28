@@ -81,13 +81,17 @@ type
     FLastCardDone: Int64;
     FLastCard, FCardTmp, FLastReader: string;
     //上次卡号, 临时卡号, 读卡器编号
+    FELabelList: TStrings;
+    //电子标签列表
     FListA: TStrings;
     FSampleIndex: Integer;
     FValueSamples: array of Double;
     //数据采样
     FVirPoundID: string;
     //虚拟地磅编号
-    FBarrierGate: Boolean;
+    FOnlyELable: Boolean;
+    //是否只有电子标签
+    FBarrierGate,FDaiZNoGan: Boolean;
     //是否采用道闸
     FPoundMinNetWeight: Double;
     //净重最小值(除销售以外业务使用)
@@ -107,6 +111,8 @@ type
     //读取磅重
     procedure LoadBillItems(const nCard: string);
     //读取交货单
+    procedure LoadBillItemsELabel(const nCard: string);
+    //读取交货单(电子标签)
     function VerifySanValue(var nValue: Double): Boolean;
     //矫正散装净重
     procedure InitSamples;
@@ -163,6 +169,7 @@ begin
   
   FEmptyPoundInit := 0;
   FListA := TStringList.Create;
+  FELabelList := TStringList.Create;
 end;
 
 procedure TfFrameAutoPoundItem.OnDestroyFrame;
@@ -170,6 +177,7 @@ begin
   gPoundTunnelManager.ClosePort(FPoundTunnel.FID);
   //关闭表头端口
   FListA.Free;
+  FELabelList.Free;
   inherited;
 end;
 
@@ -255,12 +263,20 @@ begin
   FPoundTunnel := nTunnel;
   SetUIData(True);
 
+  FDaiZNoGan := False;
+  FOnlyELable:= False;
   if Assigned(FPoundTunnel.FOptions) then
   with FPoundTunnel.FOptions do
   begin
     FVirPoundID  := Values['VirPoundID'];
-    FBarrierGate := Values['BarrierGate'] = sFlag_Yes;
     
+    {$IFDEF UseELableAsCard}
+    FOnlyELable  := Values['OnlyELable']  = sFlag_Yes;
+    if FOnlyELable then
+      WriteLog('只有电子标签读卡器！');
+    {$ENDIF}
+    FBarrierGate := Values['BarrierGate'] = sFlag_Yes;
+
     FEmptyPoundIdleLong   := StrToInt64Def(Values['EmptyIdleLong'], 60);
     FEmptyPoundIdleShort  := StrToInt64Def(Values['EmptyIdleShort'], 5);
     FPoundMinNetWeight    := StrToFloatDef(Values['MinNetWeight'], 0);
@@ -401,7 +417,7 @@ end;
 //Parm: 磁卡或交货单号
 //Desc: 读取nCard对应的交货单
 procedure TfFrameAutoPoundItem.LoadBillItems(const nCard: string);
-var nRet: Boolean;
+var nRet, nValidELabel: Boolean;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
     nStr,nHint,nVoice, nLabel: string;
@@ -432,6 +448,22 @@ begin
   nHint := '';
   nInt := 0;
 
+
+  {$IFDEF PoundTruckQueue}
+  for nIdx:=Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
+  begin
+    nRet := IsTruckQueue(FTruck);
+    if not nRet then
+    begin
+      nStr := '[n1]%s不在调度队列中,不能过磅';
+      nStr := Format(nStr, [FTruck]);
+      PlayVoice(nStr);
+      Exit;
+    end;
+  end;
+  {$ENDIF}
+
   for nIdx:=Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
@@ -440,7 +472,12 @@ begin
     begin
       if FCardUsed = sFlag_Provide then
       begin
-        if SavePurchaseOrders(sFlag_TruckIn, nBills) then
+        {$IFDEF PurchaseOrderSingle}
+        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        {$ELSE}
+        nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
+        {$ENDIF}
+        if nRet then
         begin
           ShowMsg('车辆进厂成功', sHint);
           LoadBillItems(FCardTmp);
@@ -572,25 +609,57 @@ begin
     Exit;
   end;
   //指定时间内车辆禁止过磅
-
-  if FVirPoundID <> '' then
+  if not FOnlyELable then
   begin
-    nLabel := GetTruckRealLabel(FUIData.FTruck);
-    if nLabel <> '' then
+    if FVirPoundID <> '' then
     begin
-      nHint := ReadPoundCard(nStr, FVirPoundID);
-      if (nHint = '') or (Pos(nLabel, nHint) < 1) then
+      nLabel := GetTruckRealLabel(FUIData.FTruck);
+      if nLabel <> '' then
       begin
-        nStr := '未识别电子签,请移动车辆.';
-        PlayVoice(nStr);
+        nHint := ReadPoundCard(nStr, FVirPoundID);
 
-        nStr := '磅站[ %s.%s ]: 车辆[ %s.%s ]电子标签不匹配[ %s ],禁止上磅';
+
+        if (nHint <> '') and (FELabelList.IndexOf(nHint) < 0) then
+          FELabelList.Add(nHint);
+
+        nStr := '磅站[ %s.%s ]: 车辆[ %s.%s ]当前电子标签列表[ %s ]';
         nStr := Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName,
-                FUIData.FTruck, nLabel, nHint]);
+                FUIData.FTruck, nLabel, FELabelList.Text]);
         WriteSysLog(nStr);
-        SetUIData(True);
-        Exit;
-      end;  
+
+        nValidELabel := False;
+        for nIdx := 0 to FELabelList.Count - 1 do
+        begin
+          if Pos(nLabel, FELabelList.Strings[nIdx]) > 0 then
+          begin
+            nValidELabel := True;
+            WriteSysLog('电子标签匹配无误.nLabel::'+nLabel+',nHint'+FELabelList.Strings[nIdx]);
+            Break;
+          end;
+        end;
+
+        if not nValidELabel then
+        begin
+          if nHint = '' then
+          begin
+            nStr := '未识别电子签,请移动车辆.';
+            PlayVoice(nStr);
+          end
+          else
+          if Pos(nLabel, nHint) < 1 then
+          begin
+            nStr := '电子标签不匹配,请重新绑定.';
+            PlayVoice(nStr);
+          end;
+
+          nStr := '磅站[ %s.%s ]: 车辆[ %s.%s ]电子标签不匹配[ %s ],禁止上磅';
+          nStr := Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName,
+                  FUIData.FTruck, nLabel, nHint]);
+          WriteSysLog(nStr);
+          SetUIData(True);
+          Exit;
+        end;
+      end;
     end;
   end;
   //判断车辆是否就位
@@ -637,6 +706,7 @@ end;
 procedure TfFrameAutoPoundItem.Timer_ReadCardTimer(Sender: TObject);
 var nStr,nCard: string;
     nLast, nDoneTmp: Int64;
+    nIdx : Integer;
 begin
   if gSysParam.FIsManual then Exit;
   Timer_ReadCard.Tag := Timer_ReadCard.Tag + 1;
@@ -648,7 +718,18 @@ begin
   try
     WriteLog('正在读取磁卡号.');
     {$IFNDEF DEBUG}
-    nCard := Trim(ReadPoundCard(FLastReader, FPoundTunnel.FID));
+      if not FOnlyELable then
+        nCard := Trim(ReadPoundCard(FLastReader, FPoundTunnel.FID))
+      else
+      begin
+        //只有电子标签读卡器，不需要再虚拟读头标识
+        nCard := ReadPoundCard(FLastReader, FPoundTunnel.FID);
+        nCard := Copy(nCard,2,Length(nCard)-1);
+        WriteLog('电子标签：'+nCard);
+        nCard :=  GetELabelBillOrder(nCard);
+        if FOnlyELable then
+          WriteLog('只有电子标签读卡器！');
+      end;
     {$ENDIF}
     if nCard = '' then Exit;
 
@@ -679,7 +760,10 @@ begin
 
     FCardTmp := nCard;
     EditBill.Text := nCard;
-    LoadBillItems(EditBill.Text);
+    if not FOnlyELable then
+      LoadBillItems(EditBill.Text)
+    else
+      LoadBillItemsELabel(EditBill.Text);
   except
     on E: Exception do
     begin
@@ -985,9 +1069,12 @@ end;
 function TfFrameAutoPoundItem.SavePoundSale: Boolean;
 var nHint, nStr: string;
     nVal,nNet, nWarn: Double;
+    gBills: TLadingBillItems;
+    nRet: Boolean;
 begin
   Result := False;
   //init
+  FDaiZNoGan := False;
 
   with FUIData do
   if FNextStatus = sFlag_TruckBFP then
@@ -1090,6 +1177,27 @@ begin
       end;
       {$ENDIF}
 
+      {$IFDEF DaiWCInManual}
+      if FType = sFlag_Dai then
+      begin
+        nStr := '车辆[ %s ]存在未处理的误差量较大的信息:' + #13#10 +
+                '检测完毕后,请点确认重新过磅.';
+        nStr := Format(nStr, [FTruck]);
+
+        if not VerifyManualEventRecordEx(FID + sFlag_ManualC, nStr) then
+        begin
+          nStr := '车辆[ %s ]存在未处理的误差量较大的信息:' + #13#10 +
+                '检测完毕后,请点确认重新过磅.';
+          nStr := Format(nStr, [FTruck]);
+          PlayVoice(nStr);
+
+          nStr := GetTruckNO(FTruck) + '请去包装点包';
+          LEDDisplay(nStr);
+          Exit;
+        end;
+      end;
+      {$ENDIF}
+
       if ((FType = sFlag_Dai) and (
           ((nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ)) or
           ((nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF))))then
@@ -1129,7 +1237,25 @@ begin
           nHint := '车辆[n1]%s净重超出误差范围,请退回栈台';
           nHint := Format(nHint, [FTruck]);
           {$ENDIF}
+
+          {$IFDEF OnlyDaiZWuPlayVoice}
+          if (nVal > 0) and (FPoundDaiZ > 0) and (nVal > FPoundDaiZ) then
+          begin
+            nHint := '[n1]%s车需在此等待磅房人员验重';
+            nHint := Format(nHint, [FTruck]);
+            PlayVoice(nHint);
+            FDaiZNoGan := True;
+          end;
+          if (nVal < 0) and (FPoundDaiF > 0) and (-nVal > FPoundDaiF) then
+          begin
+            nHint := '[n1]%s车需在此等待磅房人员验重';
+            nHint := Format(nHint, [FTruck]);
+//            PlayVoice(nHint);
+            WriteSysLog('袋装负误差：' + nHint);
+          end;
+          {$ELSE}
           PlayVoice(nHint);
+          {$ENDIF}
 
           nStr := GetTruckNO(FTruck) + '请去包装点包';
           LEDDisplay(nStr);
@@ -1203,6 +1329,16 @@ begin
     else
       Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
     //保存称重
+
+    //称过毛重后，直接出厂
+    if FOnlyELable then
+    begin
+      if (FNextStatus = sFlag_TruckBFM) or (FNextStatus = sFlag_TruckOut) then
+      begin
+        WriteLog(FID+'称过毛重,直接出厂！');
+        SaveLadingBillsSingle(sFlag_TruckOut, FBillItems);
+      end;
+    end;
   end;
 
   if not Result then
@@ -1212,6 +1348,7 @@ begin
     nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
     LEDDisplay(nStr);
   end;
+
 end;
 
 //------------------------------------------------------------------------------
@@ -1219,6 +1356,8 @@ end;
 function TfFrameAutoPoundItem.SavePoundData: Boolean;
 var nStr: string;
     nVal: Double;
+    nRet: Boolean;
+    gBills: TLadingBillItems;
 begin
   Result := False;
   //init
@@ -1278,9 +1417,38 @@ begin
   end;
 
   if FCardUsed = sFlag_Provide then
-       Result := SavePurchaseOrders(nStr, FBillItems,FPoundTunnel)
+    {$IFDEF PurchaseOrderSingle}
+      Result := SavePurchaseOrdersSingle(nStr, FBillItems,FPoundTunnel)
+    {$ELSE}
+      Result := SavePurchaseOrders(nStr, FBillItems,FPoundTunnel)
+    {$ENDIF}
   else Result := SaveDuanDaoItems(nStr, FBillItems, FPoundTunnel);
   //保存称重
+
+  //称过毛重后，直接出厂
+  WriteSysLog('开始进入称过毛重,直接出厂！'+FBillItems[0].FID);
+  if FOnlyELable then
+  begin
+    nStr := 'Select D_NextStatus From %s Where D_ID=''%s'' ';
+    nStr := Format(nStr, [sTable_OrderDtl,FBillItems[0].FID]);
+
+    with FDM.QueryTemp(nStr) do
+    begin
+      if (RecordCount > 0) then
+      begin
+        nStr := Fields[0].AsString;
+      end
+      else
+        Exit;
+    end;
+    WriteSysLog('称重下一状态为：'+nStr);
+
+    if (nStr = sFlag_TruckOut) then
+    begin
+      WriteSysLog('称过毛重,直接出厂！');
+      SavePurchaseOrdersSingle(sFlag_TruckOut, FBillItems);
+    end;
+  end;
 
   if not Result then
   begin
@@ -1289,6 +1457,7 @@ begin
     nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
     LEDDisplay(nStr);
   end;
+
 end;
 
 //Desc: 读取表头数据
@@ -1442,17 +1611,20 @@ begin
   end
   else Timer_SaveFail.Enabled := True;
 
-  if FBarrierGate then
+  if not FDaiZNoGan then
   begin
-    {$IFDEF ERROPENONEDOOR}
-    if not nRet then
+    if FBarrierGate then
     begin
-      OpenDoorByReader(FLastReader, sFlag_Yes);
-      Exit;
+      {$IFDEF ERROPENONEDOOR}
+      if not nRet then
+      begin
+        OpenDoorByReader(FLastReader, sFlag_Yes);
+        Exit;
+      end;
+      {$ENDIF}
+      OpenDoorByReader(FLastReader, sFlag_No);
+      //打开副道闸
     end;
-    {$ENDIF}
-    OpenDoorByReader(FLastReader, sFlag_No);
-    //打开副道闸
   end;
 end;
 
@@ -1644,6 +1816,234 @@ begin
     FIsChkPoundStatus:= False;
     SetUIData(True);
   end;
+end;
+
+procedure TfFrameAutoPoundItem.LoadBillItemsELabel(const nCard: string);
+var nRet: Boolean;
+    nIdx,nInt: Integer;
+    nBills: TLadingBillItems;
+    nStr,nHint,nVoice, nLabel: string;
+begin
+  nStr := Format('读取到卡号[ %s ],开始执行业务.', [nCard]);
+  WriteLog(nStr);
+
+  FCardUsed := GetBillOrderType(nCard);
+  if FCardUsed = sFlag_Provide then
+     nRet := GetPurchaseOrdersSingle(nCard, sFlag_TruckBFP, nBills) else
+  if FCardUsed=sFlag_SaleSingle then
+     nRet := GetLadingBillsSingle(nCard, sFlag_TruckBFP, nBills) else nRet := False;
+
+  if (not nRet) or (Length(nBills) < 1)
+  then
+  begin
+    nVoice := '读取磁卡信息失败,请联系管理员';
+    PlayVoice(nVoice);
+    WriteLog(nVoice);
+    SetUIData(True);
+    Exit;
+  end;
+
+  nHint := '';
+  nInt := 0;
+
+  for nIdx:=Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
+  begin
+    {$IFDEF TruckAutoIn}
+    if FStatus=sFlag_TruckNone then
+    begin
+      if FCardUsed = sFlag_Provide then
+      begin
+        {$IFDEF PurchaseOrderSingle}
+        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        {$ELSE}
+        nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
+        {$ENDIF}
+        if nRet then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_Sale then
+      begin
+        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_SaleSingle then
+      begin
+        if SaveLadingBillsSingle(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end
+      else
+      if FCardUsed = sFlag_DuanDao then
+      begin
+        if SaveDuanDaoItems(sFlag_TruckIn, nBills) then
+        begin
+          ShowMsg('车辆进厂成功', sHint);
+          LoadBillItemsELabel(FCardTmp);
+          Exit;
+        end else
+        begin
+          ShowMsg('车辆进厂失败', sHint);
+        end;
+      end;
+    end;
+    {$ENDIF}
+    if (FStatus <> sFlag_TruckBFP) and (FNextStatus = sFlag_TruckZT) then
+      FNextStatus := sFlag_TruckBFP;
+    //状态校正
+
+    FSelected := (FNextStatus = sFlag_TruckBFP) or
+                 (FNextStatus = sFlag_TruckBFM);
+    //可称重状态判定
+
+    if FSelected then
+    begin
+      Inc(nInt);
+      Continue;
+    end;
+
+    nStr := '※.单号:[ %s ] 状态:[ %-6s -> %-6s ]   ';
+    if nIdx < High(nBills) then nStr := nStr + #13#10;
+
+    nStr := Format(nStr, [FID,
+            TruckStatusToStr(FStatus), TruckStatusToStr(FNextStatus)]);
+    nHint := nHint + nStr;
+
+    nVoice := '车辆 %s 不能过磅,应该去 %s ';
+    nVoice := Format(nVoice, [FTruck, TruckStatusToStr(FNextStatus)]);
+  end;
+
+  if nInt = 0 then
+  begin
+    PlayVoice(nVoice);
+    //车辆状态异常
+
+    nHint := '该车辆当前不能过磅,详情如下: ' + #13#10#13#10 + nHint;
+    WriteSysLog(nStr);
+    SetUIData(True);
+    Exit;
+  end;
+
+  EditBill.Properties.Items.Clear;
+  SetLength(FBillItems, nInt);
+  nInt := 0;
+
+  for nIdx:=Low(nBills) to High(nBills) do
+  with nBills[nIdx] do
+  begin
+    if FSelected then
+    begin
+      FPoundID := '';
+      //该标记有特殊用途
+      
+      if nInt = 0 then
+           FInnerData := nBills[nIdx]
+      else FInnerData.FValue := FInnerData.FValue + FValue;
+      //累计量
+
+      EditBill.Properties.Items.Add(FID);
+      FBillItems[nInt] := nBills[nIdx];
+      Inc(nInt);
+    end;
+  end;
+
+  FInnerData.FPModel := sFlag_PoundPD;
+  FUIData := FInnerData;
+  SetUIData(False);
+
+  nInt := GetTruckLastTime(FUIData.FTruck);
+  if (nInt > 0) and (nInt < FPoundTunnel.FCardInterval) then
+  begin
+    nStr := '磅站[ %s.%s ]: 车辆[ %s ]需等待 %d 秒后才能过磅';
+    nStr := Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName,
+            FUIData.FTruck, FPoundTunnel.FCardInterval - nInt]);
+    WriteSysLog(nStr);
+    SetUIData(True);
+    Exit;
+  end;
+  //指定时间内车辆禁止过磅
+  if not FOnlyELable then
+  begin
+    if FVirPoundID <> '' then
+    begin
+      nLabel := GetTruckRealLabel(FUIData.FTruck);
+      if nLabel <> '' then
+      begin
+        nHint := ReadPoundCard(nStr, FVirPoundID);
+        if (nHint = '') or (Pos(nLabel, nHint) < 1) then
+        begin
+          nStr := '未识别电子签,请移动车辆.';
+          PlayVoice(nStr);
+
+          nStr := '磅站[ %s.%s ]: 车辆[ %s.%s ]电子标签不匹配[ %s ],禁止上磅';
+          nStr := Format(nStr, [FPoundTunnel.FID, FPoundTunnel.FName,
+                  FUIData.FTruck, nLabel, nHint]);
+          WriteSysLog(nStr);
+          SetUIData(True);
+          Exit;
+        end;
+      end;
+    end;
+  end;
+  //判断车辆是否就位
+
+  InitSamples;
+  //初始化样本
+
+  if not FPoundTunnel.FUserInput then
+  if not gPoundTunnelManager.ActivePort(FPoundTunnel.FID,
+         OnPoundDataEvent, True) then
+  begin
+    nHint := '连接地磅表头失败，请联系管理员检查硬件连接';
+    WriteSysLog(nHint);
+
+    nVoice := nHint;
+    PlayVoice(nVoice);
+    
+    SetUIData(True);
+    Exit;
+  end;
+
+  Timer_ReadCard.Enabled := False;
+  FDoneEmptyPoundInit := 0;
+  FIsWeighting := True;
+  //停止读卡,开始称重
+
+  if FBarrierGate then
+  begin
+    nStr := '[n1]%s刷卡成功请上磅,并熄火停车';
+    nStr := Format(nStr, [FUIData.FTruck]);
+    PlayVoice(nStr);
+    //读卡成功，语音提示
+
+    {$IFNDEF DEBUG}
+    OpenDoorByReader(FLastReader);
+    //打开主道闸
+    {$ENDIF}
+  end;  
+  //车辆上磅
 end;
 
 end.

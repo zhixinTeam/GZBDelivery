@@ -46,6 +46,7 @@ type
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
+    procedure N5Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -97,7 +98,8 @@ function TfFrameSaleDetailQuery.InitFormDataSQL(const nWhere: string): string;
 begin
   FEnableBackDB := True;
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
-  Result := 'Select b.* From $Bill b ';
+  Result := ' Select b.*, c.C_NAME From $Bill b '+
+            ' Left Join S_Customer c On L_CusID=c.C_ID ';
 
   if FJBWhere = '' then
   begin
@@ -198,6 +200,30 @@ begin
     InitFormData('');
   finally
     FJBWhere := '';
+  end;
+end;
+
+procedure TfFrameSaleDetailQuery.N5Click(Sender: TObject);
+var
+  nStr : string;
+  nRet : Boolean;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr := SQLQuery.FieldByName('L_ID').AsString;
+    if (SQLQuery.FieldByName('L_IsEmpty').AsString = 'Y')
+      or (SQLQuery.FieldByName('L_YTID').AsString='')
+      or (SQLQuery.FieldByName('L_YTID').IsNull) then
+    begin
+      nRet := SynEmptyBillYT(nStr);
+      if nRet then
+        ShowMsg('补传到云天数据成功', sHint);
+    end
+    else
+    begin
+      ShowMsg('此记录已经同步成功,不能再次同步！', sHint);
+    end;
   end;
 end;
 

@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameTrucks;
 
+{$I Link.inc}
 interface
 
 uses
@@ -32,6 +33,8 @@ type
     N3: TMenuItem;
     VIP1: TMenuItem;
     VIP2: TMenuItem;
+    N5: TMenuItem;
+    N7: TMenuItem;
     N8: TMenuItem;
     N9: TMenuItem;
     N10: TMenuItem;
@@ -138,6 +141,11 @@ procedure TfFrameTrucks.PMenu1Popup(Sender: TObject);
 begin
   N2.Enabled := BtnEdit.Enabled;
   N8.Visible := gSysParam.FIsAdmin;
+
+  {$IFDEF EnableELabel}
+  N5.Visible := gSysParam.FIsAdmin;
+  N7.Visible := gSysParam.FIsAdmin;
+  {$ENDIF}
 end;
 
 //Desc: ³µÁ¾Ç©µ½
@@ -178,6 +186,10 @@ begin
     nStr := SQLQuery.FieldByName('T_Truck').AsString;
     nRFIDCard := SQLQuery.FieldByName('T_Card').AsString;
     nFlag := SQLQuery.FieldByName('T_CardUse').AsString;
+
+    {$IFDEF EnableELabel}
+    nFlag := sFlag_Yes;
+    {$ENDIF}
     
     if SetTruckRFIDCard(nStr, nRFIDCard, nFlag, nRFIDCard) then
     begin

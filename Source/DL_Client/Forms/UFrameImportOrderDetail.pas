@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameImportOrderDetail;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -235,7 +236,11 @@ begin
         end;
       end;
 
+      {$IFDEF PurchaseOrderSingle}
+      if not RemoteImportPoundsSingle(PackerEncodeStr(FListA.Text)) then Exit;
+      {$ELSE}
       if not RemoteImportPounds(PackerEncodeStr(FListA.Text)) then Exit;
+      {$ENDIF}
 
       ShowMsg('批量导入完成', sHint);
       

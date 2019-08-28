@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFormPurchaseContract;
 
+{$I Link.Inc}
 interface
 
 uses
@@ -287,7 +288,11 @@ begin
     end;
     if FCommand=cCmd_AddData then
     begin
+      {$IFDEF PurchaseOrderSingle}
+      FID := SavePurchaseContractSingle(PackerEncodeStr(FListA.Text));
+      {$ELSE}
       FID := SavePurchaseContract(PackerEncodeStr(FListA.Text));
+      {$ENDIF}
       if FID='' then Exit;
       ModalResult := mrOK;
       ShowMsg('采购合同保存成功', sHint);
@@ -295,7 +300,11 @@ begin
     else if FCommand=cCmd_EditData then
     begin
       FListA.Values['fid'] := Fid;
+      {$IFDEF PurchaseOrderSingle}
+      ModifyPurchaseContractSingle(PackerEncodeStr(FListA.Text));
+      {$ELSE}
       ModifyPurchaseContract(PackerEncodeStr(FListA.Text));
+      {$ENDIF}
       ModalResult := mrOK;
       ShowMsg('采购合同修改成功', sHint);
     end;
