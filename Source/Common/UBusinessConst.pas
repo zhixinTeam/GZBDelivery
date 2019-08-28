@@ -82,10 +82,17 @@ const
   cBC_SaveCountData           = $0064;   //保存计数结果
   cBC_RemoteExecSQL           = $0065;
 
+  cBC_FYWLGetSaleInfo         = $8001;   //发运物流销售单
+  cBC_FYWLSynSalePound        = $8002;   //同步发运物流销售磅单
+  cBC_FYWLSynOrderPound       = $8003;   //同步发运物流采购磅单
+  cBC_FYWLSynOrderInfo        = $8004;   //同步发运物流采购订单
+
   cBC_IsTunnelOK              = $0075;
   cBC_TunnelOC                = $0076;
   cBC_PlayVoice               = $0077;
   cBC_OpenDoorByReader        = $0078;
+
+  cBC_IsTruckQueue            = $8028;
 
   cBC_SyncCustomer            = $0080;   //远程同步客户
   cBC_SyncSaleMan             = $0081;   //远程同步业务员
@@ -106,6 +113,9 @@ const
   cBC_GetOrderInfo            = $0094;   //获取订单信息，用于网上商城下单
   cBC_GetOrderList            = $0103;   //获取订单列表，用于网上商城下单
   cBC_GetPurchaseContractList = $0107;   //获取采购合同列表，用于网上商城下单
+
+  sBus_BusinessPurchase       = 'Bus_BusinessPurchase'; //采购单相关
+  sBus_BusinessHHJY           = 'Bus_BusinessHHJY';     //恒河久远接口服务
 
   cBC_WeChat_getCustomerInfo  = $0095;   //微信平台接口：获取客户注册信息
   cBC_WeChat_get_Bindfunc     = $0096;   //微信平台接口：客户与微信账号绑定
@@ -145,6 +155,36 @@ const
   c_WeChatStatusCreateCard         = 0;       //订单已办卡
   c_WeChatStatusFinished           = 1;       //订单已完成
 
+  cBC_SaveBusinessCard             = $0136;   //保存当前刷卡信息
+  cBC_SaveTruckLine                = $9090;   //保存装车道信息
+
+  cBC_WX_VerifPrintCode       = $0501;   //微信：验证喷码信息
+  cBC_WX_WaitingForloading    = $0502;   //微信：工厂待装查询
+  cBC_WX_BillSurplusTonnage   = $0503;   //微信：网上订单可下单数量查询
+  cBC_WX_GetOrderInfo         = $0504;   //微信：获取订单信息
+  cBC_WX_GetOrderList         = $0505;   //微信：获取订单列表
+  cBC_WX_GetPurchaseContract  = $0506;   //微信：获取采购合同列表
+
+  cBC_WX_getCustomerInfo      = $0507;   //微信：获取客户注册信息
+  cBC_WX_get_Bindfunc         = $0508;   //微信：客户与微信账号绑定
+  cBC_WX_send_event_msg       = $0509;   //微信：发送消息
+  cBC_WX_edit_shopclients     = $0510;   //微信：新增商城用户
+  cBC_WX_edit_shopgoods       = $0511;   //微信：添加商品
+  cBC_WX_get_shoporders       = $0512;   //微信：获取订单信息
+  cBC_WX_complete_shoporders  = $0513;   //微信：修改订单状态
+  cBC_WX_get_shoporderbyNO    = $0514;   //微信：根据订单号获取订单信息
+  cBC_WX_get_shopPurchasebyNO = $0515;   //微信：根据订单号获取订单信息
+  cBC_WX_ModifyWebOrderStatus = $0516;   //微信：修改网上订单状态
+  cBC_WX_CreatLadingOrder     = $0517;   //微信：创建交货单
+  cBC_WX_GetCusMoney          = $0518;   //微信：获取客户资金
+  cBC_WX_GetInOutFactoryTotal = $0519;   //微信：获取进出厂统计
+  cBC_WX_GetAuditTruck        = $0520;   //微信：获取审核车辆
+  cBC_WX_UpLoadAuditTruck     = $0521;   //微信：审核车辆结果上传
+  cBC_WX_DownLoadPic          = $0522;   //微信：下载图片
+  cBC_WX_get_shoporderbyTruck = $0523;   //微信：根据车牌号获取订单信息
+  cBC_WX_get_shoporderbyTruckClt = $0524;   //微信：根据车牌号获取订单信息  客户端用
+  cBC_WX_get_shoporderStatus  = $0525;   //微信：根据订单号获取订单状态
+
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;
   TWorkerQueryFieldData = record
@@ -169,6 +209,15 @@ type
     FOperator : string;           //操作员
   end;
 
+  PWorkerHHJYData = ^TWorkerHHJYData;
+  TWorkerHHJYData = record
+    FBase     : TBWDataBase;
+    FCommand  : Integer;           //类型
+    FData     : string;            //数据
+    FExtParam : string;            //参数
+    FRemoteUL : string;            //工厂服务器UL
+  end;
+  
   PLadingBillItem = ^TLadingBillItem;
   TLadingBillItem = record
     FID         : string;          //交货单号
@@ -212,6 +261,7 @@ type
     Ftransname  : string;          //运输单位
     Foutfact    : TDateTime;       //出厂日期
     FHdOrderId  : string;          //合单订单号
+    FextDispatchNo:string;         //合单发运单号
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -234,7 +284,7 @@ type
     FData     : string;            //数据
     FExtParam : string;            //参数
     FRemoteUL : string;            //工厂服务器UL
-  end;        
+  end;
 
 procedure AnalyseBillItems(const nData: string; var nItems: TLadingBillItems);
 //解析由业务对象返回的交货单数据
@@ -275,6 +325,7 @@ resourcestring
   sBus_HardwareCommand        = 'Bus_HardwareCommand';  //硬件指令
   sBus_BusinessDuanDao        = 'Bus_BusinessDuanDao';  //短倒业务相关
   sBus_BusinessPurchaseOrder  = 'Bus_BusinessPurchaseOrder'; //采购单相关
+  sBus_BusinessPurchaseOrderSingle  = 'Bus_BusinessPurchaseOrderSingle'; //采购单相关(单厂)
   sBus_BusinessWebchat        = 'Bus_BusinessWebchat';  //Web平台服务
   sBus_BusinessSaleBillSingle = 'Bus_BusinessSaleBillSingle'; //交货单相关(单厂)
 
@@ -289,6 +340,7 @@ resourcestring
   sCLI_BusinessDuanDao        = 'CLI_BusinessDuanDao';  //短倒业务相关
   sCLI_BusinessPurchaseOrder  = 'CLI_BusinessPurchaseOrder'; //采购单相关
   sCLI_BusinessSaleBillSingle = 'CLI_BusinessSaleBillSingle'; //交货单业务(单厂)
+  sCLI_BusinessPurchaseOrderSingle  = 'CLI_BusinessPurchaseOrderSingle'; //采购单相关(单厂)
 
 implementation
 

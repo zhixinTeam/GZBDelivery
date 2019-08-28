@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE GZBSZ}
+{$DEFINE  GZBJM}
 //特定系统
 
 //葛洲坝潜江
@@ -159,7 +159,7 @@
   //打印化验单
   {$DEFINE PrintHeGeZheng}
   //打印合格证
-  {.$DEFINE PurGCardOutFactWithOutPrint}
+  {$DEFINE PurGCardOutFactWithOutPrint}
   //采购长期卡出厂不打印
   {$DEFINE CODECOMMON}
   //通用喷码
@@ -167,6 +167,10 @@
   //保存喷码编号
   {$DEFINE SaveYTLadeID}
   //保存云天发货单号
+  {$DEFINE FixLoad}
+  //转子秤定制装车
+  {$DEFINE DaiWCInManual}
+   //超发后人工干预后才能出行
 {$ENDIF}
 
 //葛洲坝兴山
@@ -181,8 +185,6 @@
   //状态栏显示
   {$DEFINE MultiReplay}
   //JSQ应答模式
-  {.$DEFINE MicroMsg}
-  //微信支持
   {$DEFINE CODEAREA}
   //喷码打印销售区域
   {.$DEFINE ERROPENONEDOOR}
@@ -195,8 +197,6 @@
   //允许车辆办理多张采购单
   {$DEFINE DaiStepWuCha}
   //包装阶梯误差
-  {$DEFINE EnableWebMall}
-  //使用网上商城
   {$DEFINE ASyncWriteData}
   //特定业务使用异步数据写入
   {$DEFINE ChangeYTSerialNo}
@@ -217,6 +217,10 @@
   //指定仓库
   {$DEFINE DeleteBillOnlyLocal}
   //删除本地交货单时不再同步云天
+  {$DEFINE UseAllCusNameBillHK}
+  //允许不同客户不同品种进行合单
+ {$DEFINE UseWXServiceEx}
+  //使用二期微信中间件
 {$ENDIF}
 
 //葛洲坝松滋
@@ -297,6 +301,10 @@
   //特定业务使用异步数据写入
   {$DEFINE PlayVoiceWithOutWeight}
   //磅房袋装过磅不播报重量
+  {$DEFINE PackMachine}
+  //装车机
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -341,5 +349,98 @@
   //空车出厂保存净重为0
   {.$DEFINE DeleteBillOnlyLocal}
   //删除本地交货单时不再同步云天
+{$ENDIF}
+
+//葛洲坝汉川
+{$IFDEF GZBHC}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE SyncRemote}
+  //远程同步
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE MicroMsg}
+  //微信支持
+  {$DEFINE CODEHCDZ}
+  //汉川定制喷码规则
+  {$DEFINE SaveEmptyTruck}
+  //空车出厂保存净重为0
+  {$DEFINE ERROPENONEDOOR}
+  //过磅失败倒车下磅
+  {$DEFINE MultiOrderOfTruck}
+  //允许车辆办理多张采购单
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
+  {$DEFINE PurELabelAutoCard}
+  //采购电子标签自动发卡
+  {$DEFINE UseTTCEDispenser}
+  //新版发卡驱动
+  {$DEFINE PurAutoOutByStokNo}
+  //采购车辆根据物料号自动出厂
+  {$DEFINE TruckAutoIn}
+  //车辆自动进厂
+  {$DEFINE MultiReplay}
+  //JSQ应答模式
+  {.$DEFINE PoundTruckQueue}
+  //过磅车辆排队
+  {$DEFINE OnlyDaiZWuPlayVoice}
+  //只有袋装正误差播放语音
+  {$DEFINE EnableELabel}
+  //办理电子标签默认启用
+  {$DEFINE PlayVoiceWithOutWeight}
+  //磅房袋装过磅不播报重量
+  {$DEFINE AllUseDate}
+  //一直使用日期查询条件
+  {$DEFINE SaveCODENO}
+  //保存喷码到数据库
+ {$DEFINE UseWXServiceEx}
+  //使用二期微信中间件
+ {$DEFINE UseDaiJYStockNo}
+  //袋装刷卡判断品种是否一致
+{$ENDIF}
+//葛洲坝嘉鱼
+{$IFDEF GZBJY}
+  {$DEFINE COMMON}
+  //使用常规
+  {$DEFINE HYRFID201}
+  //华益读头
+  {$DEFINE AppAtTaskBar}
+  //状态栏显示
+  {$DEFINE CODEAREA}
+  //喷码打印销售区域
+ {$DEFINE CODEAREAEX}
+ //喷码打印销售区域3位
+  {$DEFINE ERROPENONEDOOR}
+  //过磅失败倒车下磅
+  {$DEFINE DaiStepWuCha}
+  //包装阶梯误差
+  {$DEFINE ASyncWriteData}
+  //特定业务使用异步数据写入
+  {.$DEFINE PurELabelAutoCard}
+  //采购电子标签自动发卡
+  {$DEFINE UseTTCEDispenser}
+  //新版发卡驱动
+  {$DEFINE PurAutoOutByStokNo}
+  //采购车辆根据物料号自动出厂
+  {$DEFINE MicroMsgDelaySend}
+  //微信数据延迟推送(MicroMsg开关下子开关)
+  {$DEFINE TruckAutoIn}
+  //车辆自动进厂
+  {$DEFINE MultiReplay}
+  //JSQ应答模式
+  {$DEFINE SaveEmptyTruck}
+  //空车出厂保存净重为0
+  {$DEFINE GlLade}
+  //骨料发运
+  {$DEFINE PurchaseOrderSingle}
+  //使用单厂采购业务
+  {$DEFINE UseELableAsCard}
+  //使用电子标签作为卡号
 {$ENDIF}
 

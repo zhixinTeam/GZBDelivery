@@ -235,7 +235,34 @@ ResourceString
 
   sFlag_HardSrvURL    = 'HardMonURL';
   sFlag_MITSrvURL     = 'MITServiceURL';             //服务地址
-  sFlag_FactoryID     = 'FactoryId';                 //工厂ID，与微信平台交互数据时使用  
+  sFlag_FactoryID     = 'FactoryId';                 //工厂ID，与微信平台交互数据时使用
+
+  sFlag_WXFactory     = 'WXFactoryID';               //微信标识
+  sFlag_WXServiceMIT  = 'WXServiceMIT';              //微信工厂服务
+  sFlag_WXSrvRemote   = 'WXServiceRemote';           //微信远程服务
+  sFlag_Rq_WXUrl      = 'WXRqUrl';                   //请求微信网址
+  sFlag_Rq_WXPicUrl   = 'WXRqPicUrl';                //请求微信图片地址
+
+  sFlag_ERPSrv               = 'ERPService';              //ERP接口地址
+  sFlag_ERPSrvOms            = 'ERPServiceOms';           //ERPOms接口地址
+  sFlag_shipperCode          = 'shipperCode';             //发货客户编码
+  sFlag_shipperName          = 'shipperName';             //发货客户名称
+  sFlag_shipperContactCode   = 'shipperContactCode';      //发货联系人编码
+  sFlag_shipperContactName   = 'shipperContactName';      //发货联系人名称
+  sFlag_shipperContactTel    = 'shipperContactTel';       //发货联系电话
+  sFlag_shipperLocationCode  = 'shipperLocationCode';     //发货地点编码
+  sFlag_shipperLocationName  = 'shipperLocationName';     //发货地点名称
+  sFlag_consigneeCode        = 'consigneeCode';           //收货客户编码
+  sFlag_consigneeName        = 'consigneeName';           //收货客户名称
+  sFlag_consigneeContactCode = 'consigneeContactCode';    //收货联系人编码
+  sFlag_consigneeContactName = 'consigneeContactName';    //收货联系人名称
+  sFlag_consigneeContactTel  = 'consigneeContactTel';     //收货联系电话
+  sFlag_consigneeLocationCode= 'consigneLocationCode';    //收货地点编码
+  sFlag_consigneeLocationName= 'consigneLocationName';    //收货地点名称
+  sFlag_orgId                = 'orgId';                   //所在公司
+  sFlag_packCode             = 'packCode';                //包装规格代码
+  
+  sFlag_shipperNameEx        = 'shipperNameEx';           //发货客户名称
 
   sFlag_AutoIn        = 'Truck_AutoIn';              //自动进厂
   sFlag_AutoOut       = 'Truck_AutoOut';             //自动出厂
@@ -270,6 +297,10 @@ ResourceString
   sFlag_BillNoSingle  = 'Bus_BillSingle';            //交货单号(单厂)
 
   sFlag_VerifyFQValue = 'VerifyFQValue';             //禁止封签号超发
+
+  sFlag_WxItem        = 'WxItem';                    //微信相关
+  sFlag_InOutBegin    = 'BeginTime';                 //进出厂查询起始时间
+  sFlag_InOutEnd      = 'EndTime';                   //进出厂查询结束时间
 
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组
@@ -336,6 +367,7 @@ ResourceString
   sTable_Truck        = 'S_Truck';                   //车辆表
   sTable_ZTLines      = 'S_ZTLines';                 //装车道
   sTable_ZTTrucks     = 'S_ZTTrucks';                //车辆队列
+  sTable_ZTCard       = 'S_ZTCard';                  //当前刷卡信息表
 
   sTable_Provider     = 'P_Provider';                //客户表
   sTable_Materails    = 'P_Materails';               //物料表
@@ -354,6 +386,7 @@ ResourceString
   sTable_YT_CodeInfo  = 'S_YTCodeInfo';              //云天水泥编号
   sTable_YT_Batchcode = 'S_YTBatchcodeInfo';         //云天系统化验记录
   sTable_YT_CusBatMap = 'S_YTCusBatMap';             //云天客户批次绑定
+  sTable_HHJYSync     = 'Sys_HHJYSync';              //恒河久远数据同步表
 
   sTable_WebOrderMatch   = 'S_WebOrderMatch';        //商城订单映射
   sTable_PurchaseContract = 'P_PurchaseContract';    //采购合同
@@ -1375,7 +1408,7 @@ const
   sSQL_NewMaterails = 'Create Table $Table(R_ID $Inc, M_ID varChar(32),' +
        'M_Name varChar(80),M_PY varChar(80),M_Unit varChar(20),M_Price $Float,' +
        'M_PrePValue Char(1), M_PrePTime Integer, M_IsSale Char(1), ' +
-       'M_Index Integer, M_Memo varChar(50))';
+       'M_Index Integer, M_Memo varChar(50),M_DayNum $Float,M_Status Char(1))';
   {-----------------------------------------------------------------------------
    物料表: Materails
    *.M_ID: 编号
@@ -1826,6 +1859,38 @@ const
    *.$ID:信息标识
   -----------------------------------------------------------------------------}
 
+sSQL_NewZTCard = 'Create Table $Table(R_ID $Inc, C_Truck varChar(15), ' +
+       'C_Card varChar(20), C_Bill varChar(20), C_Line varChar(20), ' +
+       'C_BusinessTime DateTime)';
+  {-----------------------------------------------------------------------------
+   客户信息表: Customer
+   *.R_ID: 记录号
+   *.C_Truck: 车牌号
+   *.C_Card: 磁卡号
+   *.C_Bill: 单据号
+   *.C_Line: 装车道
+   *.C_BusinessTime: 刷卡时间
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewHHJYSync = 'Create Table $Table(R_ID $Inc,'
+      +'H_ID varchar(20) null,'
+      +'H_Order varchar(20) null,'
+      +'H_Status Integer,'
+      +'H_SyncNum Integer default 0,'
+      +'H_BillType char(1),'
+      +'H_PurType varchar(5),'
+      +'H_Deleted char(1) default ''N'')';
+  {-----------------------------------------------------------------------------
+   单据同步表:
+   *.R_ID: 记录编号
+   *.H_ID: 单据号
+   *.H_Order: 订单号
+   *.H_Status: 单据状态 0.开卡  1.完成
+   *.H_SyncNum: 发送次数
+   *.H_BillType: 业务类型  采购 销售
+   *.H_PurType: 采购流程类型 普通 内倒 临时
+  -----------------------------------------------------------------------------}
+
 function CardStatusToStr(const nStatus: string): string;
 //磁卡状态
 function TruckStatusToStr(const nStatus: string): string;
@@ -1989,6 +2054,9 @@ begin
   AddSysTableItem(sTable_PurchaseContractDetail_bak,sSQL_NewPurchaseContractDetail);
   AddSysTableItem(sTable_PurchaseQuotaStandard,sSQL_NewPurchaseQuotaStandard);
   AddSysTableItem(sTable_PurchaseAssayResult,sSQL_NewPurchaseAssayResult);
+  AddSysTableItem(sTable_ZTCard,sSQL_NewZTCard);
+
+  AddSysTableItem(sTable_HHJYSync,sSQL_NewHHJYSync);
 end;
 
 //Desc: 清理系统表
