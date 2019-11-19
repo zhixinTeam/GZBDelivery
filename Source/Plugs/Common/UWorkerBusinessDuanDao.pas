@@ -145,6 +145,7 @@ begin
             SF('B_Truck', nTruck),
             SF('B_SrcAddr', FListA.Values['SrcAddr']),
             SF('B_DestAddr', FListA.Values['DestAddr']),
+            SF('B_CType', FListA.Values['CType']),
 
             SF('B_Type', sFlag_San),
             SF('B_StockNo', FListA.Values['StockNO']),
@@ -522,10 +523,13 @@ end;
 function TWorkerBusinessDuanDao.SavePostDDItems(var nData: string): Boolean;
 var nVal: Double;
     nNeedP: Boolean;
-    nSQL,nS,nN: string;
+    nStr,nSQL,nS,nN: string;
     nInt, nIdx: Integer;
+    nPreValue: Double;
     nPound: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
+    nDID,nTruck: string;
+    nTime:Integer;
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nPound);
@@ -546,7 +550,7 @@ begin
     Exit;
   end;
 
-  nSQL := 'Select B_Status, B_NextStatus From %s Where B_ID=''%s''';
+  nSQL := 'Select B_Status, B_NextStatus, B_Truck From %s Where B_ID=''%s''';
   nSQL := Format(nSQL, [sTable_TransBase, nPound[0].FZhiKa]);
   with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
   begin
@@ -560,7 +564,38 @@ begin
     nS := Fields[0].AsString;
     nN := Fields[1].AsString;
     //申请单当前状态和下一状态
+    nTruck:=Fields[2].AsString;
   end;
+
+  //嘉鱼出厂一小时禁止开单
+  {$IFDEF Between2BillTime}
+  nTime := 30;
+  nStr  := ' select D_Value from %s where D_Name = ''%s'' and D_Memo  = ''%s'' ';
+  nStr  := Format(nStr,[sTable_SysDict,sFlag_SysParam,'Between2DDTime']);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if recordcount > 0 then
+    begin
+      nTime :=  FieldByName('D_Value').AsInteger;
+    end;
+  end;
+
+  nStr := ' select top 1 T_OutFact from %s where '+
+          ' T_Truck = ''%s'' order by T_OutFact desc ';
+  nStr := Format(nStr,[sTable_Transfer,nTruck]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if recordcount > 0 then
+    begin
+      if (Now - FieldByName('T_OutFact').AsDateTime)*24*60 < nTime then
+      begin
+        nStr := '车辆[ %s ]出厂未到'+inttostr(nTime)+'分钟,禁止开单.';
+        nData := Format(nStr, [nTruck]);
+        Exit;
+      end;
+    end;
+  end;
+  {$ENDIF}
 
   FListA.Clear;
   //用于存储SQL列表
@@ -595,38 +630,127 @@ begin
     //返回生成的信息编号
     with nPound[0] do
     begin
+      nPreValue := 0;
+      nStr := 'Select T_PrePValue From %s Where T_Truck = ''%s'' and isnull(T_PrePUse,''N'') = ''Y''  ';
+      nStr := Format(nStr, [sTable_Truck, FTruck]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      if RecordCount > 0 then
+      begin
+        nPreValue := Fields[0].AsFloat;
+      end;
+
       FStatus := sFlag_TruckIn;
       FNextStatus := sFlag_TruckOut;
 
       if nNeedP then FNextStatus := sFlag_TruckBFP;
       //需要过磅
+      if nPreValue = 0 then
+      begin
+        nSQL := MakeSQLByStr([
+                SF('T_ID', nOut.FData),
+                SF('T_Card', FCard),
+                SF('T_Truck', FTruck),
+                SF('T_PID', FZhiKa),
+                SF('T_SrcAddr', FMemo),
+                SF('T_DestAddr', FYSValid),
+                SF('T_Type', FType),
 
-      nSQL := MakeSQLByStr([
-              SF('T_ID', nOut.FData),
-              SF('T_Card', FCard),
-              SF('T_Truck', FTruck),
-              SF('T_PID', FZhiKa),
-              SF('T_SrcAddr', FMemo),
-              SF('T_DestAddr', FYSValid),
-              SF('T_Type', FType),
+                SF('T_StockNo', FStockNo),
+                SF('T_StockName', FStockName),
+                SF('T_Status', FStatus),
+                SF('T_NextStatus', FNextStatus),
+                SF('T_InTime', sField_SQLServer_Now, sfVal),
+                SF('T_InMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Transfer, '', True);
+        FListA.Add(nSQL);
 
-              SF('T_StockNo', FStockNo),
-              SF('T_StockName', FStockName),
-              SF('T_Status', FStatus),
-              SF('T_NextStatus', FNextStatus),
-              SF('T_InTime', sField_SQLServer_Now, sfVal),
-              SF('T_InMan', FIn.FBase.FFrom.FUser)
-              ], sTable_Transfer, '', True);
-      FListA.Add(nSQL);
+        nSQL := MakeSQLByStr([
+                SF('B_TID', nOut.FData),
+                SF('B_IsUsed', sFlag_Yes),
+                SF('B_Status', FStatus),
+                SF('B_NextStatus', FNextStatus)
+                ], sTable_TransBase, SF('B_ID', FZhiKa), False);
+        FListA.Add(nSQL);
+      end
+      else
+      begin
+        nDID := nOut.FData;
+        nSQL := MakeSQLByStr([
+                SF('T_ID', nOut.FData),
+                SF('T_Card', FCard),
+                SF('T_Truck', FTruck),
+                SF('T_PID', FZhiKa),
+                SF('T_SrcAddr', FMemo),
+                SF('T_DestAddr', FYSValid),
+                SF('T_Type', FType),
 
-      nSQL := MakeSQLByStr([
-              SF('B_TID', nOut.FData),
-              SF('B_IsUsed', sFlag_Yes),
-              SF('B_Status', FStatus),
-              SF('B_NextStatus', FNextStatus)
-              ], sTable_TransBase, SF('B_ID', FZhiKa), False);
-      FListA.Add(nSQL);
-    end;  
+                SF('T_StockNo', FStockNo),
+                SF('T_StockName', FStockName),
+                SF('T_Status', sFlag_TruckBFP),
+                SF('T_NextStatus', sFlag_TruckBFM),
+                SF('T_PValue', nPreValue, sfVal),
+                SF('T_PDate', sField_SQLServer_Now, sfVal),
+                SF('T_InTime', sField_SQLServer_Now, sfVal),
+                SF('T_InMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Transfer, '', True);
+        FListA.Add(nSQL);
+
+        FListC.Clear;
+        FListC.Values['Group'] := sFlag_BusGroup;
+        FListC.Values['Object'] := sFlag_PoundID;
+
+        if not TWorkerBusinessCommander.CallMe(cBC_GetSerialNO,
+                FListC.Text, sFlag_Yes, @nOut) then
+          raise Exception.Create(nOut.FData);
+        //xxxxx
+
+        FOut.FData := nOut.FData;
+        //返回榜单号,用于拍照绑定
+        with nPound[0] do
+        begin
+          FStatus := sFlag_TruckBFP;
+          FNextStatus := sFlag_TruckBFM;
+
+          nSQL := MakeSQLByStr([
+                SF('P_ID', nOut.FData),
+                SF('P_Type', sFlag_DuanDao),
+                SF('P_Order', nDID),
+                SF('P_Truck', FTruck),
+                SF('P_CusID', FCusID),
+                SF('P_CusName', FCusName),
+                SF('P_MID', FStockNo),
+                SF('P_MName', FStockName),
+                SF('P_MType', FType),
+                SF('P_LimValue', 0),
+                SF('P_PValue', nPreValue, sfVal),
+                SF('P_PDate', sField_SQLServer_Now, sfVal),
+                SF('P_PMan', FIn.FBase.FFrom.FUser),
+                SF('P_FactID', FFactory),
+                SF('P_PStation', FPData.FStation),
+                SF('P_Direction', '碎石'),
+                SF('P_PModel', FPModel),
+                SF('P_Status', sFlag_TruckBFP),
+                SF('P_Valid', sFlag_Yes),
+                SF('P_PrintNum', 1, sfVal)
+                ], sTable_PoundLog, '', True);
+          FListA.Add(nSQL);
+
+
+          nSQL := MakeSQLByStr([
+                  SF('B_TID', nDID),
+                  SF('B_IsUsed', sFlag_Yes),
+                  SF('B_Status', FStatus),
+                  SF('B_NextStatus', FNextStatus),
+                  SF('B_PValue', nPreValue, sfVal),
+                  SF('B_PDate', sField_SQLServer_Now, sfVal)
+                  ], sTable_TransBase, SF('B_ID', FZhiKa), False);
+          FListA.Add(nSQL);
+        end;
+
+      end;
+
+    end;
 
   end else
 

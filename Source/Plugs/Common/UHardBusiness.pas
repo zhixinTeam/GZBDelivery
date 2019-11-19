@@ -2431,7 +2431,9 @@ end;
 //Parm: 车辆;通道
 //Desc: 授权nTruck在nTunnel车道放灰
 procedure TruckStartFH(const nTruck: PTruckItem; const nLine: PLineItem);
-var nStr,nTmp,nCardUse: string;
+var
+   i : Integer;
+   nStr,nTmp,nCardUse: string;
    nField: TField;
    nWorker: PDBWorker;
 begin
@@ -2464,17 +2466,19 @@ begin
     gDBConnManager.ReleaseConnection(nWorker);
   end;
 
+  for i := 0 to 2 do
+  begin
+    gERelayManager.LineOpen(nLine.FLineID);
+    //打开放灰
 
-  gERelayManager.LineOpen(nLine.FLineID);
-  //打开放灰
+    nStr := nTruck.FTruck + StringOfChar(' ', 12 - Length(nTruck.FTruck));
+    nTmp := nLine.FName + FloatToStr(nTruck.FValue);
+    nStr := nStr + nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
+            FloatToStr(nTruck.FValue);
+    //xxxxx
 
-  nStr := nTruck.FTruck + StringOfChar(' ', 12 - Length(nTruck.FTruck));
-  nTmp := nLine.FName + FloatToStr(nTruck.FValue);
-  nStr := nStr + nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
-          FloatToStr(nTruck.FValue);
-  //xxxxx
-
-  gERelayManager.ShowTxt(nLine.FLineID, nStr);
+    gERelayManager.ShowTxt(nLine.FLineID, nStr);
+  end;
   //显示内容
   {$IFDEF SanLed}
   nStr := nLine.FName + StringOfChar(' ', 12 - Length(nTmp)) +
@@ -2598,6 +2602,8 @@ begin
     WriteNearReaderLog('启动定置装车::'+nTunnel+'@'+nCard);
     //发送卡号和通道号到定置装车服务器
     gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
+    //二次调用
+    gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
     {$ENDIF}
     
     Exit;
@@ -2624,6 +2630,8 @@ begin
   {$IFDEF FixLoad}
   WriteNearReaderLog('启动定置装车::'+nTunnel+'@'+nCard);
   //发送卡号和通道号到定置装车服务器
+  gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
+  //二次调用
   gSendCardNo.SendCardNo(nTunnel+'@'+nCard);
   {$ENDIF}
 end;

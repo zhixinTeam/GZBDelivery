@@ -458,7 +458,9 @@ end;
 //Parm: 交货单[FIn.FData];通道号[FIn.FExtParam]
 //Desc: 在指定通道上喷码
 function THardwareCommander.PrintCode(var nData: string): Boolean;
-var nStr,nCode: string;
+var
+    i: Integer;
+    nStr,nCode,nCodeTmp: string;
     nPrefixLen, nIDLen, nLength: Integer;
 begin
   Result := True;
@@ -568,7 +570,12 @@ begin
       {$IFDEF CODEHCDZ}
       //汉川喷码规则: P09+年月日+L_HYDan(#+后两位)
       nCode := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
-      nCode := nCode + '@5#@7' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2);
+      nCode := nCode + '@5#@7' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+               +' '+Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
+               
+      nCodeTmp := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
+      nCodeTmp := nCodeTmp + '#' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+               +Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
       {$ENDIF}
 
       {$IFDEF GZBQJ}
@@ -588,19 +595,26 @@ begin
   end;
   {$IFDEF SaveCODENO}
   nStr := 'Update %s Set L_Marking=''%s'' Where L_ID=''%s''';
-  nStr := Format(nStr, [sTable_Bill, nCode, FIn.FData]);
+  {$IFDEF CODEHCDZ}
+    nStr := Format(nStr, [sTable_Bill, nCodeTmp, FIn.FData]);
+  {$ELSE}
+    nStr := Format(nStr, [sTable_Bill, nCode, FIn.FData]);
+  {$ENDIF}
   gDBConnManager.WorkerExec(FDBConn, nStr);
   {$ENDIF}
-  if not gCodePrinterManager.PrintCode(FIn.FExtParam, nCode, nStr) then
+  for i := 0 to 1 do
   begin
-    Result := False;
-    nData := nStr;
-    Exit;
-  end;
+    if not gCodePrinterManager.PrintCode(FIn.FExtParam, nCode, nStr) then
+    begin
+      Result := False;
+      nData := nStr;
+      Exit;
+    end;
 
-  nStr := '向通道[ %s ]发送防违流码[ %s ]成功.';
-  nStr := Format(nStr, [FIn.FExtParam, nCode]);
-  WriteLog(nStr);
+    nStr := '向通道[ %s ]发送防违流码[ %s ]成功.';
+    nStr := Format(nStr, [FIn.FExtParam, nCode]);
+    WriteLog(nStr);
+  end;
 end;
 
 //Date: 2014-10-01

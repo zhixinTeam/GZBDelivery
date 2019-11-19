@@ -127,6 +127,8 @@ type
     //车辆判定
     procedure TruckOutofQueue(const nTruck: string);
     //车辆出队
+    procedure TruckOutofQueueEx(const nTruck: string);
+    //车辆出队后重新排队
   public
     constructor Create(AOwner: TTruckQueueManager);
     destructor Destroy; override;
@@ -1465,8 +1467,13 @@ begin
           WriteLog(Format('车辆[ %s ]出队.', [nTruck.FTruck]));
           {$ENDIF}
 
+          {$IFNDEF OverTimeReQueue}
           TruckOutofQueue(nTruck.FTruck);
           //未进厂车辆超时
+          {$ELSE}
+          WriteLog(Format('车辆[ %s ]出队后重新排队.', [nTruck.FTruck]));
+          TruckOutofQueueEx(nTruck.FTruck);
+          {$ENDIF}
         end;
 
         FTruckPool[j].FEnable := False;
@@ -1572,6 +1579,14 @@ begin
       nList[nIdx] := nTruck;
     end;
   end;
+end;
+
+procedure TTruckQueueDBReader.TruckOutofQueueEx(const nTruck: string);
+var nStr: string;
+begin
+  nStr := ' Update %s Set T_Valid=''%s'',T_InTime=%s, T_InQueue=Null,T_Line=Null,T_Retimes = T_Retimes+1  Where T_Truck=''%s''';
+  nStr := Format(nStr, [sTable_ZTTrucks, sFlag_Yes,sField_SQLServer_Now, nTruck]);
+  gDBConnManager.WorkerExec(FDBConn, nStr);
 end;
 
 initialization

@@ -347,11 +347,14 @@ end;
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
     nVal, nRenum: Double;
-    nStr,nTruck,nStock: string;
+    nStr,nTruck,nStock,nWebOrderID,nMemo: string;
     nOut: TWorkerBusinessCommand;
+    nTime: Integer;
 begin
   Result := False;
   nTruck := FListA.Values['Truck'];
+  nWebOrderID := FListA.Values['WebOrderID'];
+  nMemo := FListA.Values['Memo'];
   if not VerifyTruckNO(nTruck, nData) then Exit;
 
   if FListA.Values['BuDan'] = sFlag_Yes then
@@ -448,7 +451,8 @@ begin
 
     while not Eof do
     begin
-      if (FieldByName('T_Type').AsString = sFlag_San) and (not FSanMultiBill) then
+      //钟祥用语句：or ((Trim(nWebOrderID) <> '')  and (Trim(nMemo)= ''))
+      if ((FieldByName('T_Type').AsString = sFlag_San) and (not FSanMultiBill)) then
       begin
         nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
         nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
@@ -463,7 +467,6 @@ begin
         nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
         Exit;
       end else
-
       if FieldByName('T_Valid').AsString = sFlag_No then
       begin
         nStr := '车辆[ %s ]有已出队的交货单[ %s ],需先处理.';
@@ -486,6 +489,36 @@ begin
       Next;
     end;
   end;
+
+  //嘉鱼出厂一小时禁止开单
+  {$IFDEF Between2BillTime}
+  nTime := 30;
+  nStr  := ' select D_Value from %s where D_Name = ''%s'' and D_Memo  = ''%s'' ';
+  nStr  := Format(nStr,[sTable_SysDict,sFlag_SysParam,'Between2BillTime']);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if recordcount > 0 then
+    begin
+      nTime :=  FieldByName('D_Value').AsInteger;
+    end;
+  end;
+
+  nStr := 'select top 1 L_OutFact from %s where '+
+          'l_truck=''%s'' order by L_OutFact desc';
+  nStr := Format(nStr,[sTable_Bill,nTruck]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if recordcount > 0 then
+    begin
+      if (Now - FieldByName('L_OutFact').AsDateTime)*24*60 < nTime then
+      begin
+        nStr := '车辆[ %s ]出厂未到'+inttostr(nTime)+',禁止开单.';
+        nData := Format(nStr, [nTruck]);
+        Exit;
+      end;
+    end;
+  end;
+  {$ENDIF}
 
   TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, nTruck, '', @nOut);
   //保存车牌号
@@ -705,7 +738,8 @@ begin
               {$ENDIF} //随车打印化验单
 
               {$IFDEF UseWLFYInfo}
-              SF('L_DispatchNo', FListA.Values['DispatchNo']),
+              SF('L_WebOrderID',    FListA.Values['WebOrderID']),
+              SF('L_DispatchNo',    FListA.Values['DispatchNo']),
               SF('L_extDispatchNo', FListA.Values['extDispatchNo']),
               {$ENDIF}
 
@@ -880,7 +914,8 @@ begin
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
-
+    //666666
+    WriteLog('cBC_SyncBillEdit:'+nSQL+'新开单1');
     if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nSQL,
       sFlag_BillNew, @nOut) then
       raise Exception.Create(nOut.FData);    
@@ -984,7 +1019,7 @@ begin
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
-
+    WriteLog('cBC_SyncStockBill'+nSQL+'补单同步');
     if not TWorkerBusinessCommander.CallMe(cBC_SyncStockBill, nSQL, '', @nOut) then
       raise Exception.Create(nOut.FData);
     //xxxxx
@@ -1363,7 +1398,8 @@ begin
 
   nStr := AdjustListStrFormat(FIn.FData, '''', True, ',', False);
   //bill list
-
+  //666666
+  WriteLog('cBC_SyncBillEdit:'+nStr+'订单删除1');
   if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
     sFlag_BillDel, @nOut) then
     raise Exception.Create(nOut.FData);
@@ -2714,6 +2750,7 @@ begin
 
       {$IFDEF ASyncWriteData}
       gDBConnManager.ASyncAddItem(@nItem, nSQL, FID);
+      FListA.Add(nSQL); //更新交货单
       {$ELSE}
       FListA.Add(nSQL); //更新交货单
       {$ENDIF}
@@ -2726,7 +2763,7 @@ begin
         FListA.Add(nSQL); //更新水泥编号
       end;
     end;
-
+    WriteLog('cBC_SyncStockBill'+FListB.Text+'出厂同步');
     if not TWorkerBusinessCommander.CallMe(cBC_SyncStockBill,
        FListB.Text, '', @nOut) then
     begin
@@ -2909,7 +2946,8 @@ begin
       try
         nStr := AdjustListStrFormat(nTmp, '''', True, ',', False);
         //bill list
-
+        //666666
+        WriteLog('cBC_SyncBillEdit:'+nStr+'新订单2');
         if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
           sFlag_BillNew, @nOut) then
           raise Exception.Create(nOut.FData);
@@ -3017,7 +3055,8 @@ begin
       begin
         nStr := AdjustListStrFormat(nUpdateID, '''', True, ',', False);
         //bill list
-
+        //666666
+        WriteLog('cBC_SyncBillEdit:'+nStr+'拣配1');
         TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nStr,
           sFlag_BillPick, @nOut)  
       end;  

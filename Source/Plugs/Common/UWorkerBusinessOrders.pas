@@ -1283,6 +1283,7 @@ begin
             SF('D_OID', FZhiKa),
             SF('D_Status', sFlag_TruckIn),
             SF('D_NextStatus', sFlag_TruckBFP),
+            SF('D_IsMT', sFlag_No),
             SF('D_InMan', FIn.FBase.FFrom.FUser),
             SF('D_InTime', sField_SQLServer_Now, sfVal)
             ], sTable_OrderDtl, '', True);
@@ -1365,6 +1366,7 @@ begin
               SF('D_NextStatus', FNextStatus),
               SF('D_PValue', FPData.FValue, sfVal),
               SF('D_PDate', sField_SQLServer_Now, sfVal),
+              SF('D_IsMT', sFlag_No),
               SF('D_PMan', FIn.FBase.FFrom.FUser)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL);

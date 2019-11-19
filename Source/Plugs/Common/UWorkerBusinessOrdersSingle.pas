@@ -1260,6 +1260,7 @@ begin
             SF('D_Status', sFlag_TruckIn),
             SF('D_NextStatus', sFlag_TruckBFP),
             SF('D_InMan', FIn.FBase.FFrom.FUser),
+            SF('D_IsMT', sFlag_Yes),
             SF('D_InTime', sField_SQLServer_Now, sfVal)
             ], sTable_OrderDtl, '', True);
       FListA.Add(nSQL);
@@ -1305,9 +1306,9 @@ begin
     with nPound[0] do
     begin
       FStatus := sFlag_TruckBFP;
-      FNextStatus := sFlag_TruckXH;
-
-      if (FListB.IndexOf(FStockNo) >= 0) or (nYS <> sFlag_Yes) then
+     // FNextStatus := sFlag_TruckXH;
+      //码头业务无需验收
+     // if (FListB.IndexOf(FStockNo) >= 0) or (nYS <> sFlag_Yes) then
         FNextStatus := sFlag_TruckBFM;
       //现场不发货直接过重
 
@@ -1340,6 +1341,7 @@ begin
               SF('D_NextStatus', FNextStatus),
               SF('D_PValue', FPData.FValue, sfVal),
               SF('D_PDate', sField_SQLServer_Now, sfVal),
+              SF('D_IsMT', sFlag_No),
               SF('D_PMan', FIn.FBase.FFrom.FUser)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL);

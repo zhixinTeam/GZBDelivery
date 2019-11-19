@@ -732,6 +732,49 @@ begin
   end;
 end;
 
+function strtoascii(const inputAnsi:string): integer;
+//字符串转换为ascii值,转换值是一个各单独值相加后的结果
+var
+  Ansitemp,i,OutPutAnsi :integer;
+begin
+  OutPutAnsi:=0;
+  For i:=0 To Length(inputAnsi) Do
+    begin
+      Ansitemp := ord(inputAnsi[i]);
+      outputansi := OutPutAnsi+Ansitemp;
+    end;
+  Result:= OutPutAnsi;
+end;
+
+function CRC12(const Lenth: integer; const RXBUFFER: TByteArray): Integer;
+var
+  crc12out : Integer;
+  i,j : Integer;
+begin
+  Result := 0;
+  crc12out :=0;
+
+	for j:=0 to Lenth-1 do
+  begin
+	   for i:=0 to 7 do
+     begin
+	  	if (Ord(RXBUFFER[j]) and ($80 shr i)) <> 0 then
+         crc12out := crc12out or $1;
+	  	if(crc12out>=$1000) then
+        crc12out := crc12out xor $180d;
+      crc12out :=	crc12out shl 1;
+     end;
+	 end;
+	 for i :=0 to 11 do
+	 begin
+	 	if(crc12out>=$1000) then
+      crc12out := crc12out xor $180d;
+	  crc12out :=	crc12out shl 1;
+	 end;
+   crc12out := crc12out shr 1;
+   Result := crc12out;
+end;
+
 //------------------------------------------------------------------------------
 type
   TPrinterZero = class(TCodePrinterBase)
@@ -877,6 +920,8 @@ begin
   nData := nData+Char($40)+Char($39)+Char($0D);
 
   FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(100);
+  FClient.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
@@ -926,7 +971,9 @@ begin
 
   nData := Char($1B) + Char($41) + Char($2C) +Char($22);
   nData := nData + Char(2 + 31) + Char($0D);
-  
+
+  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(100);
   FClient.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
@@ -1089,6 +1136,77 @@ begin
   Result := True;
 end;
 
+//------------------------------------------------------------------------------
+type
+  TPrinterHYPM = class(TCodePrinterBase)
+  protected
+    function PrintCode(const nCode: string;
+     var nHint: string): Boolean; override;
+  public
+    class function DriverName: string; override;
+  end;
+
+class function TPrinterHYPM.DriverName: string;
+begin
+  Result := 'HYPM';
+end;
+
+//Desc: 打印编码
+function TPrinterHYPM.PrintCode(const nCode: string;
+  var nHint: string): Boolean;
+var nStr,nData: string;
+    nCrc: TByteWord;
+    nBuf: TIdBytes;
+    Finstructions : TByteArray;
+    i, nLength,nTmp,k,nTmp1 : Integer;
+    str,sYY,nValue,crc: string;
+begin
+  Finstructions[0]:=$02;
+
+  str     := Trim(nCode);
+  nLength := Length(str);
+  Finstructions[1]:=(6+nlength);
+  Finstructions[2]:=$01;
+  Finstructions[3]:=$00;
+  Finstructions[4]:=$00;
+  Finstructions[5]:=$00;
+  Finstructions[6]:=$00;
+  Finstructions[7]:=$02;
+  for i:=0 to nLength - 1 do
+  begin
+    nTmp := strtoascii(str[i+1]);
+    k:=8+i;
+    Finstructions[k] := nTmp  ;
+  end;
+  nData := 'FE FE ';
+  for i := 0 to (nLength + 8)-1 do
+  nData := nData + IntToHex(Finstructions[i],2)+' ' ;
+  crc := IntToHex(CRC12(8+nlength,Finstructions),4);
+  nData := nData + Copy(crc,1,2)+' '+Copy(crc,3,2) +' FA FA ';
+
+  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(200);
+
+//  if FPrinter.FResponse then
+//  begin
+//    SetLength(nBuf, 0);
+//    FClient.Socket.ReadBytes(nBuf, 12, False);
+//    nStr := BytesToString(nBuf,Indy8BitEncoding);
+//
+//    nData :=  Char($55) + Char($00) + Char($0C)+ Char($4F)+ Char($4B);
+//    nData :=  nData + Char($03)+ Char($00) + Char($00) + Char($01);
+//    nData :=  nData + Char($FF)+ Char($FF) + Char($AA);
+//    if nstr <> nData then
+//    begin
+//      nHint := '喷码机应答错误!';
+//      Result := False;
+//      Exit;
+//    end;
+//  end;
+
+  Result := True;
+end;
+
 
 initialization
   gCodePrinterManager := TCodePrinterManager.Create;
@@ -1099,6 +1217,7 @@ initialization
   gCodePrinterManager.RegDriver(TPrinterWZP);
   gCodePrinterManager.RegDriver(TPrinterDWA);
   gCodePrinterManager.RegDriver(TPrinterWSDP011C);
+  gCodePrinterManager.RegDriver(TPrinterHYPM);
 finalization
   FreeAndNil(gCodePrinterManager);
 end.
