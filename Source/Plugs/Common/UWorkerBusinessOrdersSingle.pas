@@ -1341,7 +1341,7 @@ begin
               SF('D_NextStatus', FNextStatus),
               SF('D_PValue', FPData.FValue, sfVal),
               SF('D_PDate', sField_SQLServer_Now, sfVal),
-              SF('D_IsMT', sFlag_No),
+              SF('D_IsMT', sFlag_Yes),
               SF('D_PMan', FIn.FBase.FFrom.FUser)
               ], sTable_OrderDtl, SF('D_ID', FID), False);
       FListA.Add(nSQL);

@@ -82,6 +82,8 @@ type
     //定制放灰调用小屏显示
     function LineClose(var nData: string): Boolean;
     //定制放灰
+    function TruckProbe_ShowTxt(var nData: string): Boolean;
+    //车辆检测控制器业务
   public
     constructor Create; override;
     destructor destroy; override;
@@ -262,6 +264,11 @@ begin
    cBC_OpenDoorByReader     : Result := OpenDoorByReader(nData);
 
    cBC_IsTruckQueue         : Result := GetIsTruckQueue(nData);
+
+   cBC_ShowLedTxt           : Result := ShowLedText(nData);
+   cBC_LineClose            : Result := LineClose(nData);
+
+   cBC_ShowTxt              : Result := TruckProbe_ShowTxt(nData);
    else
     begin
       Result := False;
@@ -960,6 +967,17 @@ begin
   else
     gERelayManager.LineClose(nTunnel);
   Result := True;
+end;
+
+function THardwareCommander.TruckProbe_ShowTxt(var nData: string): Boolean;
+begin
+  Result := True;
+  if not Assigned(gProberManager) then Exit;
+
+  gProberManager.ShowTxt(FIn.FData,FIn.FExtParam);
+
+  nData := Format('ShowTxt -> %s:%s', [FIn.FData, FIn.FExtParam]);
+  WriteLog(nData);
 end;
 
 initialization

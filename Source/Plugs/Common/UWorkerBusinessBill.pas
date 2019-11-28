@@ -490,6 +490,33 @@ begin
     end;
   end;
 
+  {$IFDEF NoUseOrderSale}
+  nStr :=' select L_ID from %s where L_Status <> ''%s'' and L_Truck =''%s'' ';
+  nStr := Format(nStr, [sTable_Bill, sFlag_TruckOut, nTruck]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+      nData := Format(nStr, [nTruck, FieldByName('L_ID').AsString]);
+      Exit;
+    end;
+  end;
+
+  nStr := ' Select o.O_ID From %s o Where o.O_Truck=''%s'' ' +
+          ' And not exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID and od.D_Status = ''O'' )';
+  nStr := Format(nStr, [sTable_Order, nTruck]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      nStr := '车辆[ %s ]在未完成[ %s ]采购单之前禁止开单.';
+      nData := Format(nStr, [nTruck, FieldByName('O_ID').AsString]);
+      Exit;
+    end;
+  end;
+  {$ENDIF}
+  
   //嘉鱼出厂一小时禁止开单
   {$IFDEF Between2BillTime}
   nTime := 30;
@@ -738,11 +765,11 @@ begin
               {$ENDIF} //随车打印化验单
 
               {$IFDEF UseWLFYInfo}
-              SF('L_WebOrderID',    FListA.Values['WebOrderID']),
               SF('L_DispatchNo',    FListA.Values['DispatchNo']),
               SF('L_extDispatchNo', FListA.Values['extDispatchNo']),
               {$ENDIF}
 
+              SF('L_WebOrderID',    FListA.Values['WebOrderID']),
               SF('L_ZKMoney', sFlag_No),
               SF('L_Truck', FListA.Values['Truck']),
               SF('L_Status', sFlag_BillNew),
