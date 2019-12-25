@@ -86,7 +86,14 @@ begin
     {$ENDIF}
 
     {$IFDEF PurchaseOrderSingle}
-    if GetPurchaseOrdersSingle(nStr, sFlag_TruckXH, gBills) then Break;
+    if gSysParam.FIsMT = 1 then
+    begin
+      if GetPurchaseOrdersSingle(nStr, sFlag_TruckXH, gBills) then Break;
+    end
+    else
+    begin
+      if GetPurchaseOrders(nStr, sFlag_TruckXH, gBills) then Break;
+    end;
     {$ELSE}
     if GetPurchaseOrders(nStr, sFlag_TruckXH, gBills) then Break;
     {$ENDIF}
@@ -236,10 +243,21 @@ begin
   end;
 
   {$IFDEF PurchaseOrderSingle}
-  if SavePurchaseOrdersSingle(sFlag_TruckXH, gBills) then
+  if gSysParam.FIsMT = 1 then
   begin
-    ShowMsg('原材料验收成功', sHint);
-    ModalResult := mrOk;
+    if SavePurchaseOrdersSingle(sFlag_TruckXH, gBills) then
+    begin
+      ShowMsg('原材料验收成功', sHint);
+      ModalResult := mrOk;
+    end;
+  end
+  else
+  begin
+    if SavePurchaseOrders(sFlag_TruckXH, gBills) then
+    begin
+      ShowMsg('原材料验收成功', sHint);
+      ModalResult := mrOk;
+    end;
   end;
   {$ELSE}
   if SavePurchaseOrders(sFlag_TruckXH, gBills) then

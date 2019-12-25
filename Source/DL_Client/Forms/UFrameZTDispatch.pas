@@ -197,7 +197,8 @@ begin
                 Assigned(dxChart1.Selected) and (dxChart1.Selected.Level = 0);
   //管理员修改通道
 
-  N3.Enabled := Assigned(dxChart1.Selected) and (dxChart1.Selected.Level > 0);
+  N3.Enabled := gPopedomManager.HasPopedom(PopedomItem, sPopedom_Edit) and
+                Assigned(dxChart1.Selected) and (dxChart1.Selected.Level > 0);
   //移出队列
 
   N5.Enabled := gPopedomManager.HasPopedom(PopedomItem, sPopedom_Edit) and

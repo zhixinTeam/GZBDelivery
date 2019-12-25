@@ -40,6 +40,7 @@ type
     m_bindWechartAccount: TMenuItem;
     N6: TMenuItem;
     N7: TMenuItem;
+    N8: TMenuItem;
     procedure EditIDPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -53,6 +54,7 @@ type
     procedure m_bindWechartAccountClick(Sender: TObject);
     procedure N6Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
+    procedure N8Click(Sender: TObject);
   private
     { Private declarations }
     FListA: TStrings;
@@ -281,7 +283,7 @@ var
   nBindcustomerid:string;
   nWechartAccount:string;
   nStr,nMsg:string;
-  nID,nName,nBindID,nAccount,nPhone:string;
+  nID,nBindID,nAccount,nPhone:string;
 begin
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
@@ -305,7 +307,7 @@ begin
     nAccount := nParam.FParamC;
     nPhone   := nParam.FParamD;
     nID      := SQLQuery.FieldByName('C_ID').AsString;
-    nName    := SQLQuery.FieldByName('C_Name').AsString;
+    nCusName := SQLQuery.FieldByName('C_Name').AsString;
 
     with FListA do
     begin
@@ -314,7 +316,7 @@ begin
       Values['BindID']   := nBindID;
       Values['Account']  := nAccount;
       Values['CusID']    := nID;
-      Values['CusName']  := nName;
+      Values['CusName']  := nCusName;
       Values['Memo']     := sFlag_Sale;
       Values['Phone']    := nPhone;
       Values['btype']    := '1';
@@ -568,6 +570,100 @@ procedure TfFrameCustomer.OnDestroyFrame;
 begin
   FListA.Free;
   inherited;
+end;
+
+procedure TfFrameCustomer.N8Click(Sender: TObject);
+var
+  nWechartAccount:string;
+  nStr:string;
+  nID,nName,nAccount,nPhone,nBindID,nMsg:string;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要更新的记录', sHint);
+    Exit;
+  end;
+
+  nAccount := SQLQuery.FieldByName('C_WechartAccount').AsString;
+  nID      := SQLQuery.FieldByName('C_ID').AsString;
+  nName    := SQLQuery.FieldByName('C_Name').AsString;
+  nPhone   := SQLQuery.FieldByName('C_Phone').AsString;
+  nBindID  := SQLQuery.FieldByName('C_custSerilaNo').AsString;
+  if nAccount <> '' then
+  begin
+    with FListA do
+    begin
+      Clear;
+      Values['Action']   := 'del';
+      Values['Account']  := nAccount;
+      Values['CusID']    := nID;
+      Values['CusName']  := nName;
+      Values['Memo']     := sFlag_Sale;
+      Values['Phone']    := nPhone;
+      Values['BindID']   := nBindID;
+      Values['btype']    := '1';
+    end;
+    nMsg := edit_shopclientsEx(PackerEncodeStr(FListA.Text));
+    if nMsg <> sFlag_Yes then
+    begin
+       ShowMsg('取消关联商城账户失败：'+nMsg,sHint);
+       Exit;
+    end;
+    //call remote
+
+    nStr := 'update %s set C_WechartAccount=Null,C_Phone=Null, C_custSerilaNo= Null where C_ID=''%s''';
+    nStr := Format(nStr,[sTable_Customer, nID]);
+    FDM.ADOConn.BeginTrans;
+    try
+      FDM.ExecuteSQL(nStr);
+      FDM.ADOConn.CommitTrans;
+    except
+      FDM.ADOConn.RollbackTrans;
+      ShowMsg('取消商城账户关联 失败', '未知错误');
+    end;
+
+    ModRemoteCustomer(nID);
+    nName := GetCusName(nID);
+
+    with FListA do
+    begin
+      Clear;
+      Values['Action']   := 'add';
+      Values['BindID']   := nBindID;
+      Values['Account']  := nAccount;
+      Values['CusID']    := nID;
+      Values['CusName']  := nName;
+      Values['Memo']     := sFlag_Sale;
+      Values['Phone']    := nPhone;
+      Values['btype']    := '1';
+    end;
+    nMsg := edit_shopclientsEx(PackerEncodeStr(FListA.Text));
+    if nMsg <> sFlag_Yes then
+    begin
+       ShowMsg('关联商城账户失败：'+nMsg,sHint);
+       Exit;
+    end;
+    //call remote
+
+    nStr := 'update %s set C_WechartAccount=''%s'',C_Phone=''%s'',C_custSerilaNo=''%s'' where C_ID=''%s''';
+    nStr := Format(nStr,[sTable_Customer, nAccount, nPhone, nBindID, nID]);
+    FDM.ADOConn.BeginTrans;
+    try
+      FDM.ExecuteSQL(nStr);
+      FDM.ADOConn.CommitTrans;
+      ShowMsg('更新远程客户成功！',sHint);
+      InitFormData(FWhere);
+    except
+      FDM.ADOConn.RollbackTrans;
+      ShowMsg('关联商城账户失败', '未知错误');
+    end;
+  end
+  else
+  begin
+    ModRemoteCustomer(nID);
+    InitFormData(FWhere);
+    ShowMsg('更新远程客户成功,请重新绑定微信账户！',sHint);
+  end;
 end;
 
 initialization

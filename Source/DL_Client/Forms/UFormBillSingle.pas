@@ -165,7 +165,7 @@ begin
     if not BtnOK.Enabled then Exit;
     gInfo.FShowPrice := gPopedomManager.HasPopedom(nPopedom, sPopedom_ViewPrice);
 
-    Caption := '开提货单';
+    Caption := '开 提 货 单';
     nBool := not gPopedomManager.HasPopedom(nPopedom, sPopedom_Edit);
     EditLading.Properties.ReadOnly := nBool;
 

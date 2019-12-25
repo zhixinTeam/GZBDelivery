@@ -42,6 +42,10 @@ type
     cxLabel2: TcxLabel;
     dxLayout1Item13: TdxLayoutItem;
     dxLayout1Group5: TdxLayoutGroup;
+    EditPrePValue: TcxTextEdit;
+    dxLayout1Item14: TdxLayoutItem;
+    EditMaxBillNum: TcxTextEdit;
+    dxLayout1Item15: TdxLayoutItem;
     procedure BtnOKClick(Sender: TObject);
   protected
     { Protected declarations }
@@ -115,10 +119,12 @@ begin
       Exit;
     end;
 
-    EditTruck.Text := FieldByName('T_Truck').AsString;     
-    EditOwner.Text := FieldByName('T_Owner').AsString;
-    EditPhone.Text := FieldByName('T_Phone').AsString;
-    EditMValue.Text := FieldByName('T_MValueMax').AsString;
+    EditTruck.Text      := FieldByName('T_Truck').AsString;     
+    EditOwner.Text      := FieldByName('T_Owner').AsString;
+    EditPhone.Text      := FieldByName('T_Phone').AsString;
+    EditMValue.Text     := FieldByName('T_MValueMax').AsString;
+    EditMaxBillNum.Text := FieldByName('T_MaxBillNum').AsString;
+    EditPrePValue.Text  := FloatToStr(FieldByName('T_PrePValue').AsFloat);
 
     CheckVerify.Checked := FieldByName('T_NoVerify').AsString = sFlag_No;
     CheckValid.Checked := FieldByName('T_Valid').AsString = sFlag_Yes;
@@ -131,7 +137,9 @@ end;
 
 //Desc: 保存
 procedure TfFormTruck.BtnOKClick(Sender: TObject);
-var nStr,nTruck,nU,nV,nP,nVip,nGps,nEvent: string;
+var
+  nPreNum: Double;
+  nStr,nTruck,nU,nV,nP,nVip,nGps,nEvent: string;
 begin
   nTruck := UpperCase(Trim(EditTruck.Text));
   if nTruck = '' then
@@ -139,6 +147,21 @@ begin
     ActiveControl := EditTruck;
     ShowMsg('请输入车牌号码', sHint);
     Exit;
+  end;
+
+  if FTruckID = '' then
+  begin
+    nStr := ' select T_Truck from %s where T_Truck=''%s''';
+    nStr := Format(nStr,[sTable_Truck, nTruck]);
+    with FDM.QuerySQL(nStr) do
+    begin
+      if RecordCount>0 then
+      begin
+        ActiveControl := EditTruck;
+        ShowMsg('已存在此车牌号码', sHint);
+        Exit;
+      end;
+    end;
   end;
 
   if CheckValid.Checked then
@@ -152,6 +175,16 @@ begin
   if CheckUserP.Checked then
        nP := sFlag_Yes
   else nP := sFlag_No;
+
+  if nP = sFlag_Yes then
+  begin
+    nPreNum := StrToFloatDef(EditPrePValue.Text,0);
+    if nPreNum <= 0  then
+    begin
+      ShowMsg('预置皮重值需要大于零', sHint);
+      Exit;
+    end;
+  end;
 
   if CheckVip.Checked then
        nVip:=sFlag_TypeVIP
@@ -169,11 +202,13 @@ begin
           SF('T_Owner', EditOwner.Text),
           SF('T_Phone', EditPhone.Text),
           SF('T_MValueMax', EditMValue.Text, sfVal),
+          SF('T_MaxBillNum', EditMaxBillNum.Text, sfVal),
           SF('T_NoVerify', nU),
           SF('T_Valid', nV),
           SF('T_PrePUse', nP),
           SF('T_VIPTruck', nVip),
           SF('T_HasGPS', nGps),
+          SF('T_PrePValue', FloatToStr(nPreNum),sfVal),
           SF('T_LastTime', sField_SQLServer_Now, sfVal)
           ], sTable_Truck, nStr, FTruckID = '');
   FDM.ExecuteSQL(nStr);

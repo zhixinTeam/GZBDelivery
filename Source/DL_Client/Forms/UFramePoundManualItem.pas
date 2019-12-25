@@ -649,8 +649,15 @@ begin
     EditBill.Text := Trim(EditBill.Text);
     FCardTmp      := EditBill.Text;
     {$IFDEF UseELableAsCard}
+    if gSysParam.FIsMT = 1 then
+    begin
       nStr      := GetELabelBillOrder(EditBill.Text);
       LoadBillItemsELabel(nStr);
+    end
+    else
+    begin
+      LoadBillItems(EditBill.Text);
+    end;
     {$ELSE}
     LoadBillItems(EditBill.Text);
     {$ENDIF}
@@ -925,7 +932,10 @@ begin
     //xxxxx
     FListB.Clear;
     {$IFDEF PurchaseOrderSingle}
-    FListB.Text := GetGYOrderBaseValueSingle(FBillItems[0].FZhiKa);
+    if gSysParam.FIsMT = 1 then
+      FListB.Text := GetGYOrderBaseValueSingle(FBillItems[0].FZhiKa)
+    else
+      FListB.Text := GetGYOrderBaseValue(FBillItems[0].FZhiKa);
     {$ELSE}
     FListB.Text := GetGYOrderBaseValue(FBillItems[0].FZhiKa);
     {$ENDIF}
@@ -945,7 +955,10 @@ begin
     end;
 
     {$IFDEF PurchaseOrderSingle}
-    Result := SavePurchaseOrdersSingle(nNextStatus, FBillItems,FPoundTunnel);
+    if gSysParam.FIsMT = 1 then
+      Result := SavePurchaseOrdersSingle(nNextStatus, FBillItems,FPoundTunnel)
+    else
+      Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel);
     {$ELSE}
     Result := SavePurchaseOrders(nNextStatus, FBillItems,FPoundTunnel);
     {$ENDIF}
@@ -1470,7 +1483,10 @@ begin
       if FCardUsed = sFlag_Provide then
       begin
         {$IFDEF PurchaseOrderSingle}
-        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        if gSysParam.FIsMT = 1 then
+          nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills)
+        else
+          nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
         {$ELSE}
         nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
         {$ENDIF}

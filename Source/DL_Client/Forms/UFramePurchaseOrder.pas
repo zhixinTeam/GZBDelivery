@@ -186,7 +186,14 @@ begin
   nStr := SQLQuery.FieldByName('O_ID').AsString;
 
   {$IFDEF PurchaseOrderSingle}
-  if DeleteOrderSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  if gSysParam.FIsMT = 1 then
+  begin
+    if DeleteOrderSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  end
+  else
+  begin
+    if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
+  end;
   {$ELSE}
   if DeleteOrder(nStr) then ShowMsg('已成功删除记录', sHint);
   {$ENDIF}
@@ -276,9 +283,18 @@ begin
 
   nCard := SQLQuery.FieldByName('O_Card').AsString;
   {$IFDEF PurchaseOrderSingle}
-  if LogoutOrderCardSingle(nCard) then
-    ShowMsg('注销磁卡成功', sHint);
-  //办理磁卡
+  if gSysParam.FIsMT = 1 then
+  begin
+    if LogoutOrderCardSingle(nCard) then
+      ShowMsg('注销磁卡成功', sHint);
+    //办理磁卡
+  end
+  else
+  begin
+    if LogoutOrderCard(nCard) then
+      ShowMsg('注销磁卡成功', sHint);
+    //办理磁卡
+  end;
   {$ELSE}
   if LogoutOrderCard(nCard) then
     ShowMsg('注销磁卡成功', sHint);
@@ -300,10 +316,21 @@ begin
 
     nStr := SQLQuery.FieldByName('O_ID').AsString;
     {$IFDEF PurchaseOrderSingle}
-    if ChangeOrderTruckNoSingle(nStr, nTruck) then
+    if gSysParam.FIsMT = 1 then
     begin
-      InitFormData(FWhere);
-      ShowMsg('车牌号修改成功', sHint);
+      if ChangeOrderTruckNoSingle(nStr, nTruck) then
+      begin
+        InitFormData(FWhere);
+        ShowMsg('车牌号修改成功', sHint);
+      end;
+    end
+    else
+    begin
+      if ChangeOrderTruckNo(nStr, nTruck) then
+      begin
+        InitFormData(FWhere);
+        ShowMsg('车牌号修改成功', sHint);
+      end;
     end;
     {$ELSE}
     if ChangeOrderTruckNo(nStr, nTruck) then

@@ -10,17 +10,17 @@ inherited fFormPurchasing: TfFormPurchasing
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
-    Width = 470
-    Height = 528
+    Width = 478
+    Height = 535
     inherited BtnOK: TButton
-      Left = 324
-      Top = 495
+      Left = 332
+      Top = 502
       Caption = #25918#34892
       TabOrder = 7
     end
     inherited BtnExit: TButton
-      Left = 394
-      Top = 495
+      Left = 402
+      Top = 502
       TabOrder = 8
     end
     object ListInfo: TcxMCListBox [2]
@@ -45,7 +45,7 @@ inherited fFormPurchasing: TfFormPurchasing
     end
     object ListBill: TcxListView [3]
       Left = 23
-      Top = 324
+      Top = 328
       Width = 350
       Height = 115
       Columns = <
@@ -90,21 +90,23 @@ inherited fFormPurchasing: TfFormPurchasing
     end
     object EditKZValue: TcxTextEdit [6]
       Left = 105
-      Top = 463
+      Top = 470
+      ParentFont = False
       Properties.OnEditValueChanged = EditKZValuePropertiesEditValueChanged
       TabOrder = 4
       Width = 96
     end
     object EditMemo: TcxTextEdit [7]
       Left = 264
-      Top = 463
+      Top = 470
+      ParentFont = False
       Properties.OnEditValueChanged = EditKZValuePropertiesEditValueChanged
       TabOrder = 5
       Width = 176
     end
     object YSValid: TcxCheckBox [8]
       Left = 11
-      Top = 495
+      Top = 502
       Caption = #25298#25910
       ParentFont = False
       TabOrder = 6

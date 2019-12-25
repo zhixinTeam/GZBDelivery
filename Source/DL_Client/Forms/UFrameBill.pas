@@ -72,6 +72,8 @@ type
     FUseDate: Boolean;
     //使用区间
     FGL: Boolean;
+    FShadowWeight: Double;
+    //影子重量
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     function FilterColumnField: string; override;
@@ -104,6 +106,7 @@ begin
   inherited;
   FUseDate := True;
   InitDateRange(Name, FStart, FEnd);
+  FShadowWeight := -1;
 end;
 
 procedure TfFrameBill.OnDestroyFrame;
@@ -139,6 +142,28 @@ begin
     Result := Result + 'And L_CardUsed = ''$CU'''
   else
     Result := Result + 'And (L_CardUsed <> ''$CU'' or L_CardUsed is null)';
+
+  if not gPopedomManager.HasPopedom(PopedomItem, sPopedom_FullReport) then
+  begin
+    if FShadowWeight < 0 then
+    begin
+      FShadowWeight := 0;
+      nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+      nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_ShadowWeight]);
+
+      with FDM.QueryTemp(nStr) do
+      if RecordCount > 0 then
+      begin
+        FShadowWeight := Fields[0].AsFloat;
+      end;
+    end;
+
+    if FShadowWeight > 0 then
+    begin
+      nStr := ' And L_MValue<%f';
+      Result := Result +  Format(nStr, [FShadowWeight]);
+    end;
+  end;
 
   Result := MacroValue(Result, [
         MI('$ST', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1)),

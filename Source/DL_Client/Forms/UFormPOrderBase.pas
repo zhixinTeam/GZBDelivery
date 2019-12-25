@@ -346,7 +346,10 @@ begin
   end;
 
   {$IFDEF PurchaseOrderSingle}
-  FOrderID := SaveOrderBaseSingle(PackerEncodeStr(FListA.Text));
+  if gSysParam.FIsMT = 1 then
+    FOrderID := SaveOrderBaseSingle(PackerEncodeStr(FListA.Text))
+  else
+    FOrderID := SaveOrderBase(PackerEncodeStr(FListA.Text));
   {$ELSE}
   FOrderID := SaveOrderBase(PackerEncodeStr(FListA.Text));
   {$ENDIF}

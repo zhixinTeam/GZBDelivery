@@ -1,23 +1,23 @@
 inherited fFormTruck: TfFormTruck
-  Left = 586
-  Top = 381
-  ClientHeight = 330
+  Left = 430
+  Top = 124
+  ClientHeight = 374
   ClientWidth = 404
   Position = poMainFormCenter
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
     Width = 404
-    Height = 330
+    Height = 374
     inherited BtnOK: TButton
       Left = 258
-      Top = 297
-      TabOrder = 11
+      Top = 341
+      TabOrder = 13
     end
     inherited BtnExit: TButton
       Left = 328
-      Top = 297
-      TabOrder = 12
+      Top = 341
+      TabOrder = 14
     end
     object EditTruck: TcxTextEdit [2]
       Left = 81
@@ -44,46 +44,46 @@ inherited fFormTruck: TfFormTruck
     end
     object CheckValid: TcxCheckBox [5]
       Left = 23
-      Top = 212
+      Top = 256
       Caption = #36710#36742#20801#35768#24320#21333'.'
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 8
       Transparent = True
       Width = 80
     end
     object CheckVerify: TcxCheckBox [6]
       Left = 23
-      Top = 264
+      Top = 308
       Caption = #39564#35777#36710#36742#24050#21040#20572#36710#22330'.'
       ParentFont = False
-      TabOrder = 9
+      TabOrder = 11
       Transparent = True
       Width = 165
     end
     object CheckUserP: TcxCheckBox [7]
       Left = 23
-      Top = 238
+      Top = 282
       Caption = #36710#36742#20351#29992#39044#32622#30382#37325'.'
       ParentFont = False
-      TabOrder = 7
+      TabOrder = 9
       Transparent = True
       Width = 165
     end
     object CheckVip: TcxCheckBox [8]
       Left = 193
-      Top = 238
+      Top = 282
       Caption = 'VIP'#36710#36742
       ParentFont = False
-      TabOrder = 8
+      TabOrder = 10
       Transparent = True
       Width = 100
     end
     object CheckGPS: TcxCheckBox [9]
       Left = 193
-      Top = 264
+      Top = 308
       Caption = #24050#23433#35013'GPS'
       ParentFont = False
-      TabOrder = 10
+      TabOrder = 12
       Transparent = True
       Width = 100
     end
@@ -99,18 +99,34 @@ inherited fFormTruck: TfFormTruck
     end
     object EditMValue: TcxTextEdit [11]
       Left = 81
-      Top = 121
-      TabOrder = 4
+      Top = 146
+      ParentFont = False
+      TabOrder = 5
       Text = '0'
       Width = 100
     end
     object cxLabel2: TcxLabel [12]
       Left = 23
-      Top = 146
+      Top = 196
       Caption = #27880': '#36710#36742#36807#37325#26102#36229#36807#19978#38480','#23558#26080#27861#20445#23384','#38656#21368#36135#21518#20877#27425#36807#30917'.'
       ParentFont = False
       Style.Edges = []
       Transparent = True
+    end
+    object EditPrePValue: TcxTextEdit [13]
+      Left = 81
+      Top = 121
+      ParentFont = False
+      TabOrder = 4
+      Text = '0'
+      Width = 121
+    end
+    object EditMaxBillNum: TcxTextEdit [14]
+      Left = 81
+      Top = 171
+      TabOrder = 6
+      Text = '0'
+      Width = 121
     end
     inherited dxLayout1Group_Root: TdxLayoutGroup
       inherited dxGroup1: TdxLayoutGroup
@@ -146,6 +162,11 @@ inherited fFormTruck: TfFormTruck
           Control = cxLabel1
           ControlOptions.ShowBorder = False
         end
+        object dxLayout1Item14: TdxLayoutItem
+          Caption = #39044#32622#30382#37325':'
+          Control = EditPrePValue
+          ControlOptions.ShowBorder = False
+        end
         object dxLayout1Group5: TdxLayoutGroup
           ShowCaption = False
           Hidden = True
@@ -153,6 +174,11 @@ inherited fFormTruck: TfFormTruck
           object dxLayout1Item12: TdxLayoutItem
             Caption = #27611#37325#19978#38480':'
             Control = EditMValue
+            ControlOptions.ShowBorder = False
+          end
+          object dxLayout1Item15: TdxLayoutItem
+            Caption = #33655#36733#21544#25968':'
+            Control = EditMaxBillNum
             ControlOptions.ShowBorder = False
           end
           object dxLayout1Item13: TdxLayoutItem

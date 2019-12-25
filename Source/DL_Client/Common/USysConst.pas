@@ -65,6 +65,7 @@ const
   cFI_FrameCusInOutMoney   = $0052;                  //出入金明细
   cFI_FrameSaleTotalQuery  = $0053;                  //累计发货
   cFI_FrameSaleDetailQuery = $0054;                  //发货明细
+  cFI_FrameSaletunnelQuery = $8054;                  //发货明细(通道分组)
   cFI_FrameZhiKaDetail  = $0055;                     //纸卡明细
   cFI_FrameDispatchQuery = $0056;                    //调度查询
   cFI_FrameOrderDetailQuery = $0057;                 //采购明细
@@ -197,6 +198,7 @@ const
   cFI_FormCusBatMap     = $1134;                     //批次号客户绑定
 
   cFI_FormShouJu        = $1151;                     //开收据
+  CFI_FormSearchCard    = $1157;                     //磁卡查询
   cFI_FormBillSingle    = $1201;                     //开提货单(单厂版)
 
   {*Command*}
@@ -236,6 +238,7 @@ type
     FHardMonURL : string;                            //硬件守护
     FMITServURL : string;                            //业务地址
     FDepartment : string;                            //部门地址
+    FHHJYURL    : string;                            //恒河久远接口服务
     FWechatURL  : string;                            //微信服务
 
     FFactNum    : string;                            //工厂编号
@@ -257,6 +260,7 @@ type
     FVoiceUser  : Integer;                           //语音计数
     FProberUser : Integer;                           //检测器技术
     FEmpTruckWc : Double;                            //空车出厂误差
+    FIsMT       : Integer;                           //0:场内业务;1:码头业务
   end;
   //系统参数
 
@@ -353,6 +357,7 @@ begin
   AddMenuModuleItem('MAIN_B02', cFI_FrameCustomer);
   AddMenuModuleItem('MAIN_B03', cFI_FrameSalesMan);
   AddMenuModuleItem('MAIN_B04', cFI_FrameSaleContract);
+  AddMenuModuleItem('MAIN_B06', CFI_FormSearchCard, mtForm);
 
   AddMenuModuleItem('MAIN_C01', cFI_FrameZhiKaVerify);
   AddMenuModuleItem('MAIN_C02', cFI_FramePayment);
@@ -403,6 +408,7 @@ begin
   AddMenuModuleItem('MAIN_L09', cFI_FrameOrderDetailQuery);
   AddMenuModuleItem('MAIN_L11', cFI_FrameTransferDetailQuery);
   AddMenuModuleItem('MAIN_L12', cFI_FrameImportOrderDetail);
+  AddMenuModuleItem('MAIN_L13', cFI_FrameSaletunnelQuery);
 
   AddMenuModuleItem('MAIN_H01', cFI_FormTruckIn, mtForm);
   AddMenuModuleItem('MAIN_H02', cFI_FormTruckOut, mtForm);

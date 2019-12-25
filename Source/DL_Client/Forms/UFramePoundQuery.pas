@@ -44,6 +44,7 @@ type
     dxLayout1Item9: TdxLayoutItem;
     N7: TMenuItem;
     N8: TMenuItem;
+    N6: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
@@ -54,6 +55,7 @@ type
     procedure Check1Click(Sender: TObject);
     procedure BtnDelClick(Sender: TObject);
     procedure N4Click(Sender: TObject);
+    procedure N6Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -62,10 +64,14 @@ type
     //时间区间
     FJBWhere: string;
     //交班查询
+    FShadowWeight: Double;
+    //影子重量
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
     procedure AfterInitFormData; override;
     function InitFormDataSQL(const nWhere: string): string; override;
+    function GetVal(const nRow: Integer; const nField: string): string;
+    //获取指定字段
     {*查询SQL*}
   public
     { Public declarations }
@@ -77,7 +83,7 @@ implementation
 {$R *.dfm}
 uses
   ShellAPI, ULibFun, UMgrControl, UDataModule, USysBusiness, UFormDateFilter,
-  UFormWait, USysConst, USysDB;
+  UFormWait, USysConst, USysDB, USysPopedom;
 
 class function TfFramePoundQuery.FrameID: integer;
 begin
@@ -92,6 +98,8 @@ begin
 
   FJBWhere := '';
   InitDateRange(Name, FStart, FEnd);
+  FShadowWeight := -1;
+  cxView1.OptionsSelection.MultiSelect := True;
 end;
 
 procedure TfFramePoundQuery.OnDestroyFrame;
@@ -101,6 +109,8 @@ begin
 end;
 
 function TfFramePoundQuery.InitFormDataSQL(const nWhere: string): string;
+var
+  nStr : string;
 begin
   FEnableBackDB := True;
   //启用备份数据库
@@ -118,6 +128,28 @@ begin
   end else
   begin
     Result := Result + ' Where (' + FJBWhere + ')';
+  end;
+
+  if not gPopedomManager.HasPopedom(PopedomItem, sPopedom_FullReport) then
+  begin
+    if FShadowWeight < 0 then
+    begin
+      FShadowWeight := 0;
+      nStr := ' Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s'' ';
+      nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_ShadowWeight]);
+
+      with FDM.QueryTemp(nStr) do
+      if RecordCount > 0 then
+      begin
+        FShadowWeight := Fields[0].AsFloat;
+      end;
+    end;
+
+    if FShadowWeight > 0 then
+    begin
+      nStr := ' And isnull(P_MValue,0) < %f';
+      Result := Result +  Format(nStr, [FShadowWeight]);
+    end;
   end;
 
   if Check1.Checked then
@@ -345,6 +377,53 @@ begin
     CloseWaitForm;
     FDM.SqlTemp.Close;
   end;
+end;
+
+procedure TfFramePoundQuery.N6Click(Sender: TObject);
+var nStr: string;
+    nIdx: Integer;
+    nList: TStrings;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要打印的记录', sHint); Exit;
+  end;
+
+  nList := TStringList.Create;
+  try
+    for nIdx := 0 to cxView1.DataController.RowCount - 1  do
+    begin
+
+      nStr := GetVal(nIdx,'P_ID');
+      if nStr = '' then
+        Continue;
+
+      if GetVal(nIdx,'P_PValue') = '' then
+      begin
+        ShowMsg(nStr + '未一次过磅,无法批量打印', sHint); Exit;
+      end;
+
+      nList.Add(nStr);
+    end;
+
+    nStr := AdjustListStrFormat2(nList, '''', True, ',', False);
+    PrintPoundReport(nStr, False, True);
+  finally
+    nList.Free;
+  end;
+end;
+
+function TfFramePoundQuery.GetVal(const nRow: Integer;
+  const nField: string): string;
+var nVal: Variant;
+begin
+  nVal := cxView1.ViewData.Rows[nRow].Values[
+            cxView1.GetColumnByFieldName(nField).Index];
+  //xxxxx
+
+  if VarIsNull(nVal) then
+       Result := ''
+  else Result := nVal;
 end;
 
 initialization

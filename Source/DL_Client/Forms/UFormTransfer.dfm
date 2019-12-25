@@ -123,4 +123,15 @@ inherited fFormTransfer: TfFormTransfer
     object TdxLayoutGroup
     end
   end
+  object CheckBox1: TcxCheckBox
+    Left = 16
+    Top = 221
+    Caption = #27492#21345#20026#22266#23450#21345
+    ParentFont = False
+    Style.BorderColor = clWindowFrame
+    Style.BorderStyle = ebsSingle
+    Style.HotTrack = False
+    TabOrder = 1
+    Width = 97
+  end
 end

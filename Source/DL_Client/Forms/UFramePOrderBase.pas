@@ -172,7 +172,14 @@ begin
   if not QueryDlg('确定要删除编号为[ ' + nStr + ' ]的申请单吗?', sAsk) then Exit;
 
   {$IFDEF PurchaseOrderSingle}
-  if DeleteOrderBaseSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  if gSysParam.FIsMT = 1 then
+  begin
+    if DeleteOrderBaseSingle(nStr) then ShowMsg('已成功删除记录', sHint);
+  end
+  else
+  begin
+    if DeleteOrderBase(nStr) then ShowMsg('已成功删除记录', sHint);
+  end;
   {$ELSE}
   if DeleteOrderBase(nStr) then ShowMsg('已成功删除记录', sHint);
   {$ENDIF}

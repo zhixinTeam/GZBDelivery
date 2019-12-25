@@ -11,7 +11,7 @@ uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, UFormNormal, cxGraphics, cxControls, cxLookAndFeels,
   cxLookAndFeelPainters, dxLayoutControl, StdCtrls, cxContainer, cxEdit,
-  cxTextEdit, cxMaskEdit, cxDropDownEdit, cxButtonEdit;
+  cxTextEdit, cxMaskEdit, cxDropDownEdit, cxButtonEdit, cxCheckBox;
 
 type
   TfFormTransfer = class(TfFormNormal)
@@ -29,6 +29,7 @@ type
     dxLayout1Item9: TdxLayoutItem;
     EditTruck: TcxButtonEdit;
     dxLayout1Item4: TdxLayoutItem;
+    CheckBox1: TcxCheckBox;
     procedure BtnOKClick(Sender: TObject);
     procedure EditMIDPropertiesChange(Sender: TObject);
     procedure EditDCPropertiesChange(Sender: TObject);
@@ -111,6 +112,10 @@ begin
       Values['DestAddr']  := Trim(EditDstAddr.Text);
       Values['StockNo'] := nStock;
       Values['StockName'] := nStockName;
+      if CheckBox1.Checked then
+        Values['CType'] := 'G'
+      else
+        Values['CType'] := 'L';
     end;
 
     nStr := SaveDDBases(PackerEncodeStr(nList.Text));

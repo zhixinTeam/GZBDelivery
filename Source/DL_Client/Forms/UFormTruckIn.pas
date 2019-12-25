@@ -76,17 +76,43 @@ begin
 
 
     {$IFDEF UseELableAsCard}
+    if gSysParam.FIsMT = 1 then
+    begin
       nStr      := GetELabelBillOrder(nStr);
       gCardUsed := GetBillOrderType(nStr);
       if gCardUsed = sFlag_Provide then
          nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills) else
       if gCardUsed=sFlag_SaleSingle then
          nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;
+    end
+    else
+    begin
+      gCardUsed := GetCardUsed(nStr);
+      if gCardUsed = sFlag_Provide then
+        {$IFDEF PurchaseOrderSingle}
+        if gSysParam.FIsMT = 1 then
+          nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills)
+        else
+          nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills)
+        {$ELSE}
+        nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills)
+        {$ENDIF}
+      else
+      if gCardUsed = sFlag_Sale then
+        nRet := GetLadingBills(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed = sFlag_DuanDao then
+        nRet := GetDuanDaoItems(nStr, sFlag_TruckIn, gBills) else
+      if gCardUsed = sFlag_SaleSingle then
+        nRet := GetLadingBillsSingle(nStr, sFlag_TruckIn, gBills) else nRet := False;    
+    end;
     {$ELSE}
       gCardUsed := GetCardUsed(nStr);
       if gCardUsed = sFlag_Provide then
         {$IFDEF PurchaseOrderSingle}
-        nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills)
+        if gSysParam.FIsMT = 1 then
+          nRet := GetPurchaseOrdersSingle(nStr, sFlag_TruckIn, gBills)
+        else
+          nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills)
         {$ELSE}
         nRet := GetPurchaseOrders(nStr, sFlag_TruckIn, gBills)
         {$ENDIF}
@@ -238,7 +264,10 @@ var nRet: Boolean;
 begin
   if gCardUsed = sFlag_Provide then
     {$IFDEF PurchaseOrderSingle}
-    nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, gBills)
+    if gSysParam.FIsMT = 1 then
+      nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, gBills)
+    else
+      nRet := SavePurchaseOrders(sFlag_TruckIn, gBills)
     {$ELSE}
     nRet := SavePurchaseOrders(sFlag_TruckIn, gBills)
     {$ENDIF}

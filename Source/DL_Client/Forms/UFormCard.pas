@@ -209,7 +209,10 @@ begin
 
   if FParam.FParamC = sFlag_Provide then
     {$IFDEF PurchaseOrderSingle}
-       nRet := SaveOrderCardSingle(EditBill.Text, EditCard.Text)
+    if gSysParam.FIsMT = 1 then
+      nRet := SaveOrderCardSingle(EditBill.Text, EditCard.Text)
+    else
+      nRet := SaveOrderCard(EditBill.Text, EditCard.Text)
     {$ELSE}
        nRet := SaveOrderCard(EditBill.Text, EditCard.Text)
     {$ENDIF}

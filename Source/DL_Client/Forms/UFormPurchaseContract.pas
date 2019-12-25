@@ -289,7 +289,10 @@ begin
     if FCommand=cCmd_AddData then
     begin
       {$IFDEF PurchaseOrderSingle}
-      FID := SavePurchaseContractSingle(PackerEncodeStr(FListA.Text));
+      if gSysParam.FIsMT = 1 then
+        FID := SavePurchaseContractSingle(PackerEncodeStr(FListA.Text))
+      else
+        FID := SavePurchaseContract(PackerEncodeStr(FListA.Text));
       {$ELSE}
       FID := SavePurchaseContract(PackerEncodeStr(FListA.Text));
       {$ENDIF}
@@ -301,7 +304,10 @@ begin
     begin
       FListA.Values['fid'] := Fid;
       {$IFDEF PurchaseOrderSingle}
-      ModifyPurchaseContractSingle(PackerEncodeStr(FListA.Text));
+      if gSysParam.FIsMT = 1 then
+        ModifyPurchaseContractSingle(PackerEncodeStr(FListA.Text))
+      else
+        ModifyPurchaseContract(PackerEncodeStr(FListA.Text));
       {$ELSE}
       ModifyPurchaseContract(PackerEncodeStr(FListA.Text));
       {$ENDIF}

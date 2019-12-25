@@ -162,10 +162,21 @@ begin
   if not QueryDlg(nStr, sAsk) then Exit;
 
   {$IFDEF PurchaseOrderSingle}
-  if DeletePurchaseContractSingle(SQLQuery.FieldByName('pcId').AsString) then
+  if gSysParam.FIsMT = 1 then
   begin
-    InitFormData(FWhere);
-    ShowMsg('采购合同已删除', sHint);
+    if DeletePurchaseContractSingle(SQLQuery.FieldByName('pcId').AsString) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('采购合同已删除', sHint);
+    end;
+  end
+  else
+  begin
+    if DeletePurchaseContract(SQLQuery.FieldByName('pcId').AsString) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('采购合同已删除', sHint);
+    end;
   end;
   {$ELSE}
   if DeletePurchaseContract(SQLQuery.FieldByName('pcId').AsString) then

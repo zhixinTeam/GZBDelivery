@@ -55,6 +55,8 @@ type
     //时间区间
     FJBWhere: string;
     //交班条件
+    FShadowWeight: Double;
+    //影子重量
     FGL: Boolean;
     procedure OnCreateFrame; override;
     procedure OnDestroyFrame; override;
@@ -71,7 +73,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UFormDateFilter, USysPopedom, USysBusiness,
-  UBusinessConst, USysConst, USysDB;
+  UBusinessConst, USysConst, USysDB, UDataModule;
 
 class function TfFrameSaleDetailQuery.FrameID: integer;
 begin
@@ -86,6 +88,7 @@ begin
 
   FJBWhere := '';
   InitDateRange(Name, FStart, FEnd);
+  FShadowWeight := -1;
 end;
 
 procedure TfFrameSaleDetailQuery.OnDestroyFrame;
@@ -95,6 +98,7 @@ begin
 end;
 
 function TfFrameSaleDetailQuery.InitFormDataSQL(const nWhere: string): string;
+var nStr: string;
 begin
   FEnableBackDB := True;
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
@@ -121,6 +125,28 @@ begin
     Result := Result + ' And L_CardUsed = ''$CU'''
   else
     Result := Result + ' And (L_CardUsed <> ''$CU'' or L_CardUsed is null)';
+
+  if not gPopedomManager.HasPopedom(PopedomItem, sPopedom_FullReport) then
+  begin
+    if FShadowWeight < 0 then
+    begin
+      FShadowWeight := 0;
+      nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+      nStr := Format(nStr, [sTable_SysDict, sFlag_SysParam, sFlag_ShadowWeight]);
+
+      with FDM.QueryTemp(nStr) do
+      if RecordCount > 0 then
+      begin
+        FShadowWeight := Fields[0].AsFloat;
+      end;
+    end;
+
+    if FShadowWeight > 0 then
+    begin
+      nStr := ' And L_MValue<%f';
+      Result := Result +  Format(nStr, [FShadowWeight]);
+    end;
+  end;
 
   Result := MacroValue(Result, [MI('$Bill', sTable_Bill),
         MI('$S', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1)),
@@ -213,8 +239,8 @@ begin
   begin
     nStr := SQLQuery.FieldByName('L_ID').AsString;
     if (SQLQuery.FieldByName('L_IsEmpty').AsString = 'Y')
-      or (SQLQuery.FieldByName('L_YTID').AsString='')
-      or (SQLQuery.FieldByName('L_YTID').IsNull) then
+      or (SQLQuery.FieldByName('L_YTOutFact').AsString='')
+      or (SQLQuery.FieldByName('L_YTOutFact').IsNull) then
     begin
       nRet := SynEmptyBillYT(nStr);
       if nRet then

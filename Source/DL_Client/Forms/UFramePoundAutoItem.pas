@@ -79,7 +79,7 @@ type
     FUIData,FInnerData: TLadingBillItem;
     //称重数据
     FLastCardDone: Int64;
-    FLastCard, FCardTmp, FLastReader: string;
+    FLastCard, FCardTmp, FLastReader, FLastBusinessCard: string;
     //上次卡号, 临时卡号, 读卡器编号
     FELabelList: TStrings;
     //电子标签列表
@@ -93,6 +93,8 @@ type
     //是否只有电子标签
     FBarrierGate,FDaiZNoGan: Boolean;
     //是否采用道闸
+    FCardOnPound : Boolean;
+    //是否磅上刷卡
     FPoundMinNetWeight: Double;
     //净重最小值(除销售以外业务使用)
     FEmptyPoundInit, FDoneEmptyPoundInit: Int64;
@@ -263,8 +265,9 @@ begin
   FPoundTunnel := nTunnel;
   SetUIData(True);
 
-  FDaiZNoGan := False;
-  FOnlyELable:= False;
+  FDaiZNoGan    := False;
+  FOnlyELable   := False;
+  FCardOnPound  := False;
   if Assigned(FPoundTunnel.FOptions) then
   with FPoundTunnel.FOptions do
   begin
@@ -276,6 +279,8 @@ begin
       WriteLog('只有电子标签读卡器！');
     {$ENDIF}
     FBarrierGate := Values['BarrierGate'] = sFlag_Yes;
+
+    FCardOnPound := Values['CardOnPound'] = sFlag_Yes;
 
     FEmptyPoundIdleLong   := StrToInt64Def(Values['EmptyIdleLong'], 60);
     FEmptyPoundIdleShort  := StrToInt64Def(Values['EmptyIdleShort'], 5);
@@ -473,7 +478,14 @@ begin
       if FCardUsed = sFlag_Provide then
       begin
         {$IFDEF PurchaseOrderSingle}
-        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        if gSysParam.FIsMT = 1 then
+        begin
+          nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        end
+        else
+        begin
+          nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
+        end;
         {$ELSE}
         nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
         {$ENDIF}
@@ -490,6 +502,20 @@ begin
       else
       if FCardUsed = sFlag_Sale then
       begin
+        if not GetTruckIsQueue(FTruck) then
+        begin
+          nStr := '[n1]%s不能过磅,请等待';
+          nStr := Format(nStr, [FTruck]);
+          PlayVoice(nStr);
+          Exit;
+        end;
+        if GetTruckIsOut(FTruck) then
+        begin
+          nStr := '[n1]%s已超时出队,请联系管理员处理';
+          nStr := Format(nStr, [FTruck]);
+          PlayVoice(nStr);
+          Exit;
+        end;
         if SaveLadingBills(sFlag_TruckIn, nBills) then
         begin
           ShowMsg('车辆进厂成功', sHint);
@@ -704,7 +730,7 @@ end;
 //------------------------------------------------------------------------------
 //Desc: 由定时读取交货单
 procedure TfFrameAutoPoundItem.Timer_ReadCardTimer(Sender: TObject);
-var nStr,nCard: string;
+var nStr,nCard,nLabel: string;
     nLast, nDoneTmp: Int64;
     nIdx : Integer;
 begin
@@ -724,6 +750,7 @@ begin
       begin
         //只有电子标签读卡器，不需要再虚拟读头标识
         nCard := ReadPoundCard(FLastReader, FPoundTunnel.FID);
+        if nCard = '' then Exit;
         nCard := Copy(nCard,2,Length(nCard)-1);
         WriteLog('电子标签：'+nCard);
         nCard :=  GetELabelBillOrder(nCard);
@@ -737,6 +764,18 @@ begin
          nDoneTmp := 0
     else nDoneTmp := FLastCardDone;
     //新卡时重置
+
+    if nCard <> FLastBusinessCard then//新卡时清空电子标签列表
+    begin
+      FLastBusinessCard := nCard;
+      FELabelList.Clear;
+    end
+    else
+    begin
+      nLabel := GetReaderCard(FLastReader, 'RFID102');//读取该电子标签卡号
+      if (nLabel <> '') and (FELabelList.IndexOf(nLabel) < 0) then
+      FELabelList.Add(nLabel);
+    end;
 
     {$IFDEF DEBUG}
     nStr := '磅站[ %s.%s ]: 读取到新卡号::: %s =>旧卡号::: %s';
@@ -755,8 +794,11 @@ begin
       Exit;
     end;
 
-    if Not ChkPoundStatus then Exit;
-    //检查地磅状态 如不为空磅，则喊话 退出称重
+    if not FCardOnPound then
+    begin
+      if Not ChkPoundStatus then Exit;
+      //检查地磅状态 如不为空磅，则喊话 退出称重
+    end;
 
     FCardTmp := nCard;
     EditBill.Text := nCard;
@@ -784,6 +826,8 @@ function TfFrameAutoPoundItem.VerifySanValue(var nValue: Double): Boolean;
 var nStr, nHint, nOverStr: string;
     f,m,hRemNum,hDiffNum: Double;
     nHdID:string;
+    nXmlStr,nDispatchNo,nData:string;
+    nListA, nListB : TStrings;
 begin
   Result := False;
   nStr := FInnerData.FProject;
@@ -832,13 +876,15 @@ begin
 
     nHint := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
              '※.订单编号: %s' + #13#10 +
+             '※.车牌号码: %s' + #13#10 +
+             '※.水泥品种: %s' + #13#10 +
              '※.提货净重: %.2f吨' + #13#10 +
              '※.需 补 交: %.2f吨' + #13#10+#13#10 +
              '请到开票室办理补单手续,然后再次称重.';
     //xxxxx
 
     nHint := Format(nHint, [FInnerData.FCusID, FInnerData.FCusName,
-            FInnerData.FProject, nValue, m]);
+            FInnerData.FProject,FInnerData.FTruck,FInnerData.FStockName, nValue, m]);
     //xxxxx
 
     {$IFDEF AutoPoundInManual}
@@ -921,7 +967,34 @@ begin
       end;
     end else
     begin
+      {$IFDEF UseWLFYInfo}
+      if GetBillType(FInnerData.FID,nDispatchNo) then
+      begin
+        nXmlStr := PackerEncodeStr(nDispatchNo);
+        nData   := get_WLFYshoporderbyno(nXmlStr);
+
+        nListA := TStringList.Create;
+        nListB := TStringList.Create;
+        try
+          nListA.Text := nData;
+          nListB.Text := PackerDecodeStr(nListA[0]);
+          if Pos('-',nListB.Values['extDispatchNo']) > 0 then
+            nHdID  := Copy(nListB.Values['extDispatchNo'],Pos('-',nListB.Values['extDispatchNo'])+1,MaxInt)
+          else
+            nHdID  := '-1';
+          FUIData.FextDispatchNo := nListB.Values['mergeSysDispatchNo'];
+        finally
+          nListA.Free;
+          nListB.Free;
+        end;
+      end
+      else
+      begin
+        nHdID := ReadWxHdOrderId(FInnerData.FID);
+      end;
+      {$ELSE}
       nHdID := ReadWxHdOrderId(FInnerData.FID);
+      {$ENDIF}
       if (nHdID <> '-1') and (nHdID <> '') then
       begin
         nStr := nHdID;
@@ -1303,6 +1376,8 @@ begin
   begin
     FPModel := FUIData.FPModel;
     FFactory := gSysParam.FFactNum;
+    FextDispatchNo := FUIData.FextDispatchNo;
+    FHdOrderId     := FUIData.FHdOrderId;
 
     with FPData do
     begin
@@ -1347,6 +1422,7 @@ begin
 
     nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
     LEDDisplay(nStr);
+    WriteSysLog(nStr);
   end;
 
 end;
@@ -1418,7 +1494,10 @@ begin
 
   if FCardUsed = sFlag_Provide then
     {$IFDEF PurchaseOrderSingle}
+    if gSysParam.FIsMT = 1 then
       Result := SavePurchaseOrdersSingle(nStr, FBillItems,FPoundTunnel)
+    else
+      Result := SavePurchaseOrders(nStr, FBillItems,FPoundTunnel)
     {$ELSE}
       Result := SavePurchaseOrders(nStr, FBillItems,FPoundTunnel)
     {$ENDIF}
@@ -1456,6 +1535,7 @@ begin
 
     nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
     LEDDisplay(nStr);
+    WriteSysLog(nStr);
   end;
 
 end;
@@ -1582,17 +1662,43 @@ begin
     Exit;
   end;
 
+  nStr := GetTruckNO(FUIData.FTruck) + '重量:' + GetValue(nValue);
+  ProberShowTxt(FPoundTunnel.FID, nStr);
+  
   FIsSaving := True;
   if (FCardUsed = sFlag_Sale) or (FCardUsed = sFlag_SaleSingle) then
        nRet := SavePoundSale
   else nRet := SavePoundData;
+
+  if not nRet then
+  begin
+    nStr := GetTruckNO(FUIData.FTruck) + '数据保存失败';
+    {$IFDEF MITTruckProber}
+    ProberShowTxt(FPoundTunnel.FID, nStr);
+    {$ELSE}
+    gProberManager.ShowTxt(FPoundTunnel.FID, nStr);
+    {$ENDIF}
+    nStr := '数据保存失败,请重新过磅.';
+    PlayVoice(nStr);
+  end;
 
   {$IFDEF VoiceToDoor}
   if not nRet then
   begin
     nStr := '[n1]%s过磅失败,请处理';
     nStr := Format(nStr, [FUIData.FTruck]);
+    WriteSysLog(nStr);
     PlayVoiceEx(nStr);
+  end;
+  {$ENDIF}
+
+  {$IFDEF VoiceToDoorEx}
+  if not nRet then
+  begin
+    nStr := '[n1]%s过磅失败,请联系管理员';
+    nStr := Format(nStr, [FUIData.FTruck]);
+    WriteSysLog(nStr);
+    PlayVoice(nStr);
   end;
   {$ENDIF}
 
@@ -1855,7 +1961,10 @@ begin
       if FCardUsed = sFlag_Provide then
       begin
         {$IFDEF PurchaseOrderSingle}
-        nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills);
+        if gSysParam.FIsMT = 1 then
+          nRet := SavePurchaseOrdersSingle(sFlag_TruckIn, nBills)
+        else
+          nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
         {$ELSE}
         nRet := SavePurchaseOrders(sFlag_TruckIn, nBills);
         {$ENDIF}

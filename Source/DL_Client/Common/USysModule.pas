@@ -29,7 +29,7 @@ uses
   UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
   UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
-  UFrameQuerySaleDetail, UFrameZTDispatch, UFrameTrucks, UFormTruck,
+  UFrameQuerySaleDetail, UFrameQuerySaletunnel, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,UFrameCustomer, UFormCustomer, UFormGetCustom,
   UFormTruckEmpty, UFormReadCard, UFormTransfer, UFrameTransfer,
   UFrameQueryTransferDetail, UFormGetYTBatch,
@@ -58,7 +58,7 @@ uses
   {$ENDIF}
   //----------------------------------------------------------------------------
   UFramePurchaseContract,UFormPurchaseContract,UFormGetPurchaseContract,
-  UFormPurchaseAssayRes,
+  UFormPurchaseAssayRes, UFormCardSearch,
   UFormHYStock, UFormHYData, UFormHYRecord, UFormGetStockNo,
   UFrameHYStock, UFrameHYData, UFrameHYRecord;
 
@@ -161,6 +161,14 @@ begin
   if RecordCount > 0 then
   begin
     gSysParam.FWechatURL := Fields[0].AsString;
+  end;
+
+  nStr := 'select d_value from %s where d_Memo=''%s''';
+  nStr := Format(nStr, [sTable_SysDict,sFlag_HHJYServiceMIT]);
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    gSysParam.FHHJYURL := Fields[0].AsString;
   end;
 
   nStr := 'Select D_Value,D_Memo From %s Where D_Name=''%s''';

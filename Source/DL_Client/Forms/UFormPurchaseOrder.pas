@@ -274,7 +274,10 @@ begin
   end;
 
   {$IFDEF PurchaseOrderSingle}
-  nOrder := SaveOrderSingle(PackerEncodeStr(FListA.Text));
+  if gSysParam.FIsMT = 1 then
+    nOrder := SaveOrderSingle(PackerEncodeStr(FListA.Text))
+  else
+    nOrder := SaveOrder(PackerEncodeStr(FListA.Text));
   {$ELSE}
   nOrder := SaveOrder(PackerEncodeStr(FListA.Text));
   {$ENDIF}
@@ -284,6 +287,8 @@ begin
   SetOrderCard(nOrder, FListA.Values['Truck'], True);
   //∞Ï¿Ì¥≈ø®
   {$ELSE}
+  if gSysParam.FIsMT = 1 then
+  begin
     nCard := '';
     nStr := 'Select T_Card From %s Where T_Truck = ''%s'' and T_CardUse=''%s'' ';
     nStr := Format(nStr, [sTable_Truck, EditTruck.Text, sFlag_Yes]);
@@ -296,6 +301,9 @@ begin
     nStr := 'Update %s Set O_Card=''%s'' Where O_ID=''%s''';
     nStr := Format(nStr, [sTable_Order, nCard, nOrder]);
     FDM.ExecuteSQL(nStr);
+  end
+  else
+    SetOrderCard(nOrder, FListA.Values['Truck'], True);
   {$ENDIF}
 
   ModalResult := mrOK;

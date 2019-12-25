@@ -237,7 +237,14 @@ begin
       end;
 
       {$IFDEF PurchaseOrderSingle}
-      if not RemoteImportPoundsSingle(PackerEncodeStr(FListA.Text)) then Exit;
+      if gSysParam.FIsMT = 1 then
+      begin
+        if not RemoteImportPoundsSingle(PackerEncodeStr(FListA.Text)) then Exit;
+      end
+      else
+      begin
+        if not RemoteImportPounds(PackerEncodeStr(FListA.Text)) then Exit;
+      end;
       {$ELSE}
       if not RemoteImportPounds(PackerEncodeStr(FListA.Text)) then Exit;
       {$ENDIF}

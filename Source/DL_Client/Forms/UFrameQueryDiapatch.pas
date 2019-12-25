@@ -78,7 +78,7 @@ begin
   inherited;
   N1.Enabled := BtnAdd.Enabled;
   N2.Enabled := BtnEdit.Enabled;
-  N3.Enabled := BtnEdit.Enabled;
+  N3.Enabled := BtnDel.Enabled;
   //N7.Enabled := BtnEdit.Enabled;
   N7.Enabled := BtnPreview.Enabled;
 end;

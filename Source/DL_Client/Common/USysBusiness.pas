@@ -113,6 +113,8 @@ function GetProMaxNum(const nStockNo:string):Double;
 
 function SyncRemoteCustomer: Boolean;
 //同步远程用户
+function ModRemoteCustomer(const nCusID : string): Boolean;
+//修改远程用户
 function SyncRemoteSaleMan: Boolean;
 //同步远程业务员
 function SyncRemoteProviders: Boolean;
@@ -169,6 +171,9 @@ function SaveLadingBills(const nPost: string; const nData: TLadingBillItems;
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的交货单
 
+function get_WLFYshoporderbyno(const nStr: string): string;
+//根据物流发运单号获取订单信息
+
 function GetReaderCard(const nReader,nType: string): string;
 //获取指定读头的有效卡号
 function GetTruckPoundItem(const nTruck: string;
@@ -184,6 +189,10 @@ procedure CapturePicture(const nTunnel: PPTTunnelItem; const nList: TStrings);
 //抓拍指定通道
 function GetTruckLastTime(const nTruck: string): Integer;
 //车辆上次过磅记录
+function GetTruckIsQueue(const nTruck: string): Boolean;
+//获取车辆是否在队列中
+function GetTruckIsOut(const nTruck: string): Boolean;
+//获取车辆是否已出队
 function GetTruckRealLabel(const nTruck: string): string;
 //获取车辆绑定的电子标签
 function GetRealLabelTruck(const nELabel: string): string;
@@ -205,6 +214,8 @@ procedure TunnelOC(const nTunnel: string; const nOpen: Boolean);
 procedure GetPoundAutoWuCha(var nWCValZ, nWCValF: Double;
   const nVal: Double; const nStation: string = '');
 //获取自动过磅误差
+procedure ProberShowTxt(const nTunnel, nText: string);
+//车检发送小屏
 
 function GetTruckNO(const nTruck: WideString; const nLong: Integer=12): string;
 function GetValue(const nValue: Double): string;
@@ -306,7 +317,7 @@ function PrintBillReport(nBill: string; const nAsk: Boolean): Boolean;
 //打印提货单
 function PrintOrderReport(const nOrder: string;  const nAsk: Boolean): Boolean;
 //打印采购单
-function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
+function PrintPoundReport(const nPound: string; nAsk: Boolean;const nMul: Boolean = False): Boolean;
 //打印榜单
 function PrintDuanDaoReport(const nID: string; nAsk: Boolean): Boolean;
 //打印短倒单
@@ -367,10 +378,14 @@ function AddManualEventRecordOver(nEID, nKey, nEvent:string;
     nMemo: string=''): Boolean;
 //添加自动并单处理事项记录（直接已处理状态）
 
+function GetBillType(const nLID:string; var nDispatchNo:string): Boolean;
+
 function ReadWxHdOrderId(const nLID:string):string;
 //读取微信合单号
 function LoadCk(const nList: TStrings): Boolean;
 //读取库位编号到nList中
+function GetCusName(const nCusID: string): string;
+//获取客户名称
 function VerifyFQSumValue: Boolean;
 //是否校验封签号
 function GetFQValueByStockNo(const nStock: string): Double;
@@ -744,6 +759,41 @@ begin
     //close hint param
     
     nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessWebchat);
+    //get worker
+    Result := nWorker.WorkActive(@nIn, nOut);
+
+    if not Result then
+      WriteLog(nOut.FBase.FErrDesc);
+    //xxxxx
+  finally
+    gBusinessWorkerManager.RelaseWorker(nWorker);
+  end;
+end;
+
+//Date: 2017-10-26
+//Parm: 命令;数据;参数;服务地址;输出
+//Desc: 调用中间件上的销售单据对象
+function CallBusinessHHJY(const nCmd: Integer; const nData,nExt,nSrvURL: string;
+  const nOut: PWorkerHHJYData; const nWarn: Boolean = True): Boolean;
+var nIn: TWorkerHHJYData;
+    nWorker: TBusinessWorkerBase;
+begin
+  nWorker := nil;
+  try
+    nIn.FCommand := nCmd;
+    nIn.FData := nData;
+    nIn.FExtParam := nExt;
+    nIn.FRemoteUL := nSrvURL;
+
+    if nWarn then
+         nIn.FBase.FParam := ''
+    else nIn.FBase.FParam := sParam_NoHintOnError;
+
+    if gSysParam.FAutoPound and (not gSysParam.FIsManual) then
+      nIn.FBase.FParam := sParam_NoHintOnError;
+    //close hint param
+
+    nWorker := gBusinessWorkerManager.LockWorker(sCLI_BusinessHHJY);
     //get worker
     Result := nWorker.WorkActive(@nIn, nOut);
 
@@ -1310,11 +1360,18 @@ begin
 end;
 
 //Date: 2014-10-13
-//Desc: 同步用户到DL系统
+//Desc: 同步用户到DL系统       cBC_SyncModCustomer
 function SyncRemoteCustomer: Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessCommand(cBC_SyncCustomer, '', '', @nOut);
+end;
+
+//Desc: 修改用户到DL系统
+function ModRemoteCustomer(const nCusID : string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_SyncModCustomer, nCusID, '', @nOut);
 end;
 
 //Desc: 同步供应商到DL系统
@@ -1389,6 +1446,15 @@ begin
     Result := Trim(nOut.FData);
     nReader:= Trim(nOut.FExtParam);
   end;
+end;
+
+function get_WLFYshoporderbyno(const nStr: string): string;
+//根据物流发运单号获取订单信息
+var nOut: TWorkerHHJYData;
+begin
+  if CallBusinessHHJY(cBC_FYWLGetSaleInfo, nStr, '', '', @nOut) then
+    Result := nOut.FData
+  else Result := '';
 end;
 
 //Date: 2018-04-16
@@ -2660,7 +2726,7 @@ end;
 
 //Desc: 打印提货单
 function PrintBillReport(nBill: string; const nAsk: Boolean): Boolean;
-var nStr: string;
+var nStr, nWeborderID : string;
     nParam: TReportParamItem;
 begin
   Result := False;
@@ -2674,7 +2740,8 @@ begin
   nBill := AdjustListStrFormat(nBill, '''', True, ',', False);
   //添加引号
   
-  nStr := 'Select *, C_NAME From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_ID In(%s)';
+  nStr := ' Select *, C_NAME, L_Value as L_ValueEx '+
+          ' From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_ID In(%s)';
   nStr := Format(nStr, [sTable_Bill, sTable_Customer, nBill]);
   //xxxxx
 
@@ -2684,34 +2751,86 @@ begin
     nStr := Format(nStr, [nBill]);
     ShowMsg(nStr, sHint); Exit;
   end;
-
+  nWeborderID := FDM.SqlTemp.FieldByName('L_WebOrderID').AsString;
+  
   nStr := gPath + sReportDir + 'LadingBill.fr3';
   if not FDR.LoadReportFile(nStr) then
   begin
     nStr := '无法正确加载报表文件';
     ShowMsg(nStr, sHint); Exit;
   end;
-
-  nParam.FName := 'HKRecords';
-  nParam.FValue := '';
-
-  if FDM.SqlTemp.FieldByName('L_HKRecord').AsString<>'' then
+  if Length(nWeborderID) > 1 then
   begin
-    nStr := 'Select *,C_NAME From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_HKRecord =''%s''';
-    nStr := Format(nStr, [sTable_Bill, sTable_Customer,
-            FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
-    //xxxxx
+    nStr := ' Select *, C_NAME, L_Value as L_ValueEx ' +
+            ' From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_WebOrderID = ''%s'' ';
+    nStr := Format(nStr, [sTable_Bill, sTable_Customer, nWeborderID]);
+    if FDM.QuerySQL(nStr).RecordCount > 1 then
+    begin
+      nParam.FName  := 'HKRecords';
+      nParam.FValue := '';
 
-    if FDM.QuerySQL(nStr).RecordCount > 0 then
       with FDM.SqlQuery do
       while not Eof do
       try
-        nStr := FieldByName('L_ID').AsString;  
+        nStr := FieldByName('L_ID').AsString;
         nParam.FValue := nParam.FValue + nStr + '.';
       finally
         Next;
       end;
-  end else FDM.SqlQuery := FDM.SqlTemp;
+    end
+    else
+    begin
+      nParam.FName  := 'HKRecords';
+      nParam.FValue := '';
+
+      if FDM.SqlTemp.FieldByName('L_HKRecord').AsString <> '' then
+      begin
+        nStr := ' Select *, C_NAME, L_Value as  L_ValueEx '+
+                ' From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_HKRecord =''%s''';
+        nStr := Format(nStr, [sTable_Bill, sTable_Customer,
+                FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
+        //xxxxx
+
+        if FDM.QuerySQL(nStr).RecordCount > 0 then
+        begin
+          with FDM.SqlQuery do
+          while not Eof do
+          try
+            nStr := FieldByName('L_ID').AsString;
+            nParam.FValue := nParam.FValue + nStr + '.';
+          finally
+            Next;
+          end;
+        end;
+      end else FDM.SqlQuery := FDM.SqlTemp;
+    end;
+  end
+  else
+  begin
+    nParam.FName  := 'HKRecords';
+    nParam.FValue := '';
+
+    if FDM.SqlTemp.FieldByName('L_HKRecord').AsString<>'' then
+    begin
+      nStr := ' Select *, C_NAME, L_Value as L_ValueEx '+
+              ' From %s b Left Join %s c On b.L_CusID=c.C_ID Where L_HKRecord =''%s''';
+      nStr := Format(nStr, [sTable_Bill, sTable_Customer,
+              FDM.SqlTemp.FieldByName('L_HKRecord').AsString]);
+      //xxxxx
+
+      if FDM.QuerySQL(nStr).RecordCount > 0 then
+      begin
+        with FDM.SqlQuery do
+        while not Eof do
+        try
+          nStr := FieldByName('L_ID').AsString;
+          nParam.FValue := nParam.FValue + nStr + '.';
+        finally
+          Next;
+        end;
+      end;
+    end else FDM.SqlQuery := FDM.SqlTemp;
+  end;
   FDR.AddParamItem(nParam);  
 
   nParam.FName := 'UserName';
@@ -2781,7 +2900,7 @@ end;
 //Date: 2012-4-15
 //Parm: 过磅单号;是否询问
 //Desc: 打印nPound过磅记录
-function PrintPoundReport(const nPound: string; nAsk: Boolean): Boolean;
+function PrintPoundReport(const nPound: string; nAsk: Boolean;const nMul: Boolean = False): Boolean;
 var nStr: string;
     nParam: TReportParamItem;
 begin
@@ -2793,7 +2912,11 @@ begin
     if not QueryDlg(nStr, sAsk) then Exit;
   end;
 
-  nStr := 'Select * From %s Where P_ID=''%s''';
+  if nMul then
+    nStr := ' Select * From %s Where P_ID In (%s)'
+  else
+    nStr := ' Select * From %s Where P_ID=''%s'' ';
+
   nStr := Format(nStr, [sTable_PoundLog, nPound]);
 
   if FDM.QueryTemp(nStr).RecordCount < 1 then
@@ -3030,6 +3153,38 @@ begin
     if nPDate > nMDate then
          Result := Trunc((nNow - nPDate) * 24 * 60 * 60)
     else Result := Trunc((nNow - nMDate) * 24 * 60 * 60);
+  end;
+end;
+
+function GetTruckIsQueue(const nTruck: string): Boolean;
+var nStr: string;
+    nNow, nPDate, nMDate: TDateTime;
+begin
+  Result := False;
+  //默认不允许
+  nStr := ' Select T_InQueue From %s Where T_Truck=''%s'' and T_InQueue Is Not Null ';
+  nStr := Format(nStr, [sTable_ZTTrucks, nTruck]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := True;
+  end;
+end;
+
+function GetTruckIsOut(const nTruck: string): Boolean;
+var nStr: string;
+    nNow, nPDate, nMDate: TDateTime;
+begin
+  Result := False;
+  //默认不允许
+  nStr := ' Select T_InQueue From %s Where T_Truck=''%s'' and T_InQueue Is Not Null and isnull(T_Valid,''Y'') = ''N'' ';
+  nStr := Format(nStr, [sTable_ZTTrucks, nTruck]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := True;
   end;
 end;
 
@@ -3642,6 +3797,32 @@ begin
   end;
 end;
 
+procedure ProberShowTxt(const nTunnel, nText: string);
+var nOut: TWorkerBusinessCommand;
+begin
+  CallBusinessHardware(cBC_ShowTxt, nTunnel, nText, @nOut);
+end;
+
+function GetBillType(const nLID:string;var nDispatchNo:string): Boolean;
+var
+  nSQL, nXmlStr, nData, nWebOrderID:string;
+  i:Integer;
+begin
+  Result := False;
+
+  nSQL := 'Select L_DispatchNo From %s Where L_ID = ''%s'' ';
+  nSQL := Format(nSQL, [sTable_Bill, nLID]);
+  with FDM.QueryTemp(nSQL) do
+  if RecordCount > 0 then
+  begin
+    if Trim(FieldByName('L_DispatchNo').AsString) <> '' then
+    begin
+      nDispatchNo := Trim(FieldByName('L_DispatchNo').AsString);
+      Result      := True;
+    end;
+  end;
+end;
+
 //读取微信合单号
 function ReadWxHdOrderId(const nLID:string):string;
 var
@@ -3770,6 +3951,20 @@ begin
   end;
 
   Result := nList.Count > 0;
+end;
+
+function GetCusName(const nCusID: string): string;
+var nStr: string;
+begin
+  Result := nCusID;
+  nStr := ' Select C_Name From %s Where C_ID=''%s'' ';
+  nStr := Format(nStr, [sTable_Customer, nCusID]);
+
+  with FDM.QuerySQL(nStr) do
+  if RecordCount > 0 then
+  begin
+    Result := Fields[0].AsString;
+  end;
 end;
 
 function VerifyFQSumValue: Boolean;

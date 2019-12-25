@@ -497,10 +497,21 @@ begin
   if not QueryDlg(nStr, sAsk) then Exit;
 
   {$IFDEF PurchaseOrderSingle}
-  if LogoutOrderCardSingle(nCard) then
+  if gSysParam.FIsMT = 1 then
   begin
-    InitFormData(FWhere);
-    ShowMsg('注销操作成功', sHint);
+    if LogoutOrderCardSingle(nCard) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('注销操作成功', sHint);
+    end;
+  end
+  else
+  begin
+    if LogoutOrderCard(nCard) then
+    begin
+      InitFormData(FWhere);
+      ShowMsg('注销操作成功', sHint);
+    end;
   end;
   {$ELSE}
   if LogoutOrderCard(nCard) then

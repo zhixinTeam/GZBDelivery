@@ -1,8 +1,8 @@
-inherited fFrameSaleDetailQuery: TfFrameSaleDetailQuery
-  Width = 1089
-  Height = 665
+inherited fFrameSaletunnelQuery: TfFrameSaletunnelQuery
+  Width = 1115
+  Height = 480
   inherited ToolBar1: TToolBar
-    Width = 1089
+    Width = 1115
     ButtonWidth = 79
     inherited BtnAdd: TToolButton
       Visible = False
@@ -44,124 +44,148 @@ inherited fFrameSaleDetailQuery: TfFrameSaleDetailQuery
   end
   inherited cxGrid1: TcxGrid
     Top = 205
-    Width = 1089
-    Height = 460
+    Width = 1115
+    Height = 275
     inherited cxView1: TcxGridDBTableView
       PopupMenu = pmPMenu1
       DataController.Summary.Options = [soNullIgnore]
     end
   end
   inherited dxLayout1: TdxLayoutControl
-    Width = 1089
+    Width = 1115
     Height = 138
     object cxtxtdt1: TcxTextEdit [0]
       Left = 627
-      Top = 93
+      Top = 98
       Hint = 'T.L_CusName'
       ParentFont = False
-      TabOrder = 7
+      TabOrder = 10
       Width = 105
     end
-    object EditDate: TcxButtonEdit [1]
-      Left = 615
-      Top = 36
-      ParentFont = False
-      Properties.Buttons = <
-        item
-          Default = True
-          Kind = bkEllipsis
-        end>
-      Properties.ReadOnly = True
-      Properties.OnButtonClick = EditDatePropertiesButtonClick
-      TabOrder = 3
-      Width = 185
-    end
-    object EditCustomer: TcxButtonEdit [2]
-      Left = 437
-      Top = 36
-      ParentFont = False
-      Properties.Buttons = <
-        item
-          Default = True
-          Kind = bkEllipsis
-        end>
-      Properties.OnButtonClick = EditTruckPropertiesButtonClick
-      TabOrder = 2
-      OnKeyPress = OnCtrlKeyPress
-      Width = 115
-    end
-    object cxtxtdt2: TcxTextEdit [3]
+    object cxtxtdt2: TcxTextEdit [1]
       Left = 449
-      Top = 93
+      Top = 98
       Hint = 'T.L_Value'
       ParentFont = False
-      TabOrder = 6
+      TabOrder = 9
       Width = 115
     end
-    object cxtxtdt3: TcxTextEdit [4]
+    object cxtxtdt3: TcxTextEdit [2]
       Left = 81
-      Top = 93
+      Top = 98
       Hint = 'T.L_ID'
       ParentFont = False
-      TabOrder = 4
+      TabOrder = 7
       Width = 115
     end
-    object cxtxtdt4: TcxTextEdit [5]
+    object cxtxtdt4: TcxTextEdit [3]
       Left = 259
-      Top = 93
+      Top = 98
       Hint = 'T.L_StockName'
       ParentFont = False
-      TabOrder = 5
+      TabOrder = 8
       Width = 115
     end
-    object EditTruck: TcxButtonEdit [6]
-      Left = 259
+    object EditEnd1: TcxTimeEdit [4]
+      Left = 235
       Top = 36
+      EditValue = 0.729166666666667d
       ParentFont = False
-      Properties.Buttons = <
-        item
-          Default = True
-          Kind = bkEllipsis
-        end>
-      Properties.OnButtonClick = EditTruckPropertiesButtonClick
       TabOrder = 1
-      OnKeyPress = OnCtrlKeyPress
-      Width = 115
+      Width = 121
     end
-    object EditBill: TcxButtonEdit [7]
-      Left = 81
+    object EditStart1: TcxTimeEdit [5]
+      Left = 93
       Top = 36
+      EditValue = 0.354166666666667d
       ParentFont = False
-      Properties.Buttons = <
-        item
-          Default = True
-          Kind = bkEllipsis
-        end>
-      Properties.OnButtonClick = EditTruckPropertiesButtonClick
       TabOrder = 0
-      OnKeyPress = OnCtrlKeyPress
-      Width = 115
+      Width = 121
+    end
+    object btnOK1: TBitBtn [6]
+      Left = 361
+      Top = 36
+      Width = 80
+      Height = 25
+      Caption = #26597#35810
+      TabOrder = 2
+      OnClick = btnOK1Click
+    end
+    object EditStart2: TcxTimeEdit [7]
+      Left = 516
+      Top = 36
+      EditValue = 0.729166666666667d
+      ParentFont = False
+      TabOrder = 3
+      Width = 121
+    end
+    object EditEnd2: TcxTimeEdit [8]
+      Left = 694
+      Top = 36
+      EditValue = 0.354166666666667d
+      ParentFont = False
+      TabOrder = 4
+      Width = 121
+    end
+    object btnOK2: TBitBtn [9]
+      Left = 820
+      Top = 36
+      Width = 80
+      Height = 25
+      Caption = #26597#35810
+      TabOrder = 6
+      OnClick = btnOK2Click
+    end
+    object EditDate: TcxDateEdit [10]
+      Left = 971
+      Top = 36
+      Properties.SaveTime = False
+      Properties.ShowTime = False
+      TabOrder = 5
+      Width = 121
     end
     inherited dxGroup1: TdxLayoutGroup
       inherited GroupSearch1: TdxLayoutGroup
-        object dxLayout1Item7: TdxLayoutItem
-          Caption = #20132#36135#21333#21495':'
-          Control = EditBill
-          ControlOptions.ShowBorder = False
-        end
         object dxLayout1Item4: TdxLayoutItem
-          Caption = #36710#29260#21495#30721':'
-          Control = EditTruck
+          AutoAligns = [aaVertical]
+          Caption = #31532#19968#26102#38388#27573':'
+          Control = EditStart1
           ControlOptions.ShowBorder = False
         end
-        object dxLayout1Item8: TdxLayoutItem
-          Caption = #23458#25143#21517#31216':'
-          Control = EditCustomer
+        object dxLayout1Item9: TdxLayoutItem
+          AutoAligns = [aaVertical]
+          Caption = #21040
+          Control = EditEnd1
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item6: TdxLayoutItem
-          Caption = #26085#26399#31579#36873':'
+          AutoAligns = [aaVertical]
+          Caption = 'BitBtn1'
+          ShowCaption = False
+          Control = btnOK1
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item7: TdxLayoutItem
+          Caption = #31532#20108#26102#38388#27573':'
+          Control = EditStart2
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item8: TdxLayoutItem
+          Caption = #21040#31532#20108#22825
+          Control = EditEnd2
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item11: TdxLayoutItem
+          AutoAligns = [aaVertical]
+          AlignHorz = ahRight
+          Caption = #26597#35810#26085#26399':'
           Control = EditDate
+          ControlOptions.ShowBorder = False
+        end
+        object dxLayout1Item10: TdxLayoutItem
+          Caption = 'BitBtn2'
+          ShowCaption = False
+          Control = btnOK2
           ControlOptions.ShowBorder = False
         end
       end
@@ -193,15 +217,15 @@ inherited fFrameSaleDetailQuery: TfFrameSaleDetailQuery
   end
   inherited cxSplitter1: TcxSplitter
     Top = 197
-    Width = 1089
+    Width = 1115
   end
   inherited TitlePanel1: TZnBitmapPanel
-    Width = 1089
+    Width = 1115
     inherited TitleBar: TcxLabel
       Caption = #21457#36135#26126#32454#32479#35745#26597#35810
       Style.IsFontAssigned = True
-      Width = 1089
-      AnchorX = 545
+      Width = 1115
+      AnchorX = 558
       AnchorY = 11
     end
   end
@@ -220,6 +244,7 @@ inherited fFrameSaleDetailQuery: TfFrameSaleDetailQuery
     object mniN1: TMenuItem
       Tag = 10
       Caption = #25353#20986#21378#26102#38388#26597#35810
+      Visible = False
       OnClick = mniN1Click
     end
     object N1: TMenuItem
@@ -228,14 +253,17 @@ inherited fFrameSaleDetailQuery: TfFrameSaleDetailQuery
     object N2: TMenuItem
       Tag = 20
       Caption = #25353#21457#36135#26102#38388#26597#35810
+      Visible = False
       OnClick = mniN1Click
     end
     object N3: TMenuItem
       Caption = #25353#36807#37325#26102#38388#26597#35810
+      Visible = False
       OnClick = mniN1Click
     end
     object N4: TMenuItem
       Caption = #25353#36807#31354#26102#38388#26597#35810
+      Visible = False
       OnClick = mniN1Click
     end
   end

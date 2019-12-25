@@ -145,40 +145,37 @@ inherited fFramePurchaseContract: TfFramePurchaseContract
       inherited GroupSearch1: TdxLayoutGroup
         LayoutDirection = ldVertical
         object dxLayout1Group3: TdxLayoutGroup
+          ShowCaption = False
           Hidden = True
           LayoutDirection = ldHorizontal
           ShowBorder = False
           object dxLayout1Item2: TdxLayoutItem
-            AlignHorz = ahLeft
             Caption = #21512#21516#32534#21495
             Control = editcontactNo
             ControlOptions.ShowBorder = False
           end
           object dxLayout1Item6: TdxLayoutItem
-            AlignHorz = ahLeft
             Caption = #20379#24212#21830#32534#30721
             Control = editProviderCode
             ControlOptions.ShowBorder = False
           end
           object dxLayout1Item10: TdxLayoutItem
-            AlignHorz = ahLeft
             Caption = #20379#24212#21830#21517#31216
             Control = editProviderName
             ControlOptions.ShowBorder = False
           end
         end
         object dxLayout1Group2: TdxLayoutGroup
+          ShowCaption = False
           Hidden = True
           LayoutDirection = ldHorizontal
           ShowBorder = False
           object dxLayout1Item7: TdxLayoutItem
-            AlignHorz = ahLeft
             Caption = #29289#26009#21517#31216
             Control = editMaterielCode
             ControlOptions.ShowBorder = False
           end
           object dxLayout1Item8: TdxLayoutItem
-            AlignHorz = ahLeft
             Caption = #26085#26399#31579#36873
             Control = EditDate
             ControlOptions.ShowBorder = False
