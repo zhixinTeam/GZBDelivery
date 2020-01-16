@@ -244,6 +244,7 @@ end;
 
 procedure TfFormTruckOut.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
+    nMsg: string;
 begin
   if gCardUsed = sFlag_Provide then
     {$IFDEF PurchaseOrderSingle}
@@ -256,7 +257,7 @@ begin
     {$ENDIF}
   else
   if gCardUsed = sFlag_Sale then
-    nRet := SaveLadingBills(sFlag_TruckOut, gBills) else
+    nRet := SaveLadingBills(sFlag_TruckOut, gBills,nMsg) else
   if gCardUsed = sFlag_SaleSingle then
     nRet := SaveLadingBillsSingle(sFlag_TruckOut, gBills) else
   if gCardUsed = sFlag_DuanDao then

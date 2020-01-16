@@ -237,7 +237,7 @@ end;
 
 procedure TfFormTruckEmpty.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
-    nNext: String;
+    nNext, nMsg : String;
 begin
   if gBills[0].FType = sFlag_Dai then
        nNext := sFlag_TruckZT
@@ -246,7 +246,7 @@ begin
   if gCardUsed = sFlag_SaleSingle then
     nRet := SaveLadingBillsSingle(nNext, gBills)
   else
-    nRet := SaveLadingBills(nNext, gBills);
+    nRet := SaveLadingBills(nNext, gBills, nMsg);
 
   if nRet then
   begin

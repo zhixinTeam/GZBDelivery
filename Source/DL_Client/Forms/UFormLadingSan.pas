@@ -209,11 +209,12 @@ end;
 
 procedure TfFormLadingSan.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
+    nMsg: string;
 begin
   if gCardUsed = sFlag_SaleSingle then
     nRet := SaveLadingBillsSingle(sFlag_TruckFH, gBills)
   else
-    nRet := SaveLadingBills(sFlag_TruckFH, gBills);
+    nRet := SaveLadingBills(sFlag_TruckFH, gBills,nMsg);
 
   if nRet then
   begin

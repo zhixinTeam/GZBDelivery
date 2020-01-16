@@ -123,8 +123,8 @@ type
     //处理采样
     function CheckTruckMValue(const nTruck: string): Boolean;
     //验证毛重
-    function SavePoundSale: Boolean;
-    function SavePoundData: Boolean;
+    function SavePoundSale(var nHint : string): Boolean;
+    function SavePoundData(var nHint:string): Boolean;
     //保存称重
     procedure WriteLog(nEvent: string);
     //记录日志
@@ -425,7 +425,7 @@ procedure TfFrameAutoPoundItem.LoadBillItems(const nCard: string);
 var nRet, nValidELabel: Boolean;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
-    nStr,nHint,nVoice, nLabel: string;
+    nStr,nHint,nVoice, nLabel,nMsg: string;
 begin
   nStr := Format('读取到卡号[ %s ],开始执行业务.', [nCard]);
   WriteLog(nStr);
@@ -502,6 +502,7 @@ begin
       else
       if FCardUsed = sFlag_Sale then
       begin
+        {$IFNDEF UseNJYQueue}
         if not GetTruckIsQueue(FTruck) then
         begin
           nStr := '[n1]%s不能过磅,请等待';
@@ -516,7 +517,8 @@ begin
           PlayVoice(nStr);
           Exit;
         end;
-        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        {$ENDIF}
+        if SaveLadingBills(sFlag_TruckIn, nBills,nMsg) then
         begin
           ShowMsg('车辆进厂成功', sHint);
           LoadBillItems(FCardTmp);
@@ -1139,12 +1141,13 @@ begin
 end;
 
 //Desc: 保存销售
-function TfFrameAutoPoundItem.SavePoundSale: Boolean;
-var nHint, nStr: string;
+function TfFrameAutoPoundItem.SavePoundSale(var nHint : string): Boolean;
+var nStr : string;
     nVal,nNet, nWarn: Double;
     gBills: TLadingBillItems;
     nRet: Boolean;
 begin
+  nHint  := '';
   Result := False;
   //init
   FDaiZNoGan := False;
@@ -1402,7 +1405,7 @@ begin
     if FCardUsed = sFlag_SaleSingle then
       Result := SaveLadingBillsSingle(FNextStatus, FBillItems, FPoundTunnel)
     else
-      Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
+      Result := SaveLadingBills(FNextStatus, FBillItems, nHint, FPoundTunnel);
     //保存称重
 
     //称过毛重后，直接出厂
@@ -1418,7 +1421,10 @@ begin
 
   if not Result then
   begin
-    PlayVoice('过磅保存失败，请联系管理员处理');
+    if nHint <> '' then
+      PlayVoice(nHint)
+    else
+      PlayVoice('过磅保存失败，请联系管理员处理');
 
     nStr := GetTruckNO(FUIData.FTruck) + '过磅保存失败';
     LEDDisplay(nStr);
@@ -1429,7 +1435,7 @@ end;
 
 //------------------------------------------------------------------------------
 //Desc: 原材料或临时
-function TfFrameAutoPoundItem.SavePoundData: Boolean;
+function TfFrameAutoPoundItem.SavePoundData(var nHint:string): Boolean;
 var nStr: string;
     nVal: Double;
     nRet: Boolean;
@@ -1437,6 +1443,7 @@ var nStr: string;
 begin
   Result := False;
   //init
+  nHint  := '';
 
   if (FUIData.FPData.FValue > 0) and (FUIData.FMData.FValue > 0) then
   begin
@@ -1444,8 +1451,8 @@ begin
     begin
       WriteLog('皮重应小于毛重');
 
-      nStr := GetTruckNO(FUIData.FTruck) + '皮重大于毛重';
-      LEDDisplay(nStr);
+      nHint := GetTruckNO(FUIData.FTruck) + '皮重大于毛重';
+      LEDDisplay(nHint);
       Exit;
     end;
 
@@ -1456,20 +1463,20 @@ begin
 
       if nVal < FPoundMinNetWeight then
       begin
-        nStr := '净重[%.2f<%.2f(下限)]不满足业务.';
-        nStr := Format(nStr, [nVal, FPoundMinNetWeight]);
-        WriteLog(nStr);
+        nHint := '净重[%.2f<%.2f(下限)]不满足业务.';
+        nHint := Format(nHint, [nVal, FPoundMinNetWeight]);
+        WriteLog(nHint);
 
-        nStr := '车辆[ %s ]净重[%.2f<%.2f(下限)]无效,不保存本次称重.';
-        nStr := Format(nStr, [FUIData.FTruck, nVal, FPoundMinNetWeight]);
-        WriteSysLog(nStr);
+        nHint := '车辆[ %s ]净重[%.2f<%.2f(下限)]无效,不保存本次称重.';
+        nHint := Format(nHint, [FUIData.FTruck, nVal, FPoundMinNetWeight]);
+        WriteSysLog(nHint);
 
-        nStr := '车辆[ %s ]本次称重无效,请下磅.';
-        nStr := Format(nStr, [FUIData.FTruck]);
-        PlayVoice(nStr);
+        nHint := '车辆[ %s ]本次称重无效,请下磅.';
+        nHint := Format(nHint, [FUIData.FTruck]);
+        PlayVoice(nHint);
 
-        nStr := GetTruckNO(FUIData.FTruck) + '净重小于下限';
-        LEDDisplay(nStr);
+        nHint := GetTruckNO(FUIData.FTruck) + '净重小于下限';
+        LEDDisplay(nHint);
         Exit;
       end;
     end;
@@ -1562,8 +1569,9 @@ end;
 procedure TfFrameAutoPoundItem.OnPoundData(const nValue: Double);
 var nRet: Boolean;
     nInt: Int64;
-    nStr: string;
+    nStr, nHint: string;
 begin
+  nHint   := '';
   FLastBT := GetTickCount;
   EditValue.Text := Format('%.2f', [nValue]);
 
@@ -1667,19 +1675,35 @@ begin
   
   FIsSaving := True;
   if (FCardUsed = sFlag_Sale) or (FCardUsed = sFlag_SaleSingle) then
-       nRet := SavePoundSale
-  else nRet := SavePoundData;
+       nRet := SavePoundSale(nHint)
+  else nRet := SavePoundData(nHint);
 
   if not nRet then
   begin
+    if nHint <> '' then
+    begin
+      nStr := nHint;
+    end
+    else
+    begin
+      nStr := '数据保存失败,请重新过磅.';
+    end;
+    PlayVoice(nStr);
+
+
+    nStr := GetTruckNO(FUIData.FTruck) + nStr;
+    {$IFDEF MITTruckProber}
+    ProberShowTxt(FPoundTunnel.FID, nStr);
+    {$ELSE}
+    gProberManager.ShowTxt(FPoundTunnel.FID, nStr);
+    {$ENDIF}
+    
     nStr := GetTruckNO(FUIData.FTruck) + '数据保存失败';
     {$IFDEF MITTruckProber}
     ProberShowTxt(FPoundTunnel.FID, nStr);
     {$ELSE}
     gProberManager.ShowTxt(FPoundTunnel.FID, nStr);
     {$ENDIF}
-    nStr := '数据保存失败,请重新过磅.';
-    PlayVoice(nStr);
   end;
 
   {$IFDEF VoiceToDoor}
@@ -1721,14 +1745,23 @@ begin
   begin
     if FBarrierGate then
     begin
+      nInt := 0;
       {$IFDEF ERROPENONEDOOR}
       if not nRet then
       begin
+        nInt := 10;
         OpenDoorByReader(FLastReader, sFlag_Yes);
         Exit;
       end;
       {$ENDIF}
-      OpenDoorByReader(FLastReader, sFlag_No);
+
+      if IsAsternStock(FUIData.FStockName) then
+      begin
+        nInt := 10;
+        OpenDoorByReader(FLastReader, sFlag_Yes); //打开主道闸(后杆)
+      end;
+      if nInt = 0 then
+        OpenDoorByReader(FLastReader, sFlag_No);
       //打开副道闸
     end;
   end;
@@ -1928,7 +1961,7 @@ procedure TfFrameAutoPoundItem.LoadBillItemsELabel(const nCard: string);
 var nRet: Boolean;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
-    nStr,nHint,nVoice, nLabel: string;
+    nStr,nHint,nVoice, nLabel,nMsg: string;
 begin
   nStr := Format('读取到卡号[ %s ],开始执行业务.', [nCard]);
   WriteLog(nStr);
@@ -1981,7 +2014,7 @@ begin
       else
       if FCardUsed = sFlag_Sale then
       begin
-        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        if SaveLadingBills(sFlag_TruckIn, nBills,nMsg) then
         begin
           ShowMsg('车辆进厂成功', sHint);
           LoadBillItemsELabel(FCardTmp);

@@ -1182,7 +1182,7 @@ end;
 
 //Desc: 保存销售
 function TfFrameManualPoundItem.SavePoundSale: Boolean;
-var nStr: string;
+var nStr,nMsg: string;
     nVal,nNet: Double;
 begin
   Result := False;
@@ -1311,7 +1311,7 @@ begin
     if FCardUsed = sFlag_SaleSingle then
       Result := SaveLadingBillsSingle(FNextStatus, FBillItems, FPoundTunnel)
     else
-      Result := SaveLadingBills(FNextStatus, FBillItems, FPoundTunnel);
+      Result := SaveLadingBills(FNextStatus, FBillItems ,nMsg, FPoundTunnel);
     //保存称重
   end;
 end;
@@ -1447,7 +1447,7 @@ end;
 
 procedure TfFrameManualPoundItem.LoadBillItemsELabel(const nCard: string);
 var nRet: Boolean;
-    nStr,nHint: string;
+    nStr,nHint,nMsg : string;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
 begin
@@ -1503,7 +1503,7 @@ begin
       else
       if FCardUsed = sFlag_Sale then
       begin
-        if SaveLadingBills(sFlag_TruckIn, nBills) then
+        if SaveLadingBills(sFlag_TruckIn, nBills,nMsg) then
         begin
           ShowMsg('车辆进厂成功', sHint);
           LoadBillItemsELabel(FCardTmp);

@@ -167,7 +167,7 @@ function GetLadingBills(const nCard,nPost: string;
 procedure LoadBillItemToMC(const nItem: TLadingBillItem; const nMC: TStrings;
  const nDelimiter: string);
 //载入单据信息到列表
-function SaveLadingBills(const nPost: string; const nData: TLadingBillItems;
+function SaveLadingBills(const nPost: string; const nData: TLadingBillItems;var nMHint:string;
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的交货单
 
@@ -328,6 +328,8 @@ function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 
 //获取客户注册信息
 function getCustomerInfo(const nXmlStr: string): string;
+
+function IsAsternStock(const nStockName :string): Boolean;
 
 //获取客户注册信息
 function getCustomerInfoEx(const nData: string): string;
@@ -1954,7 +1956,7 @@ end;
 //Date: 2014-09-18
 //Parm: 岗位;交货单列表;磅站通道
 //Desc: 保存nPost岗位上的交货单数据
-function SaveLadingBills(const nPost: string; const nData: TLadingBillItems;
+function SaveLadingBills(const nPost: string; const nData: TLadingBillItems; var nMHint:string;
  const nTunnel: PPTTunnelItem): Boolean;
 var nStr: string;
     nIdx: Integer;
@@ -1963,6 +1965,7 @@ var nStr: string;
 begin
   nStr := CombineBillItmes(nData);
   Result := CallBusinessSaleBill(cBC_SavePostBills, nStr, nPost, @nOut);
+  nMHint   := nOut.FData;
   if (not Result) or (nOut.FData = '') then Exit;
 
   if Assigned(nTunnel) then //过磅称重
@@ -3330,6 +3333,19 @@ begin
     Result := nOut.FData;
 end;
 
+function IsAsternStock(const nStockName :string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+  nStr := 'Select D_Value From %s Where D_Name=''%s'' and D_Value=''%s'' ';
+  nStr := Format(nStr, [sTable_SysDict, sFlag_PoundAsternM, nStockName]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+    Result := True;
+  //xxxxx
+end;
+
 //------------------------------------------------------------------------------
 //获取客户注册信息
 function getCustomerInfoEx(const nData: string): string;
@@ -3554,7 +3570,7 @@ end;
 //Parm: 待处理事件ID;处理结果
 //Desc: 处理三合一读卡器信息
 function DealManualEvent(const nEID, nResult: string): Boolean;
-var nStr,nSQL: string;
+var nStr,nSQL,nMsg: string;
     m, f, nValue: Double;
     nList, nListB: TStrings;
     nBills: TLadingBillItems;
@@ -3661,9 +3677,9 @@ begin
           FPoundID := sFlag_Yes;
           //标记该项有称重数据
           {$IFDEF SanCFNeedPound}
-          Result := SaveLadingBills(sFlag_TruckFH, nBills);
+          Result := SaveLadingBills(sFlag_TruckFH, nBills,nMsg);
           {$ELSE}
-          Result := SaveLadingBills(sFlag_TruckBFM, nBills);
+          Result := SaveLadingBills(sFlag_TruckBFM,nBills,nMsg);
           {$ENDIF}
           //保存称重
         end;

@@ -85,6 +85,8 @@ const
   cFI_FrameProvider     = $0102;                     //供应
   cFI_FrameProvideLog   = $0105;                     //供应日志
   cFI_FrameMaterails    = $0106;                     //原材料
+  cFI_FrameUserYSInfo   = $8107;                     //验收信息维护
+  cFI_FrameSaleInfo     = $8106;                     //销售信息
   cFI_FrameOrder        = $0107;                     //采购订单
   cFI_FrameOrderBase    = $0108;                     //采购申请单
   cFI_FrameOrderDetail  = $0109;                     //采购明细
@@ -153,6 +155,7 @@ const
   cFI_FormMaterails     = $1052;                     //原材料
   cFI_FormOrder         = $1053;                     //采购订单
   cFI_FormOrderBase     = $1054;                     //采购订单
+  cFI_FormUserYSWh      = $8154;                     //验收维护
   cFI_FormPurchase      = $1055;                     //采购验收
   cFI_FormGetPOrderBase  = $1056;                     //采购订单
   cFI_FormGetYTBatch    = $1057;                     //获取云天批次
@@ -358,6 +361,9 @@ begin
   AddMenuModuleItem('MAIN_B03', cFI_FrameSalesMan);
   AddMenuModuleItem('MAIN_B04', cFI_FrameSaleContract);
   AddMenuModuleItem('MAIN_B06', CFI_FormSearchCard, mtForm);
+
+  AddMenuModuleItem('MAIN_B08', cFI_FrameSaleInfo);
+  AddMenuModuleItem('MAIN_B09', cFI_FrameUserYSInfo);
 
   AddMenuModuleItem('MAIN_C01', cFI_FrameZhiKaVerify);
   AddMenuModuleItem('MAIN_C02', cFI_FramePayment);

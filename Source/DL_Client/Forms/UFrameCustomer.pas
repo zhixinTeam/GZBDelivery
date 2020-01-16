@@ -41,6 +41,7 @@ type
     N6: TMenuItem;
     N7: TMenuItem;
     N8: TMenuItem;
+    N9: TMenuItem;
     procedure EditIDPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure BtnAddClick(Sender: TObject);
@@ -55,6 +56,7 @@ type
     procedure N6Click(Sender: TObject);
     procedure N7Click(Sender: TObject);
     procedure N8Click(Sender: TObject);
+    procedure N9Click(Sender: TObject);
   private
     { Private declarations }
     FListA: TStrings;
@@ -77,7 +79,7 @@ implementation
 
 {$R *.dfm}
 uses
-  ULibFun, UMgrControl, UDataModule, UFormBase, UFormWait, USysBusiness,
+  ULibFun, UMgrControl, UDataModule, UFormBase, UFormWait, USysBusiness, UFormInputbox,
   USysConst, USysDB,uFormGetWechartAccount,UFormGetWechartAccountEx,UBusinessPacker,USysLoger;
 
 class function TfFrameCustomer.FrameID: integer;
@@ -663,6 +665,38 @@ begin
     ModRemoteCustomer(nID);
     InitFormData(FWhere);
     ShowMsg('更新远程客户成功,请重新绑定微信账户！',sHint);
+  end;
+end;
+
+procedure TfFrameCustomer.N9Click(Sender: TObject);
+var
+  nStr : string;
+  nBTime, nID: string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要输入新的间隔时间的记录', sHint);
+    Exit;
+  end;
+  nID      := SQLQuery.FieldByName('C_ID').AsString;
+  nStr     := SQLQuery.FieldByName('C_BetweenTime').AsString;
+  nBTime   := nStr;
+  if not ShowInputBox('请输入新的间隔时间:', '修改', nBTime, 20) then Exit;
+
+  if (nBTime = '') or (nStr = nBTime) then Exit;
+
+  nStr := ' update %s set C_BetweenTime = %d where C_ID = ''%s'' ';
+  nStr := Format(nStr,[sTable_Customer, StrToIntDef(nBTime,0), nID]);
+  FDM.ADOConn.BeginTrans;
+  try
+    FDM.ExecuteSQL(nStr);
+    FDM.ADOConn.CommitTrans;
+    ShowMsg('设置间隔时间成功！',sHint);
+    InitFormData(FWhere);
+  except
+    FDM.ADOConn.RollbackTrans;
+    ShowMsg('设置间隔时间失败', '未知错误');
   end;
 end;
 

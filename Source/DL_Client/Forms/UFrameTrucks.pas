@@ -154,8 +154,8 @@ var nStr: string;
 begin
   if cxView1.DataController.GetSelectedCount > 0 then
   begin
-    nStr := 'Update %s Set T_LastTime=getDate() Where R_ID=%s';
-    nStr := Format(nStr, [sTable_Truck, SQLQuery.FieldByName('R_ID').AsString]);
+    nStr := 'Update %s Set T_LastTime=getDate(),T_CheckDate=getDate(), T_CheckMan = ''%s'' Where R_ID=%s';
+    nStr := Format(nStr, [sTable_Truck, gSysParam.FUserID, SQLQuery.FieldByName('R_ID').AsString]);
 
     FDM.ExecuteSQL(nStr);
     InitFormData(FWhere);

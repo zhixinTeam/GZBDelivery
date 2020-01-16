@@ -28,6 +28,7 @@ uses
   UFrameBill, UFormBill, UFormGetTruck, UFrameQueryDiapatch, UFrameTruckQuery,
   UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
   UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
+  UFramePSaleInfo, UFramePUserYSInfo,
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
   UFrameQuerySaleDetail, UFrameQuerySaletunnel, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,UFrameCustomer, UFormCustomer, UFormGetCustom,
@@ -37,7 +38,7 @@ uses
   UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing, UFormPro_Order,
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,UFramePro_Order,
   UFormGetProvider, UFormGetMeterails, UFramePOrderBase, UFormPOrderBase,
-  UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel,
+  UFormGetPOrderBase, UFrameMaterailTunnels, UFormMaterailTunnel, UFormPUserYSWh,
   UFrameImportOrderDetail, UFormTodo, UFormTodoSend, UFrameManualEvent,
   UFramePoundDaiWC, UFrameCusBatMap,
   {$IFDEF MicroMsg}

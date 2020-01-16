@@ -215,11 +215,12 @@ end;
 
 procedure TfFormLadingDai.BtnOKClick(Sender: TObject);
 var nRet: Boolean;
+    nMsg: string;
 begin
   if gCardUsed = sFlag_SaleSingle then
     nRet := SaveLadingBillsSingle(sFlag_TruckZT, gBills)
   else
-    nRet := SaveLadingBills(sFlag_TruckZT, gBills);
+    nRet := SaveLadingBills(sFlag_TruckZT, gBills,nMsg);
   if nRet then
   begin
     ShowMsg('袋装提货成功', sHint);
