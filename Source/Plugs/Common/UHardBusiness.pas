@@ -10,7 +10,7 @@ interface
 uses
   Windows, Classes, Controls, SysUtils, UMgrDBConn, UMgrParam, DB,
   UBusinessWorker, UBusinessConst, UBusinessPacker, UMgrQueue, UMITConst,
-  UMgrHardHelper, U02NReader, UMgrERelay,
+  UMgrHardHelper, U02NReader, UMgrERelay,UFormCtrl,
   {$IFDEF MultiReplay}UMultiJS_Reply, {$ELSE}UMultiJS, {$ENDIF} UMgrRemotePrint,
   UMgrLEDDisp, UMgrRFID102, UBlueReader, UMgrTTCEM100, UPurWebOrders,
   UMgrTTCEK720, UMgrVoiceNet, UMgrTTCEDispenser, UMgrSendCardNo, UMgrBXFontCard;
@@ -1036,7 +1036,12 @@ begin
   if nCardType = sFlag_Provide then
     SendMsgToWebMall(nTrucks[0].FZhiKa,cSendWeChatMsgType_OutFactory,nCardType)
   else
-    SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+  begin
+    if Length(Trim(nTrucks[0].FDispatchNo)) < 1 then
+    begin
+      SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+    end;
+  end;
   //发起一次打印
 
   //for nIdx:=Low(nTrucks) to High(nTrucks) do
@@ -1085,7 +1090,11 @@ begin
 
     if nCardType = sFlag_Provide then
          ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOut', '刷卡出厂')
-    else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOut', '刷卡出厂');
+    else
+    begin
+      if Length(Trim(nTrucks[0].FDispatchNo)) < 1 then
+        ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOut', '刷卡出厂');
+    end;
   end;
 
   if nCardType = sFlag_DuanDao then
@@ -1177,7 +1186,12 @@ begin
   if nCardType = sFlag_Provide then
     SendMsgToWebMall(nTrucks[0].FZhiKa,cSendWeChatMsgType_OutFactory,nCardType)
   else
-    SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+  begin
+    if Length(Trim(nTrucks[0].FDispatchNo)) < 1 then
+    begin
+      SendMsgToWebMall(nTrucks[0].FID,cSendWeChatMsgType_OutFactory,nCardType);
+    end;
+  end;
   //发起一次打印
 
   {$IFDEF PrintHYEach}
@@ -1223,7 +1237,13 @@ begin
 
     if nCardType = sFlag_Provide then
          ModifyWebOrderStatus(nCardType, FZhiKa, 'MakeTruckOutM100', '刷卡出厂')
-    else ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOutM100', '刷卡出厂');
+    else
+    begin
+      if Length(Trim(nTrucks[0].FDispatchNo)) < 1 then
+      begin
+        ModifyWebOrderStatus(nCardType, FID, 'MakeTruckOutM100', '刷卡出厂');
+      end;
+    end;
   end;
   //打印报表
 
@@ -1279,6 +1299,165 @@ begin
   end;
 end;
 
+//Date: 2019-10-26
+//Parm: 卡号;读头
+//Desc: 抬杆同时生成过闸记录
+procedure MakeTruckPassGateEx(const nCard, nReader : string; const nDB: PDBWorker;
+                            const nReaderType: string = '');
+var nStr: string;
+    nMaxNum,nIdx: Integer;
+    nTruck: string;
+    nLastTime: TDateTime;
+    nCanSave,nAdd,nOpenDoor: Boolean;
+    nCardEx: string;
+    FList: TStrings;
+begin
+  nCanSave := False;
+  nOpenDoor:= False;
+  nAdd     := True;
+  nMaxNum  := 3;
+  FList:=TStringList.Create;
+  try
+    SplitStr(nCard, FList, 0, ',', False);
+
+    for nIdx := 0 to FList.Count - 1 do
+    begin
+      nCardEx := Copy(FList[nIDx],2,MaxInt);
+      nStr := ' Select T_Truck, T_Card from %s where T_Card like ''%%%s%%'' and T_CardUse=''Y''';
+      nStr := Format(nStr,[sTable_Truck, nCardEx]);
+      with gDBConnManager.WorkerQuery(nDB, nStr) do
+      begin
+        if RecordCount <= 0 then
+        begin
+          nStr := '电子标签[ %s ]无对应的车辆绑定.';
+          nStr := Format(nStr, [nCardEx]);
+
+          WriteHardHelperLog(nStr);
+          Continue;
+        end;
+        nTruck := Fields[0].AsString;
+        nCardEx:= Fields[1].AsString;
+      end;
+
+      nStr := ' Select D_Value from %s where D_Name=''%s''';
+      nStr := Format(nStr,[sTable_SysDict, 'MTMaxTruckNum']);
+      with gDBConnManager.WorkerQuery(nDB, nStr) do
+      begin
+        if RecordCount > 0 then
+        begin
+          nMaxNum := Fields[0].AsInteger;
+        end;
+      end;
+
+      nStr := ' Select distinct C_Card from %s where C_State=''1'' ';
+      nStr := Format(nStr,[sTable_CardMT]);
+      with gDBConnManager.WorkerQuery(nDB, nStr) do
+      begin
+        if RecordCount < nMaxNum then
+        begin
+           nCanSave := True;
+        end;
+      end;
+
+      nStr := ' Select distinct C_Card from %s where C_Card=''%s'' ';
+      nStr := Format(nStr,[sTable_CardMT,nCardEx]);
+      with gDBConnManager.WorkerQuery(nDB, nStr) do
+      begin
+        if RecordCount > 0 then
+        begin
+          nAdd := False;
+        end;
+      end;
+
+      if not nCanSave then
+      begin
+        nStr := '厂内车辆已达最大允许进厂数:' + inttostr(nMaxNum);
+
+        WriteHardHelperLog(nStr);
+        Exit;
+      end;
+      if nAdd = True then
+      begin
+        nStr := MakeSQLByStr([SF('C_Card', nCardEx),
+                SF('C_Truck', nTruck),
+                SF('C_State', '1'),
+                SF('C_InDate', sField_SQLServer_Now, sfVal)
+                ], sTable_CardMT, '', True);
+        gDBConnManager.WorkerExec(nDB, nStr);
+        nOpenDoor := True;
+      end
+      else
+      begin
+        nStr := Format('C_Card = ''%s''', [nCardEx]);
+        nStr := MakeSQLByStr([
+                SF('C_Truck', nTruck),
+                SF('C_State', '1'),
+                SF('C_InDate', sField_SQLServer_Now, sfVal)
+                ], sTable_CardMT, nStr, False);
+        gDBConnManager.WorkerExec(nDB, nStr);
+        nOpenDoor := True;
+      end;
+    end;
+    if nOpenDoor then
+    begin
+      BlueOpenDoor(nReader, nReaderType);
+      //抬杆
+    end;
+  finally
+    FList.Free;
+  end;
+end;
+
+//Date: 2019-10-26
+//Parm: 卡号;读头
+//Desc: 抬杆同时生成过闸记录
+procedure MakeTruckPassGateOut(const nCard, nReader : string; const nDB: PDBWorker;
+                            const nReaderType: string = '');
+var nStr: string;
+    nTruck: string;
+    nLastTime: TDateTime;
+    nOpenDoor: Boolean;
+    nIdx: Integer;
+    nCardEx: string;
+    FList: TStrings;
+begin
+  nOpenDoor:= False;
+
+  FList:=TStringList.Create;
+  try
+    SplitStr(nCard, FList, 0, ',', False);
+
+    for nIdx := 0 to FList.Count - 1 do
+    begin
+      nCardEx := Copy(FList[nIDx],2,MaxInt);
+
+      nStr := ' Select distinct C_Card from %s where C_Card=''%s'' ';
+      nStr := Format(nStr,[sTable_CardMT,nCardEx]);
+      with gDBConnManager.WorkerQuery(nDB, nStr) do
+      begin
+        if RecordCount > 0 then
+        begin
+          nOpenDoor := True;
+        end;
+      end;
+
+      nStr := Format('C_Card = ''%s''', [nCardEx]);
+      nStr := MakeSQLByStr([
+              SF('C_State', '2'),
+              SF('C_OutDate', sField_SQLServer_Now, sfVal)
+              ], sTable_CardMT, nStr, False);
+      gDBConnManager.WorkerExec(nDB, nStr);
+    end;
+    if nOpenDoor then
+    begin
+      BlueOpenDoor(nReader, nReaderType);
+      //抬杆
+    end;
+  finally
+    FList.Free;
+  end;
+end;
+
 //Date: 2012-4-22
 //Parm: 读头数据
 //Desc: 对nReader读到的卡号做具体动作
@@ -1290,6 +1469,58 @@ begin
   nDBConn := nil;
   {$IFDEF DEBUG}
   WriteHardHelperLog('WhenReaderCardArrived进入.');
+  {$ENDIF}
+
+  {$IFDEF UseELableOpenDoor}
+  if nReader.FType = rtGate then
+  begin
+    if Assigned(nReader.FOptions) then
+         nReaderType := nReader.FOptions.Values['ReaderType']
+    else nReaderType := '';
+
+    if Assigned(nReader.FOptions) then
+    begin
+      WriteHardHelperLog('电子标签号:'+nReader.FCard);
+      with gParamManager.ActiveParam^ do
+      try
+        nDBConn := gDBConnManager.GetConnection(FDB.FID, nErrNum);
+        if not Assigned(nDBConn) then
+        begin
+          WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
+          Exit;
+        end;
+
+        if not nDBConn.FConn.Connected then
+          nDBConn.FConn.Connected := True;
+
+        nStr := 'Select * From $TB Where T_Truck=''$CD'' ';
+        nStr := MacroValue(nStr, [MI('$TB', sTable_Truck), MI('$CD', nReader.FCard)]);
+
+        with gDBConnManager.WorkerQuery(nDBConn, nStr) do
+        if RecordCount > 0 then
+        begin
+          //
+        end;
+          
+        if nReader.FOptions.Values['CardIn'] = sFlag_Yes then
+        begin
+          MakeTruckPassGateEx(nReader.FCard, nReader.FID, nDBConn, nReaderType);
+          Exit;
+        end
+        else if nReader.FOptions.Values['CardOut'] = sFlag_Yes then
+        begin
+          MakeTruckPassGateOut(nReader.FCard, nReader.FID, nDBConn, nReaderType);
+          Exit;
+        end;
+      finally
+        gDBConnManager.ReleaseConnection(nDBConn);
+      end;
+    end;
+//    if nReader.FID <> '' then
+//      BlueOpenDoor(nReader.FID, nReaderType);
+    //抬杆
+   // Exit;
+  end;
   {$ENDIF}
 
   with gParamManager.ActiveParam^ do

@@ -1230,6 +1230,7 @@ var nVal: Double;
     npcid:string;//采购合同号
     nSum:Double;
     nBID:string;
+    nYTOuttime:string;
 begin
   Result := False;
   AnalyseBillItems(FIn.FData, nPound);
@@ -1538,13 +1539,38 @@ begin
   begin
     with nPound[0] do
     begin
-      nSQL := MakeSQLByStr([SF('D_Status', sFlag_TruckOut),
-              SF('D_NextStatus', ''),
-              SF('D_Card', ''),
-              SF('D_OutFact', sField_SQLServer_Now, sfVal),
-              SF('D_OutMan', FIn.FBase.FFrom.FUser)
-              ], sTable_OrderDtl, SF('D_ID', FID), False);
-      FListA.Add(nSQL); //更新采购单
+      nYTOuttime := '';
+      nSQL := ' Select D_YTOutFact From %s Where D_ID = ''%s'' And D_YTOutFact Is not Null And D_YTOutFact <> '''' ';
+      nSQL := Format(nSQL, [sTable_OrderDtl, FID]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+      if RecordCount > 0 then
+      begin
+        nYTOuttime := Fields[0].AsString;
+        if Length(Trim(nYTOuttime)) <= 10 then
+          nYTOuttime := nYTOuttime + ' 00:00:01';
+      end;
+      
+      if nYTOuttime = '' then
+      begin
+        nSQL := MakeSQLByStr([SF('D_Status', sFlag_TruckOut),
+                SF('D_NextStatus', ''),
+                SF('D_Card', ''),
+                SF('D_OutFact', sField_SQLServer_Now, sfVal),
+                SF('D_OutMan', FIn.FBase.FFrom.FUser)
+                ], sTable_OrderDtl, SF('D_ID', FID), False);
+        FListA.Add(nSQL); //更新采购单
+      end
+      else
+      begin
+        nSQL := MakeSQLByStr([SF('D_Status', sFlag_TruckOut),
+                SF('D_NextStatus', ''),
+                SF('D_Card', ''),
+                SF('D_OutFact', nYTOuttime),
+                SF('D_OutMan', FIn.FBase.FFrom.FUser)
+                ], sTable_OrderDtl, SF('D_ID', FID), False);
+        FListA.Add(nSQL); //更新采购单
+      end;
 
       nSQL := 'Select O_CType,O_Card From %s Where O_ID=''%s''';
       nSQL := Format(nSQL, [sTable_Order, FZhiKa]);

@@ -2384,8 +2384,9 @@ begin
         i := Trunc(FValue * 1000 / FPerW);
         //´üÊý
 
-        nSQL := MakeSQLByStr([SF('L_LadeLine', FLine),
-                SF('L_LineName', FName),
+        nSQL := MakeSQLByStr([
+      //          SF('L_LadeLine', FLine),
+      //          SF('L_LineName', FName),
                 SF('L_DaiTotal', i, sfVal),
                 SF('L_DaiNormal', i, sfVal),
                 SF('L_DaiBuCha', 0, sfVal)
@@ -2415,8 +2416,9 @@ begin
 
       with FBillLines[nInt] do
       begin
-        nSQL := MakeSQLByStr([SF('L_LadeLine', FLine),
-                SF('L_LineName', FName),
+        nSQL := MakeSQLByStr([
+        //        SF('L_LadeLine', FLine),
+        //        SF('L_LineName', FName),
                 SF('L_DaiTotal', FTotal, sfVal),
                 SF('L_DaiNormal', FNormal, sfVal),
                 SF('L_DaiBuCha', FBuCha, sfVal)

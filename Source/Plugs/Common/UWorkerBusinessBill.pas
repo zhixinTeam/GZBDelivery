@@ -11,7 +11,7 @@ uses
   Windows, Classes, Controls, DB, SysUtils, UBusinessWorker, UBusinessPacker,
   {$IFDEF MicroMsg}UMgrRemoteWXMsg,{$ENDIF}
   UBusinessConst, UMgrDBConn, UMgrParam, ZnMD5, ULibFun, UFormCtrl, USysLoger,
-  USysDB, UMITConst, UWorkerBusinessCommand, DateUtils;
+  USysDB, UMITConst, UWorkerBusinessCommand, UMgrQueue, DateUtils;
 
 type
   TStockMatchItem = record
@@ -347,11 +347,12 @@ end;
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
     nVal, nRenum: Double;
-    nStr,nTruck,nStock,nWebOrderID,nMemo: string;
+    nStr,nTruck,nStock,nWebOrderID,nMemo,nCusID: string;
     nOut: TWorkerBusinessCommand;
     nTime: Integer;
 begin
   Result := False;
+  nCusID := FListA.Values['CusID'];
   nTruck := FListA.Values['Truck'];
   nWebOrderID := FListA.Values['WebOrderID'];
   nMemo := FListA.Values['Memo'];
@@ -491,8 +492,8 @@ begin
   end;
 
   {$IFDEF NoUseOrderSale}
-  nStr :=' select L_ID from %s where L_Status <> ''%s'' and L_Truck =''%s'' ';
-  nStr := Format(nStr, [sTable_Bill, sFlag_TruckOut, nTruck]);
+  nStr :=' select L_ID from S_Bill  where L_Status <> ''O'' and L_Truck ='''+nTruck+''' and L_Card  not like ''E%'' ';
+//  nStr := Format(nStr, [sTable_Bill, sFlag_TruckOut, nTruck]);
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
     if RecordCount > 0 then
@@ -503,9 +504,10 @@ begin
     end;
   end;
 
-  nStr := ' Select o.O_ID From %s o Where o.O_Truck=''%s'' ' +
-          ' And not exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID and od.D_Status = ''O'' )';
-  nStr := Format(nStr, [sTable_Order, nTruck]);
+  nStr := ' Select o.O_ID From P_Order o Where o.O_Truck='''+nTruck+''' ' +
+          ' And  exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID '+
+          ' and od.D_Status <> ''O'' and od.D_Card not like ''E%'' )';
+//  nStr := Format(nStr, [sTable_Order, nTruck]);
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
     if RecordCount > 0 then
@@ -519,14 +521,26 @@ begin
   
   //嘉鱼出厂一小时禁止开单
   {$IFDEF Between2BillTime}
-  nTime := 30;
-  nStr  := ' select D_Value from %s where D_Name = ''%s'' and D_Memo  = ''%s'' ';
-  nStr  := Format(nStr,[sTable_SysDict,sFlag_SysParam,'Between2BillTime']);
+  nTime := 0;
+  nStr  := ' select C_BetweenTime from %s where C_ID = ''%s'' ';
+  nStr  := Format(nStr,[sTable_Customer,nCusID]);
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
     if recordcount > 0 then
     begin
-      nTime :=  FieldByName('D_Value').AsInteger;
+      nTime :=  FieldByName('C_BetweenTime').AsInteger;
+    end;
+  end;
+  if nTime <= 0 then
+  begin
+    nStr  := ' select D_Value from %s where D_Name = ''%s'' and D_Memo  = ''%s'' ';
+    nStr  := Format(nStr,[sTable_SysDict,sFlag_SysParam,'Between2BillTime']);
+    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+    begin
+      if recordcount > 0 then
+      begin
+        nTime :=  FieldByName('D_Value').AsInteger;
+      end;
     end;
   end;
 
@@ -539,7 +553,7 @@ begin
     begin
       if (Now - FieldByName('L_OutFact').AsDateTime)*24*60 < nTime then
       begin
-        nStr := '车辆[ %s ]出厂未到'+inttostr(nTime)+',禁止开单.';
+        nStr := '车辆[ %s ]出厂未到'+inttostr(nTime)+'分钟,禁止开单.';
         nData := Format(nStr, [nTruck]);
         Exit;
       end;
@@ -711,7 +725,7 @@ begin
         if nHKID='' then
         begin
           FListC.Clear;
-          FListC.Values['Group'] :=sFlag_BusGroup;
+          FListC.Values['Group']  := sFlag_BusGroup;
           FListC.Values['Object'] := sFlag_HKRecord;
           //to get serial no
 
@@ -726,7 +740,7 @@ begin
       //获取队列中的合卡记录  
 
       FListC.Clear;
-      FListC.Values['Group'] :=sFlag_BusGroup;
+      FListC.Values['Group']  := sFlag_BusGroup;
       FListC.Values['Object'] := sFlag_BillNo;
       //to get serial no
 
@@ -941,8 +955,6 @@ begin
   try
     nSQL := AdjustListStrFormat(FOut.FData, '''', True, ',', False);
     //bill list
-    //666666
-    WriteLog('cBC_SyncBillEdit:'+nSQL+'新开单1');
     if not TWorkerBusinessCommander.CallMe(cBC_SyncBillEdit, nSQL,
       sFlag_BillNew, @nOut) then
       raise Exception.Create(nOut.FData);    
@@ -977,7 +989,7 @@ begin
       with gDBConnManager.WorkerQuery(FDBConn, nStr) do
       if RecordCount > 0 then
       begin
-        nRID := Fields[0].AsString;
+        nRID  := Fields[0].AsString;
         nBill := Fields[2].AsString;
         SplitStr(Fields[1].AsString, FListD, 0, '.')
       end else
@@ -1077,11 +1089,15 @@ begin
   gWXPlatFormHelper.WXSendMsg(nStr, FListC.Text);
   {$ENDIF}
   nWebOrderID := FListA.Values['WebOrderID'];
-  //修改商城订单状态
-  ModifyWebOrderStatus(sFlag_Sale, nOut.FData, 'SaveBills', '创建单据',
-                       c_WeChatStatusCreateCard,nWebOrderID);
-  //发送微信消息
-  SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale,nWebOrderID);
+
+  if Trim(FListA.Values['DispatchNo']) = '' then
+  begin
+    //修改商城订单状态
+    ModifyWebOrderStatus(sFlag_Sale, nOut.FData, 'SaveBills', '创建单据',
+                         c_WeChatStatusCreateCard,nWebOrderID);
+    //发送微信消息
+    SendMsgToWebMall(nOut.FData,cSendWeChatMsgType_AddBill,sFlag_Sale,nWebOrderID);
+  end;
 end;
 
 //------------------------------------------------------------------------------
@@ -1828,11 +1844,21 @@ begin
   {$ENDIF}
 
   {$IFDEF UseWLFYInfo}
-  nStr := 'Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,' +
-          'L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,' +
-          'L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,' +
-          'L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate,L_extDispatchNo '+
-          'From $Bill b ';
+     {$IFDEF SanCFNeedPound}
+      nStr := ' Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,      ' +
+              ' L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,   ' +
+              ' L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,  ' +
+              ' L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate, '+
+              ' L_HDValue, L_DispatchNo, L_extDispatchNo '+
+              ' From $Bill b ';
+      {$ELSE}
+      nStr := ' Select L_ID,L_ZhiKa,L_Project,L_CusID,L_CusName,L_Type,L_StockNo,      ' +
+              ' L_StockName,L_Truck,L_Value,L_Price,L_ZKMoney,L_Status,L_NextStatus,   ' +
+              ' L_Card,L_IsVIP,L_PValue,L_MValue,L_Seal,L_HYDan,L_PrintHY,L_HKRecord,  ' +
+              ' L_IsEmpty, L_LineGroup, L_WorkAddr, L_TransName, L_HdOrderId, L_MDate, '+
+              ' L_DispatchNo, L_extDispatchNo '+
+              ' From $Bill b ';
+      {$ENDIF}
   {$ENDIF}
 
   if nIsBill then
@@ -1917,6 +1943,7 @@ begin
       {$ENDIF}
       {$IFDEF UseWLFYInfo}
       FextDispatchNo := FieldByName('L_extDispatchNo').AsString;
+      FDispatchNo    := FieldByName('L_DispatchNo').AsString;
       {$ENDIF}
       FSelected := True;
 
@@ -1939,7 +1966,10 @@ var nStr,nSQL,nTmp,nCode,nRID,nBill: string;
     i,nIdx,nInt: Integer;
     nBills: TLadingBillItems;
     nOut: TWorkerBusinessCommand;
-
+    nYTOuttime : string;
+    nTruck: string;
+    nPLine: PLineItem;
+    nPTruck: PTruckItem;
     {$IFDEF ASyncWriteData}
     nItem: TDBASyncItem;
     {$ENDIF}
@@ -2007,6 +2037,33 @@ begin
               nBills[nIdx].FID]);
       FListA.Add(nSQL);
       //更新队列车辆进厂状态
+    end;
+
+    nPLine := nil;
+    with gTruckQueueManager do
+    if not IsDelayQueue then //厂外模式,进厂时绑定道号(一车多单)
+    try
+      SyncLock.Enter;
+      nTruck := nBills[0].FTruck;
+
+      for nIdx:=Lines.Count - 1 downto 0 do
+      begin
+        nPLine := Lines[nIdx];
+        nInt := TruckInLine(nTruck, PLineItem(Lines[nIdx]).FTrucks);
+
+        if nInt < 0 then Continue;
+        nPTruck := nPLine.FTrucks[nInt];
+
+        nStr := 'Update %s Set T_Line=''%s'',T_PeerWeight=%d Where T_Bill=''%s''';
+        nStr := Format(nStr, [sTable_ZTTrucks, nPLine.FLineID, nPLine.FPeerWeight,
+                nPTruck.FBill]);
+        //xxxxx
+
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+        //绑定通道
+      end;
+    finally
+      SyncLock.Leave;
     end;
   end else
 
@@ -2749,14 +2806,40 @@ begin
         nVal := 0;
       {$ENDIF}
 
-      nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
-              SF('L_Value', nVal, sfVal),
-              SF('L_NextStatus', ''),
-              SF('L_Card', ''),
-              SF('L_OutFact', sField_SQLServer_Now, sfVal),
-              SF('L_OutMan', FIn.FBase.FFrom.FUser)
-              ], sTable_Bill, SF('L_ID', FID), False);
-      //xxxxx
+      nYTOuttime := '';
+      nSQL := ' Select L_YTOutFact From %s Where L_ID = ''%s'' And L_YTOutFact Is not Null And L_YTOutFact <> '''' ';
+      nSQL := Format(nSQL, [sTable_Bill, FID]);
+
+      with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+      if RecordCount > 0 then
+      begin
+        nYTOuttime := Fields[0].AsString;
+        if Length(Trim(nYTOuttime)) <= 10 then
+          nYTOuttime := nYTOuttime + ' 00:00:01';
+      end;
+
+      if nYTOuttime = '' then
+      begin
+        nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
+                SF('L_Value', nVal, sfVal),
+                SF('L_NextStatus', ''),
+                SF('L_Card', ''),
+                SF('L_OutFact', sField_SQLServer_Now, sfVal),
+                SF('L_OutMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Bill, SF('L_ID', FID), False);
+        //xxxxx
+      end
+      else
+      begin
+        nSQL := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
+                SF('L_Value', nVal, sfVal),
+                SF('L_NextStatus', ''),
+                SF('L_Card', ''),
+                SF('L_OutFact', nYTOuttime),
+                SF('L_OutMan', FIn.FBase.FFrom.FUser)
+                ], sTable_Bill, SF('L_ID', FID), False);
+        //xxxxx
+      end;
 
       try
         WriteLog('交货单号:'+ FID +
@@ -2865,8 +2948,9 @@ begin
         i := Trunc(FValue * 1000 / FPerW);
         //袋数
 
-        nSQL := MakeSQLByStr([SF('L_LadeLine', FLine),
-                SF('L_LineName', FName),
+        nSQL := MakeSQLByStr([
+     //           SF('L_LadeLine', FLine),
+     //           SF('L_LineName', FName),
                 SF('L_DaiTotal', i, sfVal),
                 SF('L_DaiNormal', i, sfVal),
                 SF('L_DaiBuCha', 0, sfVal)
@@ -2902,8 +2986,9 @@ begin
 
       with FBillLines[nInt] do
       begin
-        nSQL := MakeSQLByStr([SF('L_LadeLine', FLine),
-                SF('L_LineName', FName),
+        nSQL := MakeSQLByStr([
+  //              SF('L_LadeLine', FLine),
+  //              SF('L_LineName', FName),
                 SF('L_DaiTotal', FTotal, sfVal),
                 SF('L_DaiNormal', FNormal, sfVal),
                 SF('L_DaiBuCha', FBuCha, sfVal)
