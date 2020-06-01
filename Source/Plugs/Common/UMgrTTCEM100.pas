@@ -76,6 +76,7 @@ type
     FKeepPeer: Boolean;        //保持模式
     FKeepLast: Int64;          //上次活动
     FClient : TIdTCPClient;    //通信链路
+    FOptions: TStrings;        //附加参数
   end;
 
   TM100ReaderThreadType = (ttAll, ttActive);
@@ -226,6 +227,8 @@ begin
   for nIdx:=FReaders.Count - 1 downto 0 do
   begin
     nItem := FReaders[nIdx];
+    FreeAndNil(nItem.FOptions);
+    
     nItem.FClient.Free;
     nItem.FClient := nil;
     
@@ -425,7 +428,15 @@ begin
           Port := FPort;
           ReadTimeout := 3 * 1000;
           ConnectTimeout := 3 * 1000;   
-        end;  
+        end;
+
+        nTmp := nNode.FindNode('options');
+        if Assigned(nTmp) then
+        begin
+          FOptions := TStringList.Create;
+          SplitStr(nTmp.ValueAsString, FOptions, 0, ';');
+        end else FOptions := nil;
+
       end;
     end;
   finally

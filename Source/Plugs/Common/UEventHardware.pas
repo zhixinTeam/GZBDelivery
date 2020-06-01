@@ -147,7 +147,16 @@ begin
       gBXFontCardManager := TBXFontCardManager.Create;
       gBXFontCardManager.LoadConfig(nCfg + 'BXFontLED.xml');
     end;
+    {$ELSE}
+      {$IFDEF LedNew}
+      if not Assigned(gBXFontCardManager) then
+      begin
+        gBXFontCardManager := TBXFontCardManager.Create;
+        gBXFontCardManager.LoadConfig(nCfg + 'BXFontLED.xml');
+      end;
+      {$ENDIF}
     {$ENDIF}
+
     {$IFDEF FixLoad}
     nStr := '¶¨ÖÃ×°³µ';
     gSendCardNo.LoadConfig(nCfg + 'PLCController.xml');
@@ -271,7 +280,12 @@ begin
   {$IFDEF SanLed}
   if Assigned(gBXFontCardManager) then
     gBXFontCardManager.StartService;
-  {$ENDIF}
+   {$ELSE}
+    {$IFDEF LedNew}
+    if Assigned(gBXFontCardManager) then
+      gBXFontCardManager.StartService;
+    {$ENDIF}
+ {$ENDIF}
   
   {$IFDEF FixLoad}
   if Assigned(gSendCardNo) then
@@ -346,7 +360,13 @@ begin
   {$IFDEF SanLed}
   if Assigned(gBXFontCardManager) then
     gBXFontCardManager.StopService;
+  {$ELSE}
+    {$IFDEF LedNew}
+    if Assigned(gBXFontCardManager) then
+      gBXFontCardManager.StopService;
+    {$ENDIF}
   {$ENDIF}
+
   
   {$IFDEF FixLoad}
   if Assigned(gSendCardNo) then

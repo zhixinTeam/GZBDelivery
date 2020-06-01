@@ -114,6 +114,8 @@ type
     //根据客户信息获取通道分组
     function GetOrderCType(var nData: string): Boolean;
     //获取采购订单类型(临时卡,固定卡)
+    function GetDuanDaoCType(var nData: string): Boolean;
+    //获取短倒订单类型(临时卡,固定卡)
     function GetWebOrderID(var nData: string): Boolean;
     //获取网上下单申请单号
     function SaveBusinessCard(var nData: string): Boolean;
@@ -486,6 +488,7 @@ begin
    cBC_GetBatcodeAfterLine : Result := GetBatcodeAfterLine(nData);
    cBC_GetLineGroupByCustom: Result := GetLineGroupByCustom(nData);
    cBC_GetOrderCType       : Result := GetOrderCType(nData);
+   cBC_GetDuanDaoCType     : Result := GetDuanDaoCType(nData);
    cBC_GetWebOrderID       : Result := GetWebOrderID(nData);
    cBC_SaveBusinessCard    : Result := SaveBusinessCard(nData);
 
@@ -5812,6 +5815,30 @@ begin
       Result := True;
     end;
   {$ENDIF}
+end;
+
+function TWorkerBusinessCommander.GetDuanDaoCType(
+  var nData: string): Boolean;
+var nStr: string;
+begin
+  Result := False;
+
+  FOut.FData := '';
+  
+  nStr := ' Select B_CType From %s Where B_Card = ''%s'' ';
+  nStr := Format(nStr, [sTable_TransBase, FIn.FData]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount<1 then
+    begin
+      nData := '短倒单'+ FIn.FData + '信息已丢失';
+      Exit;
+    end;
+
+    FOut.FData := Fields[0].AsString;
+    Result := True;
+  end;
 end;
 
 initialization
