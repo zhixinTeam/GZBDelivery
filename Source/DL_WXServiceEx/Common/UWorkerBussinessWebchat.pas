@@ -12,7 +12,7 @@ uses
   UBusinessPacker, UBusinessConst, UMgrDBConn, UMgrParam, UFormCtrl, USysLoger,
   ZnMD5, ULibFun, USysDB, UMITConst, UMgrChannel, DateUtils, IdURI, HTTPApp,
   {$IFDEF WXChannelPool}Wechat_Intf, {$ELSE}WeChat_soap, {$ENDIF}IdHTTP,
-  Graphics, uSuperObject;
+  Graphics,UWorkerSelfRemote, uSuperObject;
 
 const
   cHttpTimeOut          = 10;
@@ -23,7 +23,7 @@ const
   Cus_syncShopOrder     = 'ZSHOP004';
   Cus_ShopTruck         = 'ZSHOP005';
   Cus_syncTruckState    = 'ZSHOP006';
-
+  Cus_TruckQueuedInfo   = 'ZSHOP012';
 type
   TMITDBWorker = class(TBusinessWorkerBase)
   protected
@@ -57,7 +57,7 @@ type
 
   TBusWorkerBusinessWebchat = class(TMITDBWorker)
   private
-    FListA, FListB, FListC: TStrings;
+    FListA, FListB, FListC, FListF : TStrings;
     //list
     FIn: TWorkerWebChatData;
     FOut: TWorkerWebChatData;
@@ -98,6 +98,10 @@ type
     //读取系统字典项
     function GetOrderList(var nData: string): Boolean;
     //获取订单列表 4.2需求查询工厂客户合同订单
+    function GetOrderList_JY(var nData: string): Boolean;
+    //获取订单列表(嘉鱼)
+    function GetOrderList_JM(var nData: string): Boolean;
+     //获取订单列表(荆门)
     function GetOrderInfo(var nData: string): Boolean;
     //获取订单信息
 
@@ -127,11 +131,13 @@ type
     //根据车牌号获取订单信息
     function get_QueueInfobyTruck(var nData: string): Boolean;
     //根据车牌号获取待上屏队列信息
+    function get_LineInfobyTruck(var nData: string): Boolean;
+    //根车辆进厂后排队通道查询
     function get_ClientReportInfo(var nData: string): Boolean;
     //根据客户编号查询客户报表信息
     function get_TruckMaxBillNumInfo(var nData: string): Boolean;
     //根据车牌号获取车辆荷载吨数信息
-    function GetOrderYYValue(nMID, nOID: string): Double;
+    function GetOrderYYValue(nMID, nOID: string): Currency;
     //获取下单的量
     function synchronizedYYOrders(var nData: string): Boolean;
     //订单状态同步
@@ -151,6 +157,8 @@ type
     //获取车辆信息
     function SyncShopTruckState(var nData: string): boolean;                    // Dl--->WxService
     //同步车辆审核状态
+    function TruckQueuedInfo(var nData: string): boolean;
+    //车辆排队通知
                                                                                 // WxService--->Dl
     function SearchClient(var nData: string): Boolean;
     function SearchContractOrder(var nData: string): Boolean;
@@ -306,6 +314,7 @@ begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
   FListC := TStringList.Create;
+  FListF := TStringList.Create;
 
   FidHttp := TIdHTTP.Create(nil);
   FidHttp.ConnectTimeout := cHttpTimeOut * 1000;
@@ -318,6 +327,7 @@ begin
   FreeAndNil(FListA);
   FreeAndNil(FListB);
   FreeAndNil(FListC);
+  FreeAndNil(FListF);
   FreeAndNil(FidHttp);
   inherited;
 end;
@@ -470,9 +480,11 @@ begin
     cBC_WX_BillSurplusTonnage:
       Result := True;
     cBC_WX_GetOrderInfo:
-      Result := GetOrderList(nData);
+      Result := {$IFDEF GZBJM} GetOrderList_JM(nData);
+                {$ELSE} GetOrderList(nData); {$ENDIF}
     cBC_WX_GetOrderList:
-      Result := GetOrderList(nData);
+      Result := {$IFDEF GZBJM} GetOrderList_JM(nData);
+                {$ELSE} GetOrderList(nData); {$ENDIF}
     cBC_WX_CreatLadingOrder:
       Result := True;
     cBC_WX_GetPurchaseContract:
@@ -526,6 +538,11 @@ begin
         FPackOut := True;
         Result   := SyncShopTruckState(nData);
       end;
+    cBC_WX_get_TruckQueuedInfo:
+      begin
+        FPackOut := True;
+        Result   := TruckQueuedInfo(nData);
+      end;
     cBC_WX_DownLoadPic:
       begin
         FPackOut := True;
@@ -544,14 +561,18 @@ begin
         Result := GetshoporderStatus(nData);
       end;
     cBC_WX_get_QueueInfobyTruck:
-    begin
-      Result := get_QueueInfobyTruck(nData);
-    end;
+      begin
+        Result := get_QueueInfobyTruck(nData);
+      end;
+    cBC_WX_get_LineInfobyTruck:
+      begin
+        Result := get_LineInfobyTruck(nData);
+      end;
     cBC_WX_get_shopYYWebBill:
-    begin
-      FPackOut := True;
-      Result   := Get_ShopordersYY(nData);
-    end;
+      begin
+        FPackOut := True;
+        Result   := Get_ShopordersYY(nData);
+      end;
     cBC_WX_SaveCustomerWxOrders  :
       Result := synchronizedYYOrders(nData);
     cBC_WX_IsCanCreateWXOrder  :
@@ -801,7 +822,7 @@ end;
 function TBusWorkerBusinessWebchat.GetOrderList(var nData: string): Boolean;
 var nWorker: PDBWorker;
     nTmp,nStr:string;
-    nMoney, nValue: Double;
+    nMoney, nValue: Currency;
     nNode: TXmlNode;
 begin
   Result := False;
@@ -905,7 +926,7 @@ begin
       try
         with nNode.NodeNew('Item') do
         begin
-          NodeNew('SetDate').ValueAsString := FieldByName('XCB_SetDate').AsString;
+          NodeNew('SetDate').ValueAsString := FormatDateTime('YYYY-MM-DD HH:MM:SS',StrToDate(FieldByName('XCB_SetDate').AsString));
           NodeNew('BillNumber').ValueAsString := FieldByName('XCB_CardId').AsString;
           NodeNew('StockNo').ValueAsString := FieldByName('XCB_Cement').AsString;
           if Trim(FieldByName('XCB_CementName').AsString) = '' then
@@ -923,14 +944,14 @@ begin
 
           NodeNew('BillName').ValueAsString     := FieldByName('XCB_CardId').AsString;
           {$IFDEF UseWebYYOrder}
-            nValue := FieldByName('XCB_FactRemain').AsFloat
+            nValue := FieldByName('XCB_FactRemain').AsCurrency
                      -  GetOrderYYValue(FieldByName('XCB_Cement').AsString,
                                      FieldByName('XCB_CardId').AsString);
                                      
-            NodeNew('MaxNumber').ValueAsString    := FloatToStr(nValue);
+            NodeNew('MaxNumber').ValueAsString    := CurrToStr(nValue);
           {$ELSE}
-            nValue := FieldByName('XCB_FactRemain').AsFloat;
-            NodeNew('MaxNumber').ValueAsString    := FloatToStr(nValue);
+            nValue := FieldByName('XCB_FactRemain').AsCurrency;
+            NodeNew('MaxNumber').ValueAsString    := CurrToStr(nValue);
           {$ENDIF}
           NodeNew('SaleArea').ValueAsString     := FieldByName('XCB_WorkAddr').AsString;       
         end;
@@ -1076,22 +1097,27 @@ begin
           else
             NodeNew('OUTDATE').ValueAsString   := FormatDateTime('yyyy-mm-dd',nDs.FieldByName('l_outfact').AsDateTime);
           {$ELSE}
-          NodeNew('billNo').ValueAsString := nDs.FieldByName('L_ID').AsString;
-          NodeNew('PROJECT').ValueAsString := nDs.FieldByName('L_ZhiKa').AsString;
-          NodeNew('clientNo').ValueAsString := nDs.FieldByName('L_CusID').AsString;
-          NodeNew('clientName').ValueAsString := nDs.FieldByName('L_CusName').AsString;
-          NodeNew('licensePlate').ValueAsString := nDs.FieldByName('L_Truck').AsString;
-          NodeNew('StockNo').ValueAsString := nDs.FieldByName('L_StockNo').AsString;
+          NodeNew('ID').ValueAsString        := nDs.FieldByName('L_ID').AsString;
+          NodeNew('BILL').ValueAsString      := nDs.FieldByName('L_ID').AsString;
+          NodeNew('PROJECT').ValueAsString   := nDs.FieldByName('L_ZhiKa').AsString;
+          NodeNew('CusID').ValueAsString     := nDs.FieldByName('L_CusID').AsString;
+          NodeNew('CusName').ValueAsString   := nDs.FieldByName('L_CusName').AsString;
+          NodeNew('Truck').ValueAsString     := nDs.FieldByName('L_Truck').AsString;
+          NodeNew('StockNo').ValueAsString   := nDs.FieldByName('L_StockNo').AsString;
           NodeNew('StockName').ValueAsString := nDs.FieldByName('L_StockName').AsString;
-          NodeNew('workplate').ValueAsString := nDs.FieldByName('L_Project').AsString;
-          NodeNew('area').ValueAsString := nDs.FieldByName('l_area').AsString;
-          NodeNew('hydan').ValueAsString := nDs.FieldByName('l_hydan').AsString;
-          NodeNew('realQuantity').ValueAsString := nDs.FieldByName('L_Value').AsString;
+          NodeNew('STOCK').ValueAsString     := nDs.FieldByName('L_StockName').AsString;
+          NodeNew('CUSNAME').ValueAsString   := nDs.FieldByName('L_CusName').AsString;
+          NodeNew('AREA').ValueAsString      := nDs.FieldByName('l_area').AsString;
+          NodeNew('WORKADDR').ValueAsString  := nDs.FieldByName('L_Project').AsString;
+          NodeNew('TRANSNAME').ValueAsString := '';
+          NodeNew('HYDAN').ValueAsString     := nDs.FieldByName('l_hydan').AsString;
+          NodeNew('TRUCK').ValueAsString     := nDs.FieldByName('L_Truck').AsString;
+          NodeNew('LVALUE').ValueAsString    := nDs.FieldByName('L_Value').AsString;
 
           if Trim(nDs.FieldByName('l_outfact').AsString) = '' then
-            NodeNew('realTime').ValueAsString := '未出厂'
+            NodeNew('OUTDATE').ValueAsString := '未出厂'
           else
-            NodeNew('realTime').ValueAsString := FormatDateTime('yyyy-mm-dd', nDs.FieldByName('l_outfact').AsDateTime);
+            NodeNew('OUTDATE').ValueAsString   := FormatDateTime('yyyy-mm-dd',nDs.FieldByName('l_outfact').AsDateTime);
           {$ENDIF}
 
           nDs.Next;
@@ -1101,7 +1127,9 @@ begin
     with Root.NodeNew('EXMG') do
     begin
       NodeNew('MsgTxt').ValueAsString := '业务执行成功';
+      NodeNew('rspDesc').ValueAsString := '业务执行成功';
       NodeNew('MsgResult').ValueAsString := sFlag_Yes;
+      NodeNew('rspCode').ValueAsString := sFlag_Yes;
       NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
     end;
   end;
@@ -1169,7 +1197,10 @@ begin
         nDBConn.FConn.Connected := True;
 
       //销售净重
-      nSql := 'select L_Value, L_Project,l_status,L_ID from %s where l_id=''%s''';
+
+      nSql := ' select Case When ((L_HKRecord Is Null) or (L_HKRecord='''')) Then L_Value Else ' +
+              ' (Select sum(isnull(L_Value,0)) from S_Bill where L_HKRecord = b.L_HKRecord) End as L_Value, '+
+              '  L_Project,l_status,L_ID from %s b where l_id=''%s''';
       if FListA.Values['WOM_StatusType'] = '2' then
         nSql := Format(nSql, [sTable_BillBak, FListA.Values['WOM_LID']])
       else
@@ -2094,9 +2125,9 @@ begin
     if nType = 'SZ' then
       nStr := 'select distinct L_type as Stock_Type, SUM(L_Value) as Stock_Value from %s ' + ' where L_InTime >= ''%s'' and L_InTime <= ''%s'' and L_Status <> ''O'' group by L_Type '
     else if nType = 'P' then
-      nStr := 'select distinct D_Type as Stock_Type ,SUM(D_Value) as Stock_Value from %s ' + ' where D_OutFact >= ''%s'' and D_OutFact <= ''%s'' group by D_Type '
+      nStr := 'select distinct ''S'' as Stock_Type ,SUM(D_Value) as Stock_Value from %s ' + ' where D_OutFact >= ''%s'' and D_OutFact <= ''%s''  '
     else if nType = 'PZ' then
-      nStr := 'select distinct D_Type as Stock_Type ,SUM(D_Value) as Stock_Value from %s ' + ' where D_MDate >= ''%s'' and D_MDate <= ''%s'' and D_Status <> ''O'' group by D_Type ';
+      nStr := 'select distinct ''S'' as Stock_Type ,SUM(D_Value) as Stock_Value from %s ' + ' where D_MDate >= ''%s'' and D_MDate <= ''%s'' and D_Status <> ''O''  ';
     if Pos('P', nType) > 0 then
       nTable := sTable_OrderDtl
     else
@@ -3708,6 +3739,27 @@ begin
   end;
 
   BuildDefaultXML;
+
+  nStr := ' Select * From %s Where T_Valid = ''%s'' And T_Truck = ''%s'' and T_InFact is not null ';
+  nStr := Format(nStr, [sTable_ZTTrucks, sFlag_Yes, nTruckNumber]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr), FPacker.XMLBuilder do
+  begin
+    if RecordCount > 0 then
+    begin
+      nData := '车辆(%s)已进厂.';
+      nData := Format(nData, [nTruckNumber]);
+      with Root.NodeNew('EXMG') do
+      begin
+        NodeNew('MsgTxt').ValueAsString := nData;
+        NodeNew('MsgResult').ValueAsString := sFlag_No;
+        NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+      end;
+      nData := FPacker.XMLBuilder.WriteToString;
+
+      Exit;
+    end;
+  end;
   
   nStr := ' Select * From %s Where T_Valid = ''%s'' And T_StockNo = ''%s'' And T_InQueue Is Null order by T_InTime ';
   nStr := Format(nStr, [sTable_ZTTrucks, sFlag_Yes, nStockNo]);
@@ -4083,7 +4135,7 @@ begin
 end;
 
 function TBusWorkerBusinessWebchat.GetOrderYYValue(nMID,
-  nOID: string): Double;
+  nOID: string): Currency;
 var nStr: string;
     nDBConn : PDBWorker;
     nIdx : Integer;
@@ -4108,7 +4160,8 @@ begin
     begin
       if RecordCount > 0 then
       begin
-        Result := Float2PInt(Fields[0].AsFloat, cPrecision, False) / cPrecision;
+        Result := Fields[0].AsCurrency;
+//        Result := Float2PInt(Fields[0].AsFloat, cPrecision, False) / cPrecision;
       end;
     end;
   finally
@@ -4421,6 +4474,468 @@ begin
       end;
     end;
   end;
+end;
+
+function TBusWorkerBusinessWebchat.GetOrderList_JY(
+  var nData: string): Boolean;
+var nWorker: PDBWorker;
+    nTmp,nStr:string;
+    nMoney, nValue: Double;
+    nNode: TXmlNode;
+begin
+  Result := False;
+  BuildDefaultXML;
+  nMoney := 0;
+  nTmp := Trim(FIn.FData);
+  if nTmp='' then Exit;
+
+  FListA.Clear;
+  nStr := ' Select distinct * From ' +
+        ' (select xcb.XCB_ID,' +                    //内部编号
+        '  xcb.XCB_CardId,' +                       //销售卡片编号
+        '  xcb.XCB_Origin,' +                       //卡片来源
+        '  xcb.XCB_BillID,' +                       //来源单据号
+        '  xcb.XCB_SetDate,' +                      //办理日期
+        '  xcb.XCB_CardType,' +                     //卡片类型
+        '  xcb.XCB_SourceType,' +                   //来源类型
+        '  xcb.XCB_Option,' +                       //控制方式:0,控单价;1,控数量
+        '  xcb.XCB_Client,' +                       //客户编号
+        '  xob.XOB_Name as XCB_ClientName,' +       //客户名称
+        '  xgd.XOB_Name as XCB_WorkAddr,' +         //工程工地
+        '  xcb.XCB_Alias,' +                        //客户别名
+        '  xcb.XCB_OperMan,' +                      //业务员
+        '  xcb.XCB_Area,' +                         //销售区域
+        '  xcb.XCB_CementType as XCB_Cement,' +     //品种编号
+        '  PCM_Name as XCB_CementName,' +           //品种名称
+        '  xcb.XCB_LadeType,' +                     //提货方式
+        '  xcb.XCB_Number,' +                       //初始数量
+        '  xcb.XCB_FactNum,' +                      //已开数量
+        '  xcb.XCB_PreNum,' +                       //原已提量
+        '  xcb.XCB_ReturnNum,' +                    //退货数量
+        '  xcb.XCB_OutNum,' +                       //转出数量
+        '  vcb.XCB_FactRemain,' +                   //剩余数量
+        '  xcb.XCB_ValidS,XCB_ValidE,' +            //提货有效期
+        '  xcb.XCB_AuditState,' +                   //审核状态
+        '  xcb.XCB_Status,' +                       //卡片状态:0,停用;1,启用;2,冲红;3,作废
+        '  xcb.XCB_IsImputed,' +                    //卡片是否估算
+        '  xcb.XCB_IsOnly,' +                       //是否一车一票
+        '  xcb.XCB_Del,' +                          //删除标记:0,正常;1,删除
+        '  xcb.XCB_Creator,' +                      //创建人
+        '  pub.pub_name as XCB_CreatorNM,' +        //创建人名
+        '  xcb.XCB_CDate,' +                        //创建时间
+        '  xcb.XCB_Firm,' +                         //所属厂区
+        '  pbf.pbf_name as XCB_FirmName,' +         //工厂名称
+        '  pcb.pcb_id, pcb.pcb_name, ' +            //销售片区
+        '  '''' as XCB_TransID, ' +                 //运输单位编号
+        '  '''' as XCB_TransName ' +                //运输单位
+     //   '  xcg.xob_id as XCB_TransID, ' +             //运输单位编号
+     //   '  xcg.XOB_Name as XCB_TransName ' +          //运输单位
+        'from XS_Card_Base xcb' +
+        '  left join XS_Compy_Base xob on xob.XOB_ID = xcb.XCB_Client' +
+        '  left join XS_Compy_Base xgd on xgd.XOB_ID = xcb.xcb_sublader' +
+        '  left join PB_Code_Material pcm on pcm.PCM_ID = xcb.XCB_CementType' +
+        '  Left Join pb_code_block pcb On pcb.pcb_id=xob.xob_block' +
+        '  Left Join pb_basic_firm pbf On pbf.pbf_id=xcb.xcb_firm' +
+        '  Left Join PB_USER_BASE pub on pub.pub_id=xcb.xcb_creator ' +
+        '  Left Join v_Card_Base1 vcb on vcb.XCB_ID=xcb.XCB_ID ' +
+        '  Left Join XS_Card_Freight xcf on xcf.Xcf_Card=xcb.xcb_ID ' +
+     //   '  Left Join XS_Compy_Base xcg on xcg.xob_id=xcf.xcf_tran ' +
+        //未删除、可用数量大于0、卡片启用并且处于已审核状态、未锁定
+        ' where  xcb.xcb_del=''0'''
+              +' and xcb.XCB_Status=''1'''
+              +' and vcb.XCB_FactRemain>0'
+              +' and xcb.XCB_IsLock<>''1'''
+              +' and ((xcb.XCB_AuditState=''201'') or (xcb.XCB_IsOnly=''1''))'
+              +' and xcb.XCB_Client = ''%s'' ' +
+        'Order By xcb.XCB_SetDate DESC) t Where Rownum <= 100';
+        //排序后,取前100条
+  nStr := Format(nStr,[nTmp]);
+
+  WriteLog(Format('GetOrderList = > [ 订单信息.%s ]', [nStr]));
+  //查询语句
+
+  nWorker := nil;
+  try
+    with gDBConnManager.SQLQuery(nStr, nWorker, sFlag_DB_YT), FPacker.XMLBuilder do
+    begin
+      if RecordCount < 1 then
+      begin
+        nData := Format('未查询到客户编号[ %s ]对应的订单信息1.', [nTmp]);
+        with Root.NodeNew('EXMG') do
+        begin
+          NodeNew('MsgTxt').ValueAsString := nData;
+          NodeNew('MsgResult').ValueAsString := sFlag_No;
+          NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+        end;
+        nData := FPacker.XMLBuilder.WriteToString;
+        Exit;
+      end;
+
+      First;
+      nNode := Root.NodeNew('head');
+      with nNode do
+      begin
+        NodeNew('CusId').ValueAsString   := FieldByName('XCB_Client').AsString;
+        NodeNew('CusName').ValueAsString := FieldByName('XCB_ClientName').AsString;
+      end;
+
+      nNode := Root.NodeNew('Items');
+      while not Eof do
+      try
+        with nNode.NodeNew('Item') do
+        begin
+          NodeNew('SetDate').ValueAsString := FieldByName('XCB_SetDate').AsString;
+          NodeNew('BillNumber').ValueAsString := FieldByName('XCB_CardId').AsString;
+          NodeNew('StockNo').ValueAsString := FieldByName('XCB_Cement').AsString;
+          if Trim(FieldByName('XCB_CementName').AsString) = '' then
+            NodeNew('StockName').ValueAsString := FieldByName('XCB_Cement').AsString
+          else
+            NodeNew('StockName').ValueAsString := FieldByName('XCB_CementName').AsString;
+
+          if Pos('袋',FieldByName('XCB_CementName').AsString) > 0 then
+            NodeNew('StockType').ValueAsString := 'D'
+          else
+            NodeNew('StockType').ValueAsString := 'S';
+
+          //默认自提
+          NodeNew('ContractType').ValueAsString := '1';
+
+          NodeNew('BillName').ValueAsString     := FieldByName('XCB_CardId').AsString;
+          {$IFDEF UseWebYYOrder}
+            nValue := FieldByName('XCB_FactRemain').AsFloat
+                     -  GetOrderYYValue(FieldByName('XCB_Cement').AsString,
+                                     FieldByName('XCB_CardId').AsString);
+                                     
+            NodeNew('MaxNumber').ValueAsString    := FloatToStr(nValue);
+          {$ELSE}
+            nValue := FieldByName('XCB_FactRemain').AsFloat;
+            NodeNew('MaxNumber').ValueAsString    := FloatToStr(nValue);
+          {$ENDIF}
+          NodeNew('SaleArea').ValueAsString     := FieldByName('XCB_WorkAddr').AsString;       
+        end;
+      finally
+        Next;
+      end;
+      nNode := Root.NodeNew('EXMG');
+      with nNode do
+      begin
+        NodeNew('MsgTxt').ValueAsString := '业务执行成功';
+        NodeNew('MsgResult').ValueAsString := sFlag_Yes;
+        NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+
+  nData := FPacker.XMLBuilder.WriteToString;
+  WriteLog('获取订单列表返回:' + nData);
+  Result := True;
+end;
+
+function TBusWorkerBusinessWebchat.get_LineInfobyTruck(
+  var nData: string): Boolean;
+var
+  nRank : Integer;
+  nStr, nTruckNumber, nStockNo, nStockName, nLine, nInTime : string;
+  nNode,  nheader  : TXmlNode;
+begin
+  Result := False;
+
+  with FPacker.XMLBuilder do
+  begin
+    try
+      ReadFromString(nData);
+      nData  := '加载请求参数失败';
+
+      nheader := Root.FindNode('Head');
+      //************************************************************
+      try
+        nTruckNumber := nheader.NodeByName('Data').ValueAsString;
+
+        if nTruckNumber <> '' then
+        begin
+          nStr := ' Select * From %s Where L_Status <> ''O'' And L_Truck=''%s'' ';
+          nStr := Format(nStr, [sTable_Bill, nTruckNumber]);
+          //*****
+          with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+          begin
+            if RecordCount < 1 then
+            begin
+              nData := '找不到此车牌号的有效单据.';
+              with Root.NodeNew('EXMG') do
+              begin
+                NodeNew('MsgTxt').ValueAsString     := nData;
+                NodeNew('MsgResult').ValueAsString  := sFlag_No;
+                NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+              end;
+              nData := FPacker.XMLBuilder.WriteToString;
+              Exit;
+            end;
+            nStockNo   := FieldByName('L_StockNo').AsString;
+            nStockName := FieldByName('L_StockName').AsString;
+          end;
+          
+        end;
+      except
+        on Ex : Exception do
+        begin
+          nData  := nData + '查询车辆排队通道信息失败!'+Ex.Message;
+          WriteLog(nData);
+        end;
+      end;
+    finally
+      //
+    end;
+  end;
+
+  BuildDefaultXML;
+  nStr := ' Select T_Line, T_InTime From %s Where T_Valid = ''%s'' And T_Truck = ''%s''  ';
+  nStr := Format(nStr, [sTable_ZTTrucks, sFlag_Yes, nTruckNumber]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr), FPacker.XMLBuilder do
+  begin
+    if RecordCount < 1 then
+    begin
+      nData := '车辆(%s)没有进厂的信息.';
+      nData := Format(nData, [nStockNo]);
+      with Root.NodeNew('EXMG') do
+      begin
+        NodeNew('MsgTxt').ValueAsString     := nData;
+        NodeNew('MsgResult').ValueAsString  := sFlag_No;
+        NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+      end;
+      nData := FPacker.XMLBuilder.WriteToString;
+      Exit;
+    end;
+    nLine   := FieldByName('T_Line').AsString;
+    nInTime := FormatDateTime('YYYY-MM-DD HH:MM:SS',FieldByName('T_InTime').AsDateTime);
+  end;
+
+  nRank:= 0;
+  nStr := ' Select * From %s Where T_Valid = ''%s'' And T_Line = ''%s'' and T_InTime < ''%s''  Order by T_InTime ';
+  nStr := Format(nStr, [sTable_ZTTrucks, sFlag_Yes, nLine,nInTime]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr), FPacker.XMLBuilder do
+  begin
+    nNode := Root.NodeNew('Items');
+    if RecordCount < 1 then
+    begin
+      nRank := nRank + 1;
+      with nNode.NodeNew('Item') do
+      begin
+        NodeNew('LineName').ValueAsString  := nLine;
+        NodeNew('StockNo').ValueAsString   := nStockNo;
+        NodeNew('StockName').ValueAsString := nStockName;
+        NodeNew('Rank').ValueAsString      := IntToStr(nRank);
+        NodeNew('TruckNo').ValueAsString   := nTruckNumber;
+      end;
+    end
+    else
+    begin
+      First;
+      while not Eof do
+      begin
+        nRank := nRank + 1;
+        with nNode.NodeNew('Item') do
+        begin
+          NodeNew('LineName').ValueAsString  := FieldByName('T_Line').AsString;
+          NodeNew('StockNo').ValueAsString   := FieldByName('T_StockNo').AsString;
+          NodeNew('StockName').ValueAsString := FieldByName('T_Stock').AsString;
+          NodeNew('Rank').ValueAsString      := IntToStr(nRank);
+          NodeNew('TruckNo').ValueAsString   := FieldByName('T_Truck').AsString;
+        end;
+        nExt;
+      end;
+
+      nRank := nRank + 1;
+      with nNode.NodeNew('Item') do
+      begin
+        NodeNew('LineName').ValueAsString  := nLine;
+        NodeNew('StockNo').ValueAsString   := nStockNo;
+        NodeNew('StockName').ValueAsString := nStockName;
+        NodeNew('Rank').ValueAsString      := IntToStr(nRank);
+        NodeNew('TruckNo').ValueAsString   := nTruckNumber;
+      end;
+    end;
+
+    nNode := Root.NodeNew('EXMG');
+    with nNode do
+    begin
+      NodeNew('MsgTxt').ValueAsString := '业务执行成功';
+      NodeNew('MsgResult').ValueAsString := sFlag_Yes;
+      NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+    end;
+  end;
+  
+  nData  := FPacker.XMLBuilder.WriteToString;
+  Result := True;
+end;
+
+function TBusWorkerBusinessWebchat.TruckQueuedInfo(
+  var nData: string): boolean;
+var
+  nStr, nSql, ncontractNo: string;
+  nDBConn: PDBWorker;
+  nIdx: Integer;
+  szUrl: string;
+  ReJo, ParamJo, BodyJo : ISuperObject;
+  ArrsJa: TSuperArray;
+  wParam: TStrings;
+  ReStream: TStringStream;
+begin
+  Result      := False;
+  FListA.Text := PackerDecodeStr(FIn.FData);
+
+  wParam   := TStringList.Create;
+  ReStream := TStringstream.Create('');
+  BodyJo   := SO();
+  ParamJo  := SO();
+
+  FListA.Text := PackerDecodeStr(FIn.FData);
+  try
+    if FListA.Values['queueNo'] = '1' then
+    begin
+      BodyJo.S['first']           := EncodeBase64('排队第一名提醒');
+      BodyJo.S['queueNo']         := '1';
+      BodyJo.S['queuingNumber']   := '0';
+      BodyJo.S['time']            := EncodeBase64(DateTime2Str(Now));
+      BodyJo.S['remark']          := EncodeBase64('您的车辆已排队在第一位，请尽快进厂提货。');
+      BodyJo.S['facSerialNo']     := gSysParam.FFactID;
+      BodyJo.S['msgEventKey']     := '12';
+      BodyJo.S['truckNumber']     := EncodeBase64(FListA.Values['Truck']);
+      ParamJo.S['activeCode']     := Cus_TruckQueuedInfo;
+      ParamJo.S['body']           := BodyJo.AsString;
+      nStr                        := ParamJo.AsString;
+    end
+    else
+    begin
+      BodyJo.S['first']           := EncodeBase64('【'+FListA.Values['Truck']+'】排队第三名通知。');
+      BodyJo.S['queueNo']         := '3';
+      BodyJo.S['queuingNumber']   := '2';
+      BodyJo.S['time']            := EncodeBase64(DateTime2Str(Now));
+      BodyJo.S['remark']          := EncodeBase64('您当前排队第三，请您根据车辆在场外情况，合理安排时间。');
+      BodyJo.S['facSerialNo']     := gSysParam.FFactID;
+      BodyJo.S['msgEventKey']     := '12';
+      BodyJo.S['truckNumber']     := EncodeBase64(FListA.Values['Truck']);
+      ParamJo.S['activeCode']     := Cus_TruckQueuedInfo;
+      ParamJo.S['body']           := BodyJo.AsString;
+      nStr                        := ParamJo.AsString;
+    end;
+    WriteLog(' 排队通知入参：' + nStr);
+
+    //nStr := UTF8Encode(nStr);
+    wParam.Clear;
+    wParam.Add(nStr);
+    
+    //FidHttp参数初始化
+    ReQuestInit;
+
+    szUrl := gSysParam.FSrvUrl + '/truck/pushVehicleQueueNotification';
+    FidHttp.Post(szUrl, wParam, ReStream);
+    nStr := UTF8Decode(ReStream.DataString);
+    WriteLog(' 排队通知出参：' + nStr);
+    if nStr <> '' then
+    begin
+      ReJo := SO(nStr);
+
+      if ReJo['code'].AsString = '1' then
+      begin
+        Result             := True;
+        FOut.FData         := sFlag_Yes;
+        FOut.FBase.FResult := True;
+      end
+      else WriteLog(' 排队通知失败：' + ReJo['msg'].AsString);
+    end;
+  finally
+    ReStream.Free;
+    wParam.Free;
+  end;
+end;
+
+function TBusWorkerBusinessWebchat.GetOrderList_JM(
+  var nData: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+  nCardData,nCardItem:TStringList;
+  nType: string;
+  i:Integer;
+  nRequest,nResponse:string;
+  nDSType: string;
+  nNode: TXmlNode;
+begin
+  Result := CallRemoteWorker(sCLI_BusinessCommand, FIn.FData, FIn.FExtParam,
+              @nOut, cBC_GetOrderList, Trim(FIn.FRemoteUL));
+  WriteLog('TBusWorkerBusinessWebchat.GetOrderList: ' + Trim(FIn.FRemoteUL));
+  nRequest := nData;
+
+//  WriteLog(Format('Out => [%s]', [nOut.FData]));
+  nCardData := TStringList.Create;
+  nCardItem := TStringList.Create;
+  try
+    if Result then
+    begin
+      nCardData.Text := PackerDecodeStr(nOut.FData);
+      WriteLog(Format('nCardData => [count.%d]', [nCardData.Count]));
+      nCardItem.Text := PackerDecodeStr(nCardData.Strings[0]);
+      with FPacker.XMLBuilder do
+      begin
+        nNode := Root.NodeNew('head');
+        with nNode do
+        begin
+          NodeNew('CusId').ValueAsString   :=  nCardItem.Values['XCB_Client'];
+          NodeNew('CusName').ValueAsString :=  nCardItem.Values['XCB_ClientName'];
+        end;
+
+        nNode := Root.NodeNew('Items');
+        for i := 0 to nCardData.Count-1 do
+        begin
+          nCardItem.Text := PackerDecodeStr(nCardData.Strings[i]);
+          WriteLog(Format('nCardData[%d] => [%s]', [i, nCardItem.Text]));
+          with nNode.NodeNew('Item') do
+          begin
+            if Pos('袋', nCardItem.Values['XCB_CementName']) > 0 then
+            begin
+              nType := '袋装';
+              nDSType := 'D';
+            end
+            else begin
+              nType := '散装';
+              nDSType := 'S';
+            end;
+            NodeNew('SetDate').ValueAsString    := FormatDateTime('YYYY-MM-DD HH:MM:SS',StrToDate(nCardItem.Values['XCB_SetDate']));
+            NodeNew('BillNumber').ValueAsString :=  nCardItem.Values['XCB_CardId'];
+            NodeNew('StockNo').ValueAsString    := nCardItem.Values['XCB_Cement'];
+            if nCardItem.Values['XCB_CementName'] = '' then
+              NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_Cement'] //+ nType
+            else
+              NodeNew('StockName').ValueAsString := nCardItem.Values['XCB_CementName'];//+ nType
+
+            NodeNew('StockType').ValueAsString := nDSType;
+
+
+            //默认自提
+            NodeNew('ContractType').ValueAsString := '1';
+
+            NodeNew('BillName').ValueAsString     := nCardItem.Values['XCB_CardId'];
+            NodeNew('MaxNumber').ValueAsString    := nCardItem.Values['XCB_RemainNum'];
+            NodeNew('SaleArea').ValueAsString     := nCardItem.Values['XCB_WorkAddr'];
+            NodeNew('TransName').ValueAsString    := nCardItem.Values['XCB_TransName'];
+          end;
+        end;
+        nNode := Root.NodeNew('EXMG');
+        with nNode do
+        begin
+          NodeNew('MsgTxt').ValueAsString := '业务执行成功';
+          NodeNew('MsgResult').ValueAsString := sFlag_Yes;
+          NodeNew('MsgCommand').ValueAsString := IntToStr(FIn.FCommand);
+        end;
+      end;
+    end;
+  finally
+    nCardItem.Free;
+    nCardData.Free;
+  end;
+  nData := FPacker.XMLBuilder.WriteToString;
+  WriteLog('获取订单列表返回:' + nData);
+  Result := True;
 end;
 
 initialization

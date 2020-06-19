@@ -20,7 +20,7 @@ type
     //拥有者
     FDBConn: PDBWorker;
     //数据对象
-    FListA,FListB,FListC: TStrings;
+    FListA,FListB,FListC,FlistF, FListG: TStrings;
     //列表对象
     FXMLBuilder: TNativeXml;
     //XML构建器
@@ -43,6 +43,10 @@ type
     //执行出厂消息插入
     function SaveSaleOutFactMsg(nList: TStrings):Boolean;
     //销售出厂消息
+    function GetQueueInfo(const nTruck,nBillID:string;nOrderNo:Integer):Boolean;
+    //判断是否已存在
+    function SaveQueueInfo(const nStockNo: string):Boolean;
+    //插入排队通知信息
     function SaveOrderOutFactMsg(nList: TStrings):Boolean;
     //销售出厂消息
     procedure Execute; override;
@@ -78,8 +82,10 @@ var
   gMessageScan: TMessageScan = nil;
   //全局使用
 
-
 implementation
+
+uses
+  UFormCtrl;
 
 procedure WriteLog(const nMsg: string);
 begin
@@ -142,10 +148,13 @@ begin
   FListA := TStringList.Create;
   FListB := TStringList.Create;
   FListC := TStringList.Create;
+  FlistF := TStringList.Create;
+  FListG := TStringList.Create;
+  
   FXMLBuilder :=TNativeXml.Create;
 
   FWaiter := TWaitObject.Create;
-  FWaiter.Interval := 30*1000;
+  FWaiter.Interval := 10*1000;
 
   FSyncLock := TCrossProcWaitObject.Create('WXService_MessageScan');
   //process sync
@@ -157,6 +166,8 @@ begin
   FListA.Free;
   FListB.Free;
   FListC.Free;
+  FlistF.Free;
+  FListG.Free;
   FXMLBuilder.Free;
 
   FSyncLock.Free;
@@ -182,6 +193,7 @@ var nErr, nSuccessCount, nFailCount, nSyncCount: Integer;
     nStr: string;
     nResult : Boolean;
     nInit: Int64;
+    nInt, nIdx: Integer;
     nOut: TWorkerBusinessCommand;
 begin
   FNumOutFactMsg := 0;
@@ -221,6 +233,67 @@ begin
         TBusWorkerBusinessWebchat.CallMe(cBC_WX_get_shopYYWebBill,'','',@nOut);
         {$ENDIF}
       end;
+      //获取品种
+      nStr := ' Select distinct D_ParamB from Sys_Dict Where D_Name = ''StockItem'' ';
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if RecordCount < 1 then
+          Continue;
+        FListG.Clear;
+
+        First;
+        while not Eof do
+        begin
+          FListA.Clear;
+          FListA.Values['D_ParamB'] := FieldByName('D_ParamB').AsString;
+          nStr := StringReplace(FListA.Text, #$D#$A, '\S', [rfReplaceAll]);
+          FListG.Add(nStr);
+          Next;
+        end;
+      end;
+
+      for nIdx := 0 to FListG.Count - 1 do
+      begin
+        nStr := FListG.Strings[nIdx];
+        FListA.Text := StringReplace(nStr, '\S', #$D#$A, [rfReplaceAll]);
+        SaveQueueInfo(FListA.Values['D_ParamB']);
+      end;
+
+      FListA.Clear;
+      //推送排队信息
+      nStr := 'select * from %s where L_Status = ''%s'' and L_Count < %d';
+      nStr := Format(nStr,[sTable_LineMsg,sFlag_No,gMessageScan.FSyncTime]);
+      WriteLog('排队通知SQL:' + nStr);
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if RecordCount > 0 then
+        begin
+          nStr := '共查询到[ %d ]条数据,开始推送排队信息...';
+          WriteLog(Format(nStr, [RecordCount]));
+
+          First;
+          while not Eof do
+          begin
+            FListB.Clear;
+            FListB.Values['queueNo'] := FieldByName('L_OrderNo').AsString;
+            FListB.Values['Truck']   := FieldByName('L_Truck').AsString;
+
+            nStr    := PackerEncodeStr(FListB.Text);
+            if TBusWorkerBusinessWebchat.CallMe(cBC_WX_get_TruckQueuedInfo,nStr,'',@nOut) then
+              nStr := sFlag_Yes
+            else nStr := sFlag_No;
+
+            nStr := MakeSQLByStr([SF('L_Count', 'L_Count+1', sfVal),
+                SF('L_LastSendDate', sField_SQLServer_Now, sfVal),
+                SF('L_Status', nStr)], sTable_LineMsg,
+                SF('R_ID', FieldByName('R_ID').AsString, sfVal), False);
+            FListA.Add(nStr);
+            Next;
+          end;
+        end;
+      end;
+      for nInt:=FListA.Count-1 downto 0 do
+        gDBConnManager.WorkerExec(FDBConn, FListA[nInt]);
 
       if FFaildMsg = 0 then
       begin
@@ -232,7 +305,7 @@ begin
       end
       else
       begin
-        nStr := ' Select top 100 * from %s where WOM_SyncNum <= %d And WOM_deleted <> ''%s''';
+        nStr := ' Select top 100 * from %s where WOM_SyncNum <= %d And WOM_deleted <> ''%s'' order by  R_ID Desc ';
         nStr := Format(nStr,[sTable_WebOrderMatch, gMessageScan.FSyncTime, sFlag_Yes]);
       end;
       with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -262,13 +335,6 @@ begin
             nStr := PackerEncodeStr(FListA.Text);
             nResult := TBusWorkerBusinessWebchat.CallMe(cBC_WX_complete_shoporders
                        ,nStr,'',@nOut);
-//            if nResult then
-//            begin
-//              if FListA.Values['WOM_BillType'] = sFlag_Sale then
-//                nResult := SendSaleMsgToWebMall(FListA)
-//              else
-//                nResult := SendOrderMsgToWebMall(FListA);
-//            end;
 
             if nResult then
             begin
@@ -600,6 +666,75 @@ begin
                        nList.Values['WOM_BillType']]);
   gDBConnManager.WorkerExec(FDBConn, nStr);
   Result := True;
+end;
+
+function TMessageScanThread.SaveQueueInfo(const nStockNo: string): Boolean;
+var
+  nOrderNo,nIdx : Integer;
+  nStr, nTableName: string;
+  nTruck, nBill:string;
+begin
+  Result   := False;
+  FlistF.Clear;
+  
+  nStr := ' Select Top 3 * from S_ZTTrucks where T_StockNo = ''%s'' and T_Valid=''Y'' ' +
+          ' and T_InFact is null and T_InQueue is not null Order by T_InTime ';
+  nStr := Format(nStr,[nStockNo]);
+//  WriteLog('队列3名SQL:'+nStr);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount <= 0 then
+    begin
+      Exit;
+    end;
+    First;
+    nOrderNo := 0;
+    while not Eof do
+    begin
+      nOrderNo := nOrderNo + 1;
+      if nOrderNo <> 2 then
+      begin
+        FListB.Clear;
+        FlistB.Values['T_Truck']   := FieldByName('T_Truck').AsString;
+        FlistB.Values['T_BILL']    := FieldByName('T_BILL').AsString;
+        FlistB.Values['T_OrderNo'] := IntToStr(nOrderNo);
+        nStr := StringReplace(FlistB.Text, #$D#$A, '\S', [rfReplaceAll]);
+        FlistF.Add(nStr);
+      end;
+      Next;
+    end;
+  end;
+
+  for nIdx := 0 to FlistF.Count - 1 do
+  begin
+    nStr := FlistF.Strings[nIdx];
+    FListB.Text := StringReplace(nStr, '\S', #$D#$A, [rfReplaceAll]);
+    if not GetQueueInfo(FListB.Values['T_Truck'],FListB.Values['T_BILL'], StrToInt(FlistB.Values['T_OrderNo'])) then
+    begin
+      nStr := ' insert into Sys_LineMsg(L_Truck,L_StockNo,L_OrderNo,L_Count,L_LastSendDate,L_Status)'
+                    + ' values(''%s'',''%s'',%d,%d,''%s'',''%s'')';
+      nStr := Format(nStr,[FListB.Values['T_Truck'],FListB.Values['T_BILL'],StrToInt(FlistB.Values['T_OrderNo']), 0, DateTime2Str(Now),'N']);
+      gDBConnManager.WorkerExec(FDBConn, nStr);
+    end;
+  end;
+  Result := True;
+end;
+
+function TMessageScanThread.GetQueueInfo(const nTruck, nBillID: string;nOrderNo: Integer): Boolean;
+var
+  nStr : string;
+begin
+  Result := False;
+  nStr   := ' Select R_ID From Sys_LineMsg Where L_Truck= ''%s'' and L_StockNo = ''%s'' and L_OrderNo= ''%d'' ';
+  nStr   := Format(nStr,[nTruck,nBillID,nOrderNo]) ;
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      Result := True;
+    end;
+  end;
 end;
 
 initialization
