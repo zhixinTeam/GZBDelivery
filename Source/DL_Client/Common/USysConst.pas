@@ -55,10 +55,14 @@ const
   cFI_FramePoundManual  = $0035;                     //手动称重
   cFI_FramePoundAuto    = $0036;                     //自动称重
 
+  cFI_FormOrderDtl      = $6057;                     //采购明细
+
   cFI_FrameStock        = $0042;                     //品种管理
   cFI_FrameStockRecord  = $0043;                     //检验记录
   cFI_FrameStockHuaYan  = $0045;                     //开化验单
   cFI_FrameStockHY_Each = $0046;                     //随车开单
+  cFI_FrameHYMBWH       = $8046;                     //化验模板维护
+  cFI_FormHYMBWH        = $8047;                     //化验模板维护
 
   cFI_FrameTruckQuery   = $0050;                     //车辆查询
   cFI_FrameCusAccountQuery = $0051;                  //客户账户
@@ -87,6 +91,7 @@ const
   cFI_FrameMaterails    = $0106;                     //原材料
   cFI_FrameUserYSInfo   = $8107;                     //验收信息维护
   cFI_FrameSaleInfo     = $8106;                     //销售信息
+  cFI_FrameRFIDMater    = $8108;                     //读卡器修改原材料品种
   cFI_FrameOrder        = $0107;                     //采购订单
   cFI_FrameOrderBase    = $0108;                     //采购申请单
   cFI_FrameOrderDetail  = $0109;                     //采购明细
@@ -146,6 +151,7 @@ const
   cFI_FormTruckEmpty    = $1043;                     //空车出厂
   cFI_FormReadCard      = $1044;                     //读取磁卡
   cFI_FormZTLine        = $1045;                     //装车线
+  cFI_FormOrderKW       = $3045;                     //原材料勘误
 
   cFI_FormGetTruck      = $1047;                     //选择车辆
   cFI_FormGetContract   = $1048;                     //选择合同
@@ -182,6 +188,14 @@ const
   cFI_FormInvGetWeek    = $1081;                     //选择周期
   cFI_FormInvAdjust     = $1082;                     //修改申请量
 
+  cFI_FrameStockGroup   = $0077;                     //销售品种分组
+  cFI_FormStockGroup    = $0078;                     //销售品种分组
+  cFI_FrameSalePlan     = $0079;                     //销售限量计划
+  cFI_FormSalePlan      = $0080;                     //销售限量计划
+  cFI_FormEditStockGroup= $0081;                     //品种分组编辑
+  cFI_FormSalePlanDtl   = $0082;                     //客户、品种分组限量明细
+  cFI_FormBatchGetCus   = $0083;                     //多选客户
+
   cFI_FormAuthorize     = $1090;                     //安全验证
   cFI_FormWXAccount     = $1091;                     //微信账户
   cFI_FormWXSendlog     = $1092;                     //微信日志
@@ -203,6 +217,9 @@ const
   cFI_FormShouJu        = $1151;                     //开收据
   CFI_FormSearchCard    = $1157;                     //磁卡查询
   cFI_FormBillSingle    = $1201;                     //开提货单(单厂版)
+
+  cFI_FormPTruckControl  = $1206;                     //供应商进厂车辆数量控制
+  cFI_FramePTruckControl = $0161;                     //供应商进厂车辆数量控制
 
   {*Command*}
   cCmd_RefreshData      = $0002;                     //刷新数据
@@ -264,6 +281,8 @@ type
     FProberUser : Integer;                           //检测器技术
     FEmpTruckWc : Double;                            //空车出厂误差
     FIsMT       : Integer;                           //0:场内业务;1:码头业务
+    FIsKS       : Integer;                           //0:原材料业务;1:矿山业务
+    FPoundJMax  : Boolean;                           //启用车辆荷载吨数
   end;
   //系统参数
 
@@ -365,6 +384,8 @@ begin
   AddMenuModuleItem('MAIN_B08', cFI_FrameSaleInfo);
   AddMenuModuleItem('MAIN_B09', cFI_FrameUserYSInfo);
 
+  AddMenuModuleItem('MAIN_B10', cFI_FrameRFIDMater);
+
   AddMenuModuleItem('MAIN_C01', cFI_FrameZhiKaVerify);
   AddMenuModuleItem('MAIN_C02', cFI_FramePayment);
   AddMenuModuleItem('MAIN_C03', cFI_FrameCusCredit);
@@ -382,6 +403,11 @@ begin
   AddMenuModuleItem('MAIN_D06', cFI_FrameBill);
   AddMenuModuleItem('MAIN_D07', cFI_FrameTrucks);
   AddMenuModuleItem('MAIN_D08', cFI_FrameCusBatMap);
+
+  AddMenuModuleItem('MAIN_D12', cFI_FrameStockGroup);
+  AddMenuModuleItem('MAIN_D13', cFI_FormStockGroup, mtForm);
+  AddMenuModuleItem('MAIN_D14', cFI_FrameSalePlan);
+  AddMenuModuleItem('MAIN_D15', cFI_FormSalePlan, mtForm);
 
   AddMenuModuleItem('MAIN_E01', cFI_FramePoundManual);
   AddMenuModuleItem('MAIN_E02', cFI_FramePoundAuto);
@@ -403,6 +429,7 @@ begin
   AddMenuModuleItem('MAIN_K04', cFI_FormStockHuaYan, mtForm);
   AddMenuModuleItem('MAIN_K05', cFI_FormStockHY_Each, mtForm);
   AddMenuModuleItem('MAIN_K06', cFI_FrameStockHY_Each);
+  AddMenuModuleItem('MAIN_K07', cFI_FrameHYMBWH);
 
   AddMenuModuleItem('MAIN_L01', cFI_FrameTruckQuery);
   AddMenuModuleItem('MAIN_L02', cFI_FrameCusAccountQuery);
@@ -431,6 +458,7 @@ begin
   AddMenuModuleItem('MAIN_M10', cFI_FrameMaterailTunnels);
   AddMenuModuleItem('MAIN_M11', cFI_FramePurchaseContract);
   AddMenuModuleItem('MAIN_M12', cFI_FramePro_Order);
+  AddMenuModuleItem('MAIN_M13', cFI_FramePTruckControl);
 
   AddMenuModuleItem('MAIN_W01', cFI_FrameWXAccount);
   AddMenuModuleItem('MAIN_W02', cFI_FrameWXSendLog);

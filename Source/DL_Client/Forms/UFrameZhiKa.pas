@@ -102,9 +102,10 @@ function TfFrameZhiKa.InitFormDataSQL(const nWhere: string): string;
 begin
   EditDate.Text := Format('%s жа %s', [Date2Str(FStart), Date2Str(FEnd)]);
   
-  Result := 'Select zk.*,sm.S_Name,sm.S_PY,cus.C_Name,cus.C_PY From $ZK zk ' +
+  Result := 'Select zk.*,ZKDtl.*,sm.S_Name,sm.S_PY,cus.C_Name,cus.C_PY From $ZK zk ' +
             ' Left Join $SM sm On sm.S_ID=zk.Z_SaleMan ' +
-            ' Left Join $Cus cus On cus.C_ID=zk.Z_Customer';
+            ' Left Join $Cus cus On cus.C_ID=zk.Z_Customer' +
+            ' Left Join $ZKDtl ZKDtl On ZKDtl.D_ZID=zk.Z_ID ';
   //ж╫©╗
 
   if nWhere = '' then
@@ -112,7 +113,7 @@ begin
                  ' and (Z_InValid Is Null or Z_InValid<>''$Yes'')'
   else Result := Result + ' Where (' + nWhere + ')';
 
-  Result := MacroValue(Result, [MI('$ZK', sTable_ZhiKa), 
+  Result := MacroValue(Result, [MI('$ZK', sTable_ZhiKa), MI('$ZKDtl', sTable_ZhiKaDtl),
              MI('$Con', sTable_SaleContract), MI('$SM', sTable_Salesman),
              MI('$Cus', sTable_Customer), MI('$Yes', sFlag_Yes),
              MI('$ST', Date2Str(FStart)), MI('$End', Date2Str(FEnd + 1))]);

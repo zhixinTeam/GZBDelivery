@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameOrderDetail;
 
+{$I Link.inc}
 interface
 
 uses
@@ -43,6 +44,10 @@ type
     N4: TMenuItem;
     N5: TMenuItem;
     N6: TMenuItem;
+    N7: TMenuItem;
+    N8: TMenuItem;
+    N9: TMenuItem;
+    N10: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
@@ -53,6 +58,10 @@ type
     procedure Check1Click(Sender: TObject);
     procedure N4Click(Sender: TObject);
     procedure N6Click(Sender: TObject);
+    procedure N8Click(Sender: TObject);
+    procedure N9Click(Sender: TObject);
+    procedure N10Click(Sender: TObject);
+    procedure BtnEditClick(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -65,6 +74,8 @@ type
     procedure OnDestroyFrame; override;
     function InitFormDataSQL(const nWhere: string): string; override;
     //查询SQL
+    function GetVal(const nRow: Integer; const nField: string): string;
+    //获取指定字段
   public
     { Public declarations }
     class function FrameID: integer; override;
@@ -90,6 +101,17 @@ begin
 
   FJBWhere := '';
   InitDateRange(Name, FStart, FEnd);
+  {$IFDEF AddKSYW}
+  N8.Visible := True;
+  {$ELSE}
+  N8.Visible := False;
+  {$ENDIF}
+
+  {$IFDEF GZBHC}
+  N9.Visible := True;
+  {$ELSE}
+  N9.Visible := False;
+  {$ENDIF}
 end;
 
 procedure TfFrameOrderDetail.OnDestroyFrame;
@@ -101,9 +123,17 @@ end;
 function TfFrameOrderDetail.InitFormDataSQL(const nWhere: string): string;
 begin
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
+
+  {$IFDEF AddKSYW}
+  Result := ' Select *,(D_MValue-D_PValue-D_KZValue) as D_NetWeight, ' +
+            ' isnull(D_StockNo, O_StockNo) as O_StockNoEx, ' +
+            ' isnull(D_StockName, O_StockName) as O_StockNameEx ' +
+            ' From $OD od Left Join $OO oo on od.D_OID=oo.O_ID ';
+  //xxxxxx
+  {$ELSE}
   Result := 'Select *,(D_MValue-D_PValue-D_KZValue) as D_NetWeight ' +
             'From $OD od Left Join $OO oo on od.D_OID=oo.O_ID ';
-  //xxxxxx
+  {$ENDIF}
 
   if FJBWhere = '' then
   begin
@@ -402,6 +432,117 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TfFrameOrderDetail.N8Click(Sender: TObject);
+var nStr,nHint,nStatus,nNextStatus: string;
+    nIdx: Integer;
+    nRet: Boolean;
+    gBills: TLadingBillItems;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount > 0 then
+  begin
+    nStr        := SQLQuery.FieldByName('D_ID').AsString;
+    nStatus     := SQLQuery.FieldByName('D_Status').AsString;
+    nNextStatus := SQLQuery.FieldByName('D_NextStatus').AsString;
+    if (nStatus = 'M') and (nNextStatus = 'M') then
+    begin
+      nRet := GetPurchaseOrdersKS(nStr, sFlag_TruckIn, gBills);
+      gBills[0].FIsKS := 2;
+      nRet := SavePurchaseOrders(sFlag_TruckOut, gBills);
+      if nRet then
+      begin
+        InitFormData(FWhere);
+        ShowMsg('上传成功！', sHint);
+      end
+      else
+      begin
+        InitFormData(FWhere);
+        ShowMsg('上传失败！', sHint);
+      end;
+    end;
+  end;
+end;
+
+procedure TfFrameOrderDetail.N9Click(Sender: TObject);
+var
+  nID   : string;
+  nList : TStrings;
+  nP: TFormCommandParam;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要勘误的记录', sHint);
+    Exit;
+  end;
+
+  nID := SQLQuery.FieldByName('D_ID').AsString;
+
+  nList := TStringList.Create;
+  try
+    nList.Add(nID);
+
+    nP.FCommand := cCmd_EditData;
+    nP.FParamA := nList.Text;
+    CreateBaseFormItem(cFI_FormOrderKW, '', @nP);
+
+    if (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK) then
+    begin
+      InitFormData(FWhere);
+    end;
+
+  finally
+    nList.Free;
+  end;
+end;
+
+procedure TfFrameOrderDetail.N10Click(Sender: TObject);
+var nStr: string;
+    nIdx: Integer;
+    nList: TStrings;
+begin
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要打印的记录', sHint); Exit;
+  end;
+
+  nList := TStringList.Create;
+  try
+    for nIdx := 0 to cxView1.DataController.RowCount - 1  do
+    begin
+
+      nStr := GetVal(nIdx,'D_ID');
+      if nStr = '' then
+        Continue;
+
+      nList.Add(nStr);
+    end;
+
+    nStr := AdjustListStrFormat2(nList, '''', True, ',', False);
+    PrintOrderReport(nStr, False,True);
+  finally
+    nList.Free;
+  end;
+end;
+
+function TfFrameOrderDetail.GetVal(const nRow: Integer;
+  const nField: string): string;
+var nVal: Variant;
+begin
+  nVal   := cxView1.ViewData.Rows[nRow].Values[
+            cxView1.GetColumnByFieldName(nField).Index];
+  //xxxxx
+
+  if VarIsNull(nVal) then
+       Result := ''
+  else Result := nVal;
+end;
+
+procedure TfFrameOrderDetail.BtnEditClick(Sender: TObject);
+begin
+  //
 end;
 
 initialization

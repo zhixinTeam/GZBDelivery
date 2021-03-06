@@ -108,6 +108,7 @@ type
     ForgId                 : string;                    //所在公司
     FpackCode              : string;                    //包装规格代码
     FshipperNameEx         : string;                    //发货客户名称
+    FClearPicture          : string;                    //开启定时清除三个月以上抓拍图片
   end;
   //系统参数
 
@@ -186,6 +187,8 @@ begin
 
         FToken     := ReadString(FProgID, 'Token', 'J1xjBge64C8mfz+He1KQxf+Gy5Gj8BG/C5Ml69vsGEDUXhddyIzI9LJuFntc/8yv8QypfRKrB0+q\r\nSaszGoDi9yRlOa12+vikLJGbm1T2KCo=');
         FTokenOms  := ReadString(FProgID, 'TokenOms', 'J1xjBge64C8mfz+He1KQxf+Gy5Gj8BG/C5Ml69vsGEDUXhddyIzI9LJuFntc/8yv8QypfRKrB0+q\r\nSaszGoDi9yRlOa12+vikLJGbm1T2KCo=');
+
+        FClearPicture:= ReadString(FProgID, 'ClearPicture', 'N');
 
         FParam     := ParamStr(1);
         FIconFile  := ReadString(FProgID, 'IconFile', gPath + 'Icons\Icon.ini');

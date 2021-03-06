@@ -258,6 +258,9 @@ procedure SaveWebOrderDelMsg(const nLID, nBillType: string);
 function GetPurchaseOrders(const nCard,nPost: string;
  var nBills: TLadingBillItems): Boolean;
 //获取指定岗位的采购单列表
+function GetPurchaseOrdersKS(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+//获取指定岗位的采购单列表
 function SavePurchaseOrders(const nPost: string; const nData: TLadingBillItems;
  const nTunnel: PPTTunnelItem = nil): Boolean;
 //保存指定岗位的采购单
@@ -315,7 +318,7 @@ function PrintShouJuReport(const nSID: string; const nAsk: Boolean): Boolean;
 //打印收据
 function PrintBillReport(nBill: string; const nAsk: Boolean): Boolean;
 //打印提货单
-function PrintOrderReport(const nOrder: string;  const nAsk: Boolean): Boolean;
+function PrintOrderReport(const nOrder: string;  const nAsk: Boolean;const nMul: Boolean = False): Boolean;
 //打印采购单
 function PrintPoundReport(const nPound: string; nAsk: Boolean;const nMul: Boolean = False): Boolean;
 //打印榜单
@@ -330,6 +333,8 @@ function PrintHeGeReport(const nHID: string; const nAsk: Boolean): Boolean;
 function getCustomerInfo(const nXmlStr: string): string;
 
 function IsAsternStock(const nStockName :string): Boolean;
+
+function GetHYMBInfo(const nCusID,nStockName :string):string;
 
 //获取客户注册信息
 function getCustomerInfoEx(const nData: string): string;
@@ -356,6 +361,8 @@ function complete_shoporders(const nXmlStr: string): string;
 
 function VerifyPoundWarning(var nHint: string; var nWarnVal: Double): Boolean;
 //车辆皮重预警设置
+function PoundDaiWCEx:Boolean;
+//启用袋装误差大点通过才能保存
 function AddManualEventRecord(nEID, nKey, nEvent:string;
     nFrom: string = '磅房'; nSolution: string=sFlag_Solution_YN;
     nDepartmen: string=sFlag_DepDaTing; nReset: Boolean = False;
@@ -437,6 +444,22 @@ function SaveBillCardSingle(const nBill, nCard: string): Boolean;
 //保存交货单磁卡
 function LogoutBillCardSingle(const nCard: string): Boolean;
 //注销指定磁卡
+
+function getPrePInfo(const nTruck:string;var nPrePValue: Double; var nPrePMan: string;
+  var nPrePTime: TDateTime):Boolean;
+//获取预置皮重车辆预置信息
+
+function GetPOrderDtlStatus(const nID:string):Boolean;
+//判断是否可以过重
+
+function GetPrePValueSet: Double;
+//获取系统设定皮重
+procedure SaveTruckPrePValue(const nTruck, nValue: string);
+//保存预制皮重
+procedure UpdateTruckStatus(const nID: string);
+//修改车辆状态
+function SaveTruckPrePicture(const nTruck: string;const nTunnel: PPTTunnelItem): Boolean;
+//保存nTruck的预制皮重照片
 
 function GetLadingBillsSingle(const nCard,nPost: string;
  var nBills: TLadingBillItems): Boolean;
@@ -1965,7 +1988,11 @@ var nStr: string;
 begin
   nStr := CombineBillItmes(nData);
   Result := CallBusinessSaleBill(cBC_SavePostBills, nStr, nPost, @nOut);
-  nMHint   := nOut.FData;
+  if nOut.FExtParam = '-1' then
+  begin
+    nMHint := nOut.FData;
+    Result := False;
+  end;
   if (not Result) or (nOut.FData = '') then Exit;
 
   if Assigned(nTunnel) then //过磅称重
@@ -2243,6 +2270,16 @@ function GetPurchaseOrders(const nCard,nPost: string;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessPurchaseOrder(cBC_GetPostOrders, nCard, nPost, @nOut);
+  if Result then
+    AnalyseBillItems(nOut.FData, nBills);
+  //xxxxx
+end;
+
+function GetPurchaseOrdersKS(const nCard,nPost: string;
+ var nBills: TLadingBillItems): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessPurchaseOrder(cBC_GetPostOrders_KS, nCard, nPost, @nOut);
   if Result then
     AnalyseBillItems(nOut.FData, nBills);
   //xxxxx
@@ -2854,7 +2891,7 @@ end;
 //Date: 2012-4-1
 //Parm: 采购单号;提示;数据对象;打印机
 //Desc: 打印nOrder采购单号
-function PrintOrderReport(const nOrder: string;  const nAsk: Boolean): Boolean;
+function PrintOrderReport(const nOrder: string;  const nAsk: Boolean;const nMul: Boolean = False): Boolean;
 var nStr: string;
     nDS: TDataSet;
     nParam: TReportParamItem;
@@ -2866,8 +2903,14 @@ begin
     nStr := '是否要打印采购单?';
     if not QueryDlg(nStr, sAsk) then Exit;
   end;
-
-  nStr := 'Select * From %s oo Inner Join %s od on oo.O_ID=od.D_OID Where D_ID=''%s''';
+  if nMul then
+  begin
+    nStr := 'Select * From %s oo Inner Join %s od on oo.O_ID=od.D_OID Where D_ID In (%s)';
+  end
+  else
+  begin
+    nStr := 'Select * From %s oo Inner Join %s od on oo.O_ID=od.D_OID Where D_ID=''%s''';
+  end;
   nStr := Format(nStr, [sTable_Order, sTable_OrderDtl, nOrder]);
 
   nDS := FDM.QueryTemp(nStr);
@@ -3346,6 +3389,20 @@ begin
   //xxxxx
 end;
 
+function GetHYMBInfo(const nCusID,nStockName :string):string;
+var nStr: string;
+begin
+  Result := nStockName;
+  nStr := 'Select S_StockNameEx From %s Where S_CusID=''%s'' and S_StockName=''%s'' ';
+  nStr := Format(nStr, [sTable_HYMBWH, nCusID, nStockName]);
+
+  with FDM.QueryTemp(nStr) do
+  if RecordCount > 0 then
+    Result := Fields[0].AsString;
+  //xxxxx
+end;
+
+
 //------------------------------------------------------------------------------
 //获取客户注册信息
 function getCustomerInfoEx(const nData: string): string;
@@ -3528,6 +3585,24 @@ begin
     if nUpdateHint then
       nHint  := FieldByName('E_ParamB').AsString;
     Result := True;
+  end;
+end;
+
+function PoundDaiWCEx:Boolean;
+var nSQL, nStr: string;
+begin
+  Result := False;
+
+  nSQL := ' Select D_Value From %s Where D_Name = ''%s'' and D_Memo = ''%s'' ';
+  nSQL := Format(nSQL, [sTable_SysDict, 'SysParam','PoundDaiWCEx']);
+  with FDM.QuerySQL(nSQL) do
+  if RecordCount > 0 then
+  begin
+    nStr := Trim(FieldByName('D_Value').AsString);
+    if nStr = 'Y' then
+    begin
+      Result := True;
+    end;
   end;
 end;
 
@@ -4047,6 +4122,134 @@ function LogoutBillCardSingle(const nCard: string): Boolean;
 var nOut: TWorkerBusinessCommand;
 begin
   Result := CallBusinessSaleBillSingle(cBC_LogoffCard, nCard, '', @nOut);
+end;
+
+function getPrePInfo(const nTruck:string;var nPrePValue: Double; var nPrePMan: string;
+  var nPrePTime: TDateTime):Boolean;
+var
+  nStr:string;
+begin
+  Result := False;
+  nPrePValue := 0;
+  nPrePMan := '';
+  nPrePTime := 0;
+
+  nStr := 'select T_PrePValue,T_PrePMan,T_PrePTime from %s where t_truck=''%s'' and T_PrePUse=''%s''';
+  nStr := format(nStr,[sTable_Truck,nTruck,sflag_yes]);
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      nPrePTime := FieldByName('T_PrePTime').asDateTime;
+      nPrePValue := FieldByName('T_PrePValue').asFloat;;
+      nPrePMan := FieldByName('T_PrePMan').asString;
+      Result := True;
+    end;
+  end;
+end;
+
+function GetPOrderDtlStatus(const nID:string):Boolean;
+var
+  nStr:string;
+begin
+  Result := True;
+
+  nStr   := ' Select D_Status, D_NextStatus from %s where D_ID = ''%s'' ';
+  nStr   := format(nStr,['P_OrderDtl',nID]);
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount>0 then
+    begin
+      if (Trim(FieldByName('D_Status').asString) = 'M')
+        and (Trim(FieldByName('D_NextStatus').asString) = 'M')  then
+      begin
+        Result := False;
+      end;
+    end;
+  end;
+end;
+
+function GetPrePValueSet: Double;
+var nStr: string;
+begin
+  Result := 30;//init
+
+  nStr := 'Select D_Value From $Table ' +
+          'Where D_Name=''$Name'' and D_Memo=''$Memo''';
+  nStr := MacroValue(nStr, [MI('$Table', sTable_SysDict),
+                            MI('$Name', sFlag_SysParam),
+                            MI('$Memo', sFlag_SetPValue)]);
+  //xxxxx
+
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount > 0 then
+      nStr := Fields[0].AsString;
+    if IsNumber(nStr,True) then
+      Result := StrToFloatDef(nStr,30);
+  end;
+end;
+
+procedure SaveTruckPrePValue(const nTruck, nValue: string);
+var nStr: string;
+begin
+  {$IFNDEF NoUpdatePrePValue}
+  nStr := 'update %s set T_PrePValue=%s,T_PrePMan=''%s'',T_PrePTime=%s '
+          + ' where t_truck=''%s'' and T_PrePUse=''%s''';
+  nStr := format(nStr,[sTable_Truck,nValue,gSysParam.FUserName
+                      ,sField_SQLServer_Now,nTruck,sflag_yes]);
+  FDM.ExecuteSQL(nStr);
+  {$ENDIF}
+end;
+
+procedure UpdateTruckStatus(const nID: string);
+var nStr: string;
+begin
+  nStr := 'update %s set D_Status=''%s'',D_NextStatus=''%s'', D_IsMT = 1 '
+          + ' where D_ID=''%s''';
+  nStr := format(nStr,[sTable_OrderDtl,sFlag_TruckBFM,
+                       sFlag_TruckBFM,nID]);
+  FDM.ExecuteSQL(nStr);
+end;
+
+//Date: 2014-09-18
+//Parm: 车牌号;磅站通道
+//Desc: 保存nTruck的预制皮重照片
+function SaveTruckPrePicture(const nTruck: string;const nTunnel: PPTTunnelItem): Boolean;
+var nStr,nRID: string;
+    nIdx: Integer;
+    nList: TStrings;
+begin
+  Result := False;
+  nRID := '';
+  nStr := 'Select R_ID From %s Where T_Truck =''%s'' order by R_ID desc ';
+  nStr := Format(nStr, [sTable_Truck, nTruck]);
+
+  with FDM.QueryTemp(nStr) do
+  begin
+    if RecordCount <= 0 then
+      Exit;
+    nRID := Fields[0].AsString;
+  end;
+
+  nStr := 'Delete from %s where P_ID=''%s'' ';
+  nStr := format(nStr,[sTable_Picture, nRID]);
+  FDM.ExecuteSQL(nStr);
+
+  if Assigned(nTunnel) then //过磅称重
+  begin
+    nList := TStringList.Create;
+    try
+      CapturePicture(nTunnel, nList);    //nLogin,
+      //capture file
+
+      for nIdx:=0 to nList.Count - 1 do
+        SavePicture(nRID, nTruck, '', nList[nIdx]);
+      //save file
+    finally
+      nList.Free;
+    end;
+  end;
 end;
 
 //Date: 2018-08-16

@@ -551,15 +551,20 @@ begin
 end;
 
 procedure TfFrameBill.N10Click(Sender: TObject);
-var nOutFact: string;
+var nOutFact,nCusID,nStockName,nStockNameEx: string;
 begin
   inherited;
-
   if cxView1.DataController.GetSelectedCount > 0 then
   begin
-    nOutFact := FormatDateTime('yyyy年mm月dd日',SQLQuery.FieldByName('L_OutFact').AsDateTime);
+    nOutFact    := FormatDateTime('yyyy年mm月dd日',SQLQuery.FieldByName('L_OutFact').AsDateTime);
+    nCusID      := SQLQuery.FieldByName('L_CusID').AsString;
+    nStockName  := SQLQuery.FieldByName('L_StockName').AsString;
+    nStockNameEx:= nStockName;
+    {$IFDEF GZBSZ}
+    nStockNameEx:= GetHYMBInfo(nCusID,nStockName);
+    {$ENDIF}
     PrintHuaYanReport(SQLQuery.FieldByName('L_HYDan').AsString,
-      SQLQuery.FieldByName('L_StockName').AsString, nOutFact,
+      nStockNameEx, nOutFact,
       SQLQuery.FieldByName('L_ID').AsString, True);
   end;
 end;

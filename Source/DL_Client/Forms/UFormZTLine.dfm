@@ -2,22 +2,22 @@ inherited fFormZTLine: TfFormZTLine
   Left = 536
   Top = 401
   Caption = #35013#36710#32447#37197#32622
-  ClientHeight = 248
+  ClientHeight = 263
   ClientWidth = 550
   Position = poMainFormCenter
   PixelsPerInch = 96
   TextHeight = 12
   inherited dxLayout1: TdxLayoutControl
     Width = 550
-    Height = 248
+    Height = 263
     inherited BtnOK: TButton
       Left = 404
-      Top = 215
+      Top = 230
       TabOrder = 13
     end
     inherited BtnExit: TButton
       Left = 474
-      Top = 215
+      Top = 230
       TabOrder = 14
     end
     object EditName: TcxTextEdit [2]
@@ -51,7 +51,7 @@ inherited fFormZTLine: TfFormZTLine
     end
     object CheckValid: TcxCheckBox [5]
       Left = 11
-      Top = 215
+      Top = 230
       Hint = 'T.Z_Valid'
       Caption = #36890#36947#26377#25928
       ParentFont = False
@@ -267,5 +267,17 @@ inherited fFormZTLine: TfFormZTLine
         end
       end
     end
+  end
+  object ChkCusLine: TcxCheckBox
+    Left = 14
+    Top = 195
+    Hint = 'T.Z_CusLine'
+    Caption = #19987#29992#36890#36947
+    ParentFont = False
+    Style.BorderColor = clWindowFrame
+    Style.BorderStyle = ebsSingle
+    TabOrder = 1
+    Transparent = True
+    Width = 80
   end
 end

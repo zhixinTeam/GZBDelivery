@@ -27,7 +27,9 @@ const
   cBC_GetCardUsed             = $0004;   //获取卡片类型
   cBC_UserLogin               = $0005;   //用户登录
   cBC_UserLogOut              = $0006;   //用户注销
+  cBC_UserYSWh                = $8006;   //用户验收权限
   cBC_GetOrderCType           = $0007;   //获取采购单卡类型
+  cBC_GetDuanDaoCType         = $6017;   //获取短倒单卡类型
 
   cBC_GetCustomerMoney        = $0010;   //获取客户可用金
   cBC_GetZhiKaMoney           = $0011;   //获取纸卡可用金
@@ -56,11 +58,15 @@ const
   cBC_SaveOrderCard           = $0042;
   cBC_LogOffOrderCard         = $0043;
   cBC_GetPostOrders           = $0044;   //获取岗位采购单
+  cBC_GetPostOrders_KS        = $8044;   //获取矿山采购单
   cBC_SavePostOrders          = $0045;   //保存岗位采购单
   cBC_SaveOrderBase           = $0046;   //保存采购申请单
   cBC_DeleteOrderBase         = $0047;   //删除采购申请单
   cBC_GetGYOrderValue         = $0048;   //获取已收货量
   cBC_ImportOrderPoundS       = $0049;   //批量插入过磅信息
+
+  cBC_AlterPostOrders         = $0050;   //修改采购单品种信息
+  cBC_AlterTruckSnap          = $0051;   //修改车辆签到信息
 
   cBC_GetPostBills            = $0030;   //获取岗位交货单
   cBC_SavePostBills           = $0031;   //保存岗位交货单
@@ -82,6 +88,12 @@ const
   cBC_SaveCountData           = $0064;   //保存计数结果
   cBC_RemoteExecSQL           = $0065;
 
+  cBC_ShowLedTxt              = $0066;   //向led屏幕发送内容
+  cBC_GetLimitValue           = $0067;   //获取车辆最大限载值
+  cBC_LineClose               = $0068;   //关闭放灰
+
+  cBC_ShowTxt                 = $0079;   //车检:发送小屏
+
   cBC_FYWLGetSaleInfo         = $8001;   //发运物流销售单
   cBC_FYWLSynSalePound        = $8002;   //同步发运物流销售磅单
   cBC_FYWLSynOrderPound       = $8003;   //同步发运物流采购磅单
@@ -95,6 +107,7 @@ const
   cBC_IsTruckQueue            = $8028;
 
   cBC_SyncCustomer            = $0080;   //远程同步客户
+  cBC_SyncModCustomer         = $8081;   //远程修改客户
   cBC_SyncSaleMan             = $0081;   //远程同步业务员
   cBC_SyncStockBill           = $0082;   //同步单据到远程
   cBC_CheckStockValid         = $0083;   //验证是否允许发货
@@ -116,6 +129,7 @@ const
 
   sBus_BusinessPurchase       = 'Bus_BusinessPurchase'; //采购单相关
   sBus_BusinessHHJY           = 'Bus_BusinessHHJY';     //恒河久远接口服务
+  sCLI_BusinessHHJY           = 'CLI_BusinessHHJY';     //恒河久远接口服务
 
   cBC_WeChat_getCustomerInfo  = $0095;   //微信平台接口：获取客户注册信息
   cBC_WeChat_get_Bindfunc     = $0096;   //微信平台接口：客户与微信账号绑定
@@ -184,6 +198,17 @@ const
   cBC_WX_get_shoporderbyTruck = $0523;   //微信：根据车牌号获取订单信息
   cBC_WX_get_shoporderbyTruckClt = $0524;   //微信：根据车牌号获取订单信息  客户端用
   cBC_WX_get_shoporderStatus  = $0525;   //微信：根据订单号获取订单状态
+
+  cBC_WX_get_ClientReportInfo    = $0535;   //微信：查询客户报表信息
+  cBC_WX_get_QueueInfobyTruck    = $0536;   //微信：根据车牌号获取待上屏队列信息
+  cBC_WX_get_TruckMaxBillNumInfo = $0537;   //微信：根据车牌号获取车牌荷载吨数信息
+  cBC_WX_get_QuerySaleDtl        = $0538;   //微信：获取销售报表
+  cBC_WX_get_LineInfobyTruck     = $0539;   //微信：车辆进厂后排队通道查询
+  cBC_WX_get_TruckQueuedInfo     = $053A;   //微信：车辆排队通知
+
+  cBC_WX_get_shopYYWebBill    = $0526;   //微信：根据时间段获取预约订单
+  cBC_WX_SaveCustomerWxOrders = $0529;   //微信：新增客户预开单
+  cBC_WX_IsCanCreateWXOrder   = $0531;   //微信：下单校验
 
 type
   PWorkerQueryFieldData = ^TWorkerQueryFieldData;
@@ -262,6 +287,10 @@ type
     Foutfact    : TDateTime;       //出厂日期
     FHdOrderId  : string;          //合单订单号
     FextDispatchNo:string;         //合单发运单号
+    FYToutfact  : string;          //云天出厂日期
+    FDispatchNo : string;          //物流发运单号
+    FCtype      : string;          //卡类型；'L'：临时；'G'：固定
+    FIsKS       : Integer          //0：不是矿山业务；1：是矿山业务(钟祥用),2:补单
   end;
 
   TLadingBillItems = array of TLadingBillItem;
@@ -442,6 +471,10 @@ begin
         FTRANSNAME := Values['TRANSNAME'];
         Foutfact := Str2DateTime(Values['OUTDATE']);
         FHdOrderId := Values['HdOrderId'];
+        FextDispatchNo := Values['ExtDispatchNo'];
+        FDispatchNo    := Values['DispatchNo'];
+        FCtype         := Values['ctype'];
+        FIsKS          := StrToIntDef(Values['IsKS'],0);
       end;
 
       Inc(nInt);
@@ -535,6 +568,10 @@ begin
         Values['TRANSNAME']   := FTRANSNAME;
         Values['OUTDATE']   := DateTime2Str(Foutfact);
         Values['HdOrderId']    := FHdOrderId;
+        Values['ExtDispatchNo']:= FextDispatchNo;
+        Values['DispatchNo']   := FDispatchNo;
+        Values['ctype']        := FCtype;
+        Values['IsKS']         := IntToStr(FIsKS);
       end;
 
       nListA.Add(PackerEncodeStr(nListB.Text));

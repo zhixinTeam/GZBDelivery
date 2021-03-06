@@ -555,7 +555,7 @@ begin
   inherited;
   if cxView1.DataController.GetSelectedCount < 1 then
   begin
-    ShowMsg('请选择要取消的记录', sHint);
+    ShowMsg('请选择要设置的记录', sHint);
     Exit;
   end;
 

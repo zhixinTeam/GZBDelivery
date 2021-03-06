@@ -20,6 +20,7 @@ inherited fFrameCusBatMap: TfFrameCusBatMap
           Default = True
           Kind = bkEllipsis
         end>
+      Properties.OnButtonClick = EditCusNamePropertiesButtonClick
       TabOrder = 0
       Width = 121
     end
@@ -32,6 +33,7 @@ inherited fFrameCusBatMap: TfFrameCusBatMap
           Default = True
           Kind = bkEllipsis
         end>
+      Properties.OnButtonClick = EditCusNamePropertiesButtonClick
       TabOrder = 1
       Width = 121
     end
@@ -43,7 +45,7 @@ inherited fFrameCusBatMap: TfFrameCusBatMap
           ControlOptions.ShowBorder = False
         end
         object dxLayout1Item2: TdxLayoutItem
-          Caption = #21270#39564#25209#27425':'
+          Caption = #21697#31181#21517#31216':'
           Control = EditCode
           ControlOptions.ShowBorder = False
         end

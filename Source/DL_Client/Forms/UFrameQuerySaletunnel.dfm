@@ -139,6 +139,7 @@ inherited fFrameSaletunnelQuery: TfFrameSaletunnelQuery
     object EditDate: TcxDateEdit [10]
       Left = 971
       Top = 36
+      ParentFont = False
       Properties.SaveTime = False
       Properties.ShowTime = False
       TabOrder = 5

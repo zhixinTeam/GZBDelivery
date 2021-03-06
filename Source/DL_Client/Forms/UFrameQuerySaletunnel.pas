@@ -112,7 +112,7 @@ begin
   ' select L_Value,L_Group, (select G_StockName from S_GroupTmp where G_ID = c.L_Group) G_StockName from ' +
   ' (select SUM(L_Value) L_Value,L_Group from ' +
   ' (select *, (SELECT D_Value  FROM Sys_Dict where D_Memo = a.L_Ladeline) L_Group from ' +
-  ' (select SUM(L_Value) L_Value, L_LadeLine from S_Bill where  L_OutFact >= ''%s'' and L_OutFact < ''%s''  Group by L_LadeLine) a) b '+
+  ' (select SUM(L_Value) L_Value, L_LadeLine from S_Bill where  L_LadeTime >= ''%s'' and L_LadeTime < ''%s''  Group by L_LadeLine) a) b '+
   ' Group by L_Group) c ' ;
 
   nStr := Format(nStr, [DateTime2Str(FTimeS),DateTime2Str(FTimeE)]);

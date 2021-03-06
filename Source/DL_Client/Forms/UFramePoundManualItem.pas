@@ -387,6 +387,10 @@ var nRet: Boolean;
     nStr,nHint: string;
     nIdx,nInt: Integer;
     nBills: TLadingBillItems;
+    nIsPreTruck:Boolean;
+    nPrePValue: Double;
+    nPrePMan: string;
+    nPrePTime: TDateTime;
 begin
   if nCard = '' then
   begin
@@ -411,6 +415,8 @@ begin
     Exit;
   end;
 
+  nIsPreTruck := getPrePInfo(nBills[0].FTruck,nPrePValue,nPrePMan,nPrePTime);
+  
   FCardNo := nCard;
   nHint := '';
   nInt := 0;
@@ -418,6 +424,30 @@ begin
   for nIdx:=Low(nBills) to High(nBills) do
   with nBills[nIdx] do
   begin
+    //长期卡+预置皮重
+    if (FCtype=sFlag_CardGuDing) and nIsPreTruck and (gSysParam.FIsKS = 1) and (FCardUsed = sFlag_Provide) then
+    begin
+      //皮重过期或皮重为0，则重新保存皮重
+      if nPrePValue < 0.00001 then
+      begin
+        FStatus := sFlag_TruckIn;
+        FNextStatus := sFlag_TruckBFP;
+        FillChar(FPData, SizeOf(FPData), 0);
+        FillChar(FMData, SizeOf(FMData), 0);
+      end
+      //皮重有效，保存毛重
+      else begin
+        FNextStatus := sFlag_TruckBFM;
+        with nBills[0] do
+        begin
+          FPData.FValue := nPrePValue;
+          FPData.FOperator := nPrePMan;
+          FPData.FDate := nPrePTime;
+        end;
+      end;
+      ShowMsg(FloatToStr(FPData.FValue),'');
+    end
+    else
     if (FStatus <> sFlag_TruckBFP) and (FNextStatus = sFlag_TruckZT) then
       FNextStatus := sFlag_TruckBFP;
     //状态校正
@@ -834,9 +864,13 @@ procedure TfFrameManualPoundItem.EditMValuePropertiesEditValueChanged(
   Sender: TObject);
 var nVal: Double;
     nEdit: TcxTextEdit;
+    nIsPreTruck:Boolean;
+    nPrePValue: Double;
+    nPrePMan: string;
+    nPrePTime: TDateTime;
 begin
   nEdit := Sender as TcxTextEdit;
-  if not IsNumber(nEdit.Text, True) then Exit; 
+  if not IsNumber(nEdit.Text, True) then Exit;
   nVal := StrToFloat(nEdit.Text);
 
   if Sender = EditPValue then
@@ -845,6 +879,31 @@ begin
 
   if Sender = EditMValue then
     FUIData.FMData.FValue := nVal;
+
+  if  nIsPreTruck and (gSysParam.FIsKS = 1)  then
+  begin
+    with FUIData do
+    begin
+    //皮重过期或皮重为0，则重新保存皮重
+    if nPrePValue < 0.00001 then
+    begin
+      FStatus := sFlag_TruckIn;
+      FNextStatus := sFlag_TruckBFP;
+      FillChar(FPData, SizeOf(FPData), 0);
+      FillChar(FMData, SizeOf(FMData), 0);
+    end
+    //皮重有效，保存毛重
+    else begin
+      FNextStatus := sFlag_TruckBFM;
+
+      FPData.FValue := nPrePValue;
+      FPData.FOperator := nPrePMan;
+      FPData.FDate := nPrePTime;
+
+    end;
+    end;
+  end;
+
   SetUIData(False);
 end;
 
@@ -891,9 +950,36 @@ function TfFrameManualPoundItem.SavePoundData: Boolean;
 var nLimite: Boolean;
     nNextStatus: string;
     nMax, nWarn, nLim, nFreeze: Double;
+    nIsPreTruck:Boolean;
+    nPrePValue: Double;
+    nPrePMan: string;
+    nPrePTime: TDateTime;
 begin
   Result := False;
   //init
+
+  with FUIData do
+  begin
+    nIsPreTruck := getPrePInfo(FTruck,nPrePValue,nPrePMan,nPrePTime);
+    //长期卡+预置皮重
+    if (FCtype=sFlag_CardGuDing) and nIsPreTruck and (gSysParam.FIsKS = 1)
+      and (FCardUsed = sFlag_Provide) then
+    begin
+      //重量小于设定，则重新保存皮重
+      if (StrToFloatDef(EditMValue.Text,0) < GetPrePValueSet) then
+      begin
+        SaveTruckPrePValue(FTruck,EditValue.Text);
+        UpdateTruckStatus(FUIData.FID);
+        SaveTruckPrePicture(FTruck,FPoundTunnel);
+
+        Result := True;
+        Exit;
+      end;
+      FPData.FValue :=  nPrePValue;
+      FPData.FOperator := nPrePMan;
+      FPData.FDate := nPrePTime;
+    end;
+  end;
 
   if (FUIData.FPData.FValue <= 0) and (FUIData.FMData.FValue <= 0) then
   begin
@@ -909,13 +995,11 @@ begin
       Exit;
     end;
   end;
-
-  if (Length(FBillItems)>0) then
-    nNextStatus := FBillItems[0].FNextStatus;
-
   SetLength(FBillItems, 1);
   FBillItems[0] := FUIData;
   //复制用户界面数据
+  if (Length(FBillItems)>0) then
+    nNextStatus := FBillItems[0].FNextStatus;
   
   with FBillItems[0] do
   begin

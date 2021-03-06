@@ -56,6 +56,7 @@ type
     function getPrePInfo(const nTruck:string;var nPrePValue:Double;
                           var nPrePMan:string;var nPrePTime:TDateTime):Boolean;
     function GetInBillInterval: Integer;
+    function VerifyPTruckCount(const nPID, nStockNo: string; var nHint: string): Boolean;
   public
     constructor Create; override;
     destructor destroy; override;
@@ -637,6 +638,11 @@ begin
   nWeborder := FListA.Values['WebOrderID'];
   //unpack Order
 
+  {$IFDEF PTruckCount}
+  if not VerifyPTruckCount(FListA.Values['ProviderID'],FListA.Values['StockNO'], nHint) then
+    raise Exception.Create(nHint);
+  {$ENDIF}
+
   
   //begin判断该车牌号是否有未完成业务
   {$IFDEF MultiOrderOfTruck}
@@ -693,7 +699,7 @@ begin
   {$ENDIF}
   //end判断该车牌号是否有未完成业务
 
-  {$IFDEF TruckParkReady}
+  {$IFDEF TruckParkReadyEx}
   nInt := GetInBillInterval;
   
   nStr := ' Select %s as T_Now,T_LastTime,T_NoVerify,T_Valid,T_MaxBillNum From %s ' +
@@ -704,15 +710,21 @@ begin
   begin
     if RecordCount < 1 then
     begin
+      Result := False;
+      FOut.FBase.FResult := False;
       nData := '没有车辆[ %s ]的档案,无法开单.';
       nData := Format(nData, [FListA.Values['Truck']]);
+      Fout.FBase.FErrDesc := nData;
       Exit;
     end;
 
     if FieldByName('T_Valid').AsString = sFlag_No then
     begin
+      Result := False;
+      FOut.FBase.FResult := False;
       nData := '车辆[ %s ]被管理员禁止开单.';
       nData := Format(nData, [FListA.Values['Truck']]);
+      Fout.FBase.FErrDesc := nData;
       Exit;
     end;
 
@@ -724,8 +736,9 @@ begin
 
       if nIdx >= nInt then
       begin
-        nData := '车辆[ %s ]可能不在停车场,禁止开单.';
-        nData := Format(nData, [FListA.Values['Truck']]);
+        Result := False;
+        nData  := '车辆[ %s ]可能不在停车场,禁止开单.';
+        nData  := Format(nData, [FListA.Values['Truck']]);
         Exit;
       end;
     end;
@@ -1197,6 +1210,7 @@ begin
 
       with nBills[0], FListA do
       begin
+        FID         := '';
         FZhiKa      := Values['O_ID'];
         FCusID      := Values['O_ProID'];
         FCusName    := Values['O_ProName'];
@@ -2300,6 +2314,70 @@ begin
   if RecordCount > 0 then
   begin
     Result := Fields[0].AsInteger;
+  end;
+end;
+
+function TWorkerBusinessOrders.VerifyPTruckCount(const nPID,
+  nStockNo: string; var nHint: string): Boolean;
+var nStr: string;
+    nCount, nCountSet : Integer;
+    nBDate, nEDate: string;
+begin
+  Result := True;
+  nHint := '';
+  nStr := 'Select * From %s Where C_CusName=''%s''';
+  nStr := Format(nStr, [sTable_PTruckControl, sFlag_PTruckControl]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount <= 0 then
+      Exit;
+    WriteLog('原材料进厂车辆数量总控制:' + FieldByName('C_Valid').AsString);
+    if FieldByName('C_Valid').AsString <> sFlag_Yes then
+      Exit;
+  end;
+
+  nCount := 0;
+  nCountSet := 0;
+
+  nStr := 'Select * From %s Where C_CusID=''%s'' and C_StockNo=''%s'' and C_Valid=''%s''';
+  nStr := Format(nStr, [sTable_PTruckControl, nPID, nStockNo, sFlag_Yes]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount <= 0 then
+    begin
+      WriteLog('供应商' + nPID + '原材料'+ nStockNo + '未配置限定规则或规则未启用');
+      Exit;
+    end;
+    nCountSet := FieldByName('C_Count').AsInteger;
+    WriteLog('原材料进厂车辆数量控制:' + FieldByName('C_Count').AsString);
+  end;
+
+  nBDate := FormatDateTime('YYYY-MM-DD', Now) + ' 00:00:00';
+  nEDate := FormatDateTime('YYYY-MM-DD', Now) + ' 23:59:59';
+
+  nStr := ' Select Count(*) as P_Count From %s a, '+
+          ' P_Order b where a.D_OID = b.O_ID and O_ProID=''%s'' and O_StockNo=''%s'' '
+         +' And (D_InTime>=''%s'' and D_InTime <=''%s'')';
+  nStr := Format(nStr, [sTable_OrderDtl, nPID, nStockNo, nBDate, nEDate]);
+
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  begin
+    if RecordCount <= 0 then
+    begin
+      Exit;
+    end;
+    nCount := FieldByName('P_Count').AsInteger;
+
+    if (nCount > 0) and (nCount >= nCountSet) then
+    begin
+      nHint := '供应商' + nPID + '原材料'+ nStockNo
+               + '当前已开单数量' + IntToStr(nCount)
+               + '超出日进厂设定数量' + IntToStr(nCountSet) + '无法开单';
+      WriteLog(nHint);
+      Result := False;
+    end;
   end;
 end;
 

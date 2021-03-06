@@ -45,6 +45,9 @@ type
     dxLayout1Item9: TdxLayoutItem;
     dxLayout1Group1: TdxLayoutGroup;
     dxLayout1Group2: TdxLayoutGroup;
+    N4: TMenuItem;
+    N5: TMenuItem;
+    N7: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditIDPropertiesButtonClick(Sender: TObject;
@@ -57,6 +60,8 @@ type
     procedure N2Click(Sender: TObject);
     procedure N3Click(Sender: TObject);
     procedure Check1Click(Sender: TObject);
+    procedure N5Click(Sender: TObject);
+    procedure N7Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -442,6 +447,83 @@ begin
   begin
     ShowMsg(nData,sHint);
   end;
+end;
+
+procedure TfFramePurchaseOrder.N5Click(Sender: TObject);
+var nCard, nStr, nTruck, nSql, nCardEx : string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要编辑的记录', sHint); Exit;
+  end;
+  nCard  := SQLQuery.FieldByName('O_Card').AsString;
+  nTruck := SQLQuery.FieldByName('O_Truck').AsString;
+
+  if Length(nCard) = 0 then Exit;
+  
+  if Copy(nCard,1,1) <> 'E' then
+  begin
+    ShowMsg('不是电子标签,请选择电子标签', sHint); Exit;
+  end;
+
+  nSql := ' select * from %s where T_Truck = ''%s'' ';
+  nSql := Format(nSql,[sTable_Truck,nTruck]);
+
+  with FDM.QueryTemp(nSql) do
+  begin
+    if recordcount>0 then
+    begin
+      nCardEx := FieldByName('T_Card').AsString;
+    end;
+  end;
+
+  try
+    nStr := ' Update %s Set O_Card=''%s'' Where O_Card=''%s'' ';
+    nStr := Format(nStr, [sTable_Order, nCardEx, nCard]);
+    fdm.ExecuteSQL(nStr);
+
+    nStr := ' Update %s Set D_Card=''%s'' Where D_Card=''%s'' ';
+    nStr := Format(nStr, [sTable_OrderDtl, nCardEx, nCard]);
+    fdm.ExecuteSQL(nStr);
+  except
+
+  end;
+  InitFormData(FWhere);
+  ShowMsg('电子标签变更成功', sHint);
+end;
+
+procedure TfFramePurchaseOrder.N7Click(Sender: TObject);
+var nCard, nStr, nTruck, nSql : string;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要编辑的记录', sHint); Exit;
+  end;
+  nCard  := SQLQuery.FieldByName('O_Card').AsString;
+  nTruck := SQLQuery.FieldByName('O_Truck').AsString;
+
+  if Length(nCard) = 0 then Exit;
+  
+  if Copy(nCard,1,1) <> 'E' then
+  begin
+    ShowMsg('不是电子标签,请选择电子标签', sHint); Exit;
+  end;
+
+  try
+    nStr := ' Update %s Set O_Card=Null Where O_Card=''%s'' ';
+    nStr := Format(nStr, [sTable_Order, nCard]);
+    fdm.ExecuteSQL(nStr);
+
+    nStr := ' Update %s Set D_Card=Null Where D_Card=''%s'' ';
+    nStr := Format(nStr, [sTable_OrderDtl, nCard]);
+    fdm.ExecuteSQL(nStr);
+  except
+
+  end;
+  InitFormData(FWhere);
+  ShowMsg('电子标签注销成功', sHint);
 end;
 
 initialization

@@ -49,6 +49,7 @@ type
     dxLayout1Item9: TdxLayoutItem;
     dxLayout1Group6: TdxLayoutGroup;
     dxLayout1Group7: TdxLayoutGroup;
+    ChkCusLine: TcxCheckBox;
     procedure BtnOKClick(Sender: TObject);
     procedure EditStockIDPropertiesChange(Sender: TObject);
   protected
@@ -101,7 +102,7 @@ type
 var
   gStockItems: array of TLineStockItem;
   //品种列表
-   gCheckValid: boolean;
+   gCheckValid,gChkCusLine: boolean;
   //通道钩选属性
   gOldInfo: TFormInfoItem;
 
@@ -149,6 +150,12 @@ procedure TfFormZTLine.InitFormData(const nID: string);
 var nStr: string;
     nIdx: Integer;
 begin
+  {$IFDEF ZDTD}
+  ChkCusLine.Visible := True;
+  {$ELSE}
+  ChkCusLine.Visible := False;
+  {$ENDIF}
+  
   ResetHintAllForm(Self, 'T', sTable_ZTLines);
   //重置表名称
 
@@ -259,6 +266,12 @@ begin
     Result := True;
     SetCtrlData(EditLineGroup, Trim(nData));
   end;
+
+  if Sender = ChkCusLine then
+  begin
+    Result := True;
+    ChkCusLine.Checked := nData = sFlag_Yes;
+  end;
 end;
 
 procedure TfFormZTLine.GetData(Sender: TObject; var nData: string);
@@ -283,6 +296,19 @@ begin
     begin
       nData := sFlag_No;
       gCheckValid := false;
+    end;
+  end;
+
+  if Sender = ChkCusLine then
+  begin
+    if ChkCusLine.Checked   then
+    begin
+      nData := sFlag_Yes;
+      gChkCusLine := true;
+    end else
+    begin
+      nData := sFlag_No;
+      gChkCusLine := false;
     end;
   end;
 end;

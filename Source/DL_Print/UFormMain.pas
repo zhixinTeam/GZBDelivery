@@ -252,7 +252,7 @@ end;
 //Desc: 打印nBill交货单号
 function PrintBillReport(const nBill: string; var nHint: string;
  const nPrinter: string = ''; const nMoney: string = '0'): Boolean;
-var nStr: string;
+var nStr, nWeborderID : string;
     nDS: TDataSet;
     nParam: TReportParamItem;
 begin
@@ -260,8 +260,11 @@ begin
   {$IFDEF GZBZX}
   if Length(nPrinter) < 1 then Exit;
   {$ENDIF}
-  
-  nStr := 'Select *,%s As L_ValidMoney From %s b Where L_ID=''%s''';
+
+//           ' Case When ((L_WebOrderID Is Null) or (L_WebOrderID='''')) Then L_Value Else ' +
+//          ' ( Select sum(isnull(L_Value,0)) from S_Bill where L_WebOrderID = b.L_WebOrderID) End as  L_ValueEx '+
+  nStr := ' Select *,%s As L_ValidMoney, L_Value as  L_ValueEx '+
+          ' From %s b Where L_ID=''%s''';
   nStr := Format(nStr, [nMoney, sTable_Bill, nBill]);
 
   nDS := FDM.SQLQuery(nStr, FDM.SQLQuery1);
@@ -274,6 +277,8 @@ begin
     Exit;
   end;
 
+  nWeborderID := nDS.FieldByName('L_WebOrderID').AsString;
+
   nStr := gPath + 'Report\LadingBill.fr3';
   if not FDR.LoadReportFile(nStr) then
   begin
@@ -285,17 +290,16 @@ begin
        FDR.Report1.PrintOptions.Printer := 'My_Default_Printer'
   else FDR.Report1.PrintOptions.Printer := nPrinter;
 
-  nParam.FName := 'HKRecords';
-  nParam.FValue := '';
-
-  if nDS.FieldByName('L_HKRecord').AsString<>'' then
+  if Length(nWeborderID) > 1 then
   begin
-    nStr := 'Select * From %s b Where L_HKRecord =''%s''';
-    nStr := Format(nStr, [sTable_Bill,
-            nDS.FieldByName('L_HKRecord').AsString]);
-    //xxxxx
+    nStr := ' Select *, L_Value as L_ValueEx ' +
+            ' From %s b Where L_WebOrderID = ''%s'' ';
+    nStr := Format(nStr, [sTable_Bill, nWeborderID]);
+    if FDM.SQLQuery(nStr, FDM.SQLTemp).RecordCount > 1 then
+    begin
+      nParam.FName  := 'HKRecords';
+      nParam.FValue := '';
 
-    if FDM.SQLQuery(nStr, FDM.SQLTemp).RecordCount > 0 then
       with FDM.SQLTemp do
       while not Eof do
       try
@@ -304,6 +308,53 @@ begin
       finally
         Next;
       end;
+    end
+    else
+    begin
+      nParam.FName := 'HKRecords';
+      nParam.FValue := '';
+      if nDS.FieldByName('L_HKRecord').AsString<>'' then
+      begin
+        nStr := ' Select * , L_Value as  L_ValueEx '+
+                ' From %s b Where L_HKRecord =''%s''';
+        nStr := Format(nStr, [sTable_Bill,
+                nDS.FieldByName('L_HKRecord').AsString]);
+        //xxxxx
+
+        if FDM.SQLQuery(nStr, FDM.SQLTemp).RecordCount > 0 then
+          with FDM.SQLTemp do
+          while not Eof do
+          try
+            nStr := FieldByName('L_ID').AsString;
+            nParam.FValue := nParam.FValue + nStr + '.';
+          finally
+            Next;
+          end;
+      end;
+    end;
+  end
+  else
+  begin
+    nParam.FName := 'HKRecords';
+    nParam.FValue := '';
+    if nDS.FieldByName('L_HKRecord').AsString<>'' then
+    begin
+      nStr := ' Select * , L_Value as  L_ValueEx '+
+              ' From %s b Where L_HKRecord = ''%s'' ';
+      nStr := Format(nStr, [sTable_Bill,
+              nDS.FieldByName('L_HKRecord').AsString]);
+      //xxxxx
+
+      if FDM.SQLQuery(nStr, FDM.SQLTemp).RecordCount > 0 then
+        with FDM.SQLTemp do
+        while not Eof do
+        try
+          nStr := FieldByName('L_ID').AsString;
+          nParam.FValue := nParam.FValue + nStr + '.';
+        finally
+          Next;
+        end;
+    end;
   end;
   FDR.AddParamItem(nParam);
 

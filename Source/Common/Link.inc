@@ -50,7 +50,7 @@
 {.$DEFINE COMMON}
 //通用版本
 
-{$DEFINE  GZBJM}
+{$DEFINE  GZBJY}
 //特定系统
 
 //葛洲坝潜江
@@ -105,6 +105,10 @@
   //散装网口小屏显示
   {$DEFINE SanCFNeedPound}
   //散装超发需再次过磅
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
+  {$DEFINE UseNJYQueue}
+  //使用进厂不校验在队列中
 {$ENDIF}
 
 //葛洲坝老河口
@@ -171,6 +175,14 @@
   //转子秤定制装车
   {$DEFINE DaiWCInManual}
    //超发后人工干预后才能出行
+  {$DEFINE MicroMsgDelaySend}
+  //微信数据延迟推送(MicroMsg开关下子开关)
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
+  {$DEFINE UseTruckXZ}
+  //使用车辆限载
+ {$DEFINE AllowMultiM}
+ //允许多次过毛重   
 {$ENDIF}
 
 //葛洲坝兴山
@@ -219,8 +231,12 @@
   //删除本地交货单时不再同步云天
   {$DEFINE UseAllCusNameBillHK}
   //允许不同客户不同品种进行合单
- {$DEFINE UseWXServiceEx}
+ {$DEFINE UseWXServiceEx} 
   //使用二期微信中间件
+ {$DEFINE AllUseDate}
+  //使用日期条件筛选
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
 {$ENDIF}
 
 //葛洲坝松滋
@@ -263,6 +279,10 @@
   //微信数据延迟推送(MicroMsg开关下子开关)
   {$DEFINE UseOrderDayNum}
   //原材料日进厂量限制
+  {$DEFINE MITTruckProber}
+  //服务器操作车检
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
 {$ENDIF}
 
 //葛洲坝荆门
@@ -275,7 +295,7 @@
   //远程同步
   {$DEFINE AppAtTaskBar}
   //状态栏显示
-  {$DEFINE MicroMsg}
+  {.$DEFINE MicroMsg}
   //微信支持
   {$DEFINE CODECOMMON}
   //通用喷码
@@ -283,8 +303,10 @@
   //采购使用合同
   {$DEFINE MITTruckProber}
   //服务器操作车检
-  {$DEFINE EnableWebMall}
+  {.$DEFINE EnableWebMall}
   //使用网上商城
+ {$DEFINE TruckAutoIn}
+  //自动进厂
   {.$DEFINE JMSecurityCode}
   //荆门专用防违流喷码
   {$DEFINE MultiOrderOfTruck}
@@ -305,6 +327,12 @@
   //装车机
   {$DEFINE UseWLFYInfo}
   //使用物流发运接口
+  {.$DEFINE MicroMsgDelaySend}
+  //微信数据延迟推送(MicroMsg开关下子开关)
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
+ {$DEFINE UseWXServiceEx}
+  //使用二期微信中间件
 {$ENDIF}
 
 //葛洲坝钟祥
@@ -329,8 +357,8 @@
   //车辆循环进厂
   {$DEFINE USECONTRACT}
   //采购使用合同
-  {$DEFINE EnableWebMall}
-  //使用网上商城
+ {$DEFINE UseWXServiceEx}
+  //使用二期微信中间件
   {.$DEFINE NoSecurityCodeQuery}
   //关闭防违流查询
   {$DEFINE DaiStepWuCha}
@@ -341,14 +369,50 @@
   //修改云天业务流水号规则
   {$DEFINE TruckParkReady}
   //验证车辆是否在停车场
+  {$DEFINE TruckParkReadyEx}
+  //验证车辆是否在停车场(原材料)
   {.$DEFINE PurELabelAutoCard}
   //采购电子标签自动发卡
   {$DEFINE GlLade}
   //骨料发运
   {$DEFINE SaveEmptyTruck}
   //空车出厂保存净重为0
+  {$DEFINE VoiceToDoorEx}
+  //过磅失败向门岗播报语音
   {.$DEFINE DeleteBillOnlyLocal}
   //删除本地交货单时不再同步云天
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
+  {$DEFINE UseNoWebOrderID}
+  //不允许不同的二维码拼单
+ {$DEFINE AddKSYW}
+  //增加矿山特殊业务
+  {$DEFINE YanShouOnlyShow}
+  //刷卡验收只通过网口小屏显示信息(此开关为YanShouByCard下子开关)
+  {$DEFINE YanShouTunnelByDict}
+  //刷卡验收通道从DICT获取(此开关为YanShouByCard下子开关)
+  {$DEFINE LedNew}
+  //新驱动小屏
+  {.$DEFINE SanLed}
+  //散装新驱动小屏
+  {$DEFINE NoUpdatePrePValue}
+  //不更新皮重
+  {$DEFINE TruckAutoIn}
+  //自动进厂
+  {$DEFINE PVlueVoice}
+  //销售称皮重时播报皮重重量
+  {$DEFINE SaleBudanMValue}
+  //销售补单输入毛重
+  {$DEFINE SaveCODENO}
+  //保存喷码到数据库
+ {$DEFINE AllUseDate}
+  //使用日期条件筛选
+ {$DEFINE BuDanJY}
+  //销售补单开单校验
+ {$DEFINE HDWorkAddr}
+  //合单检验工程工地
+ {$DEFINE Between2BillTimeEx}
+  //出厂间隔时间限制
 {$ENDIF}
 
 //葛洲坝汉川
@@ -403,6 +467,14 @@
   //使用二期微信中间件
  {$DEFINE UseDaiJYStockNo}
   //袋装刷卡判断品种是否一致
+ {$DEFINE OverTimeReQueue}
+  //使用超时重新排队功能
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
+  {$DEFINE SpecifyCk}
+  //指定仓库
+  {$DEFINE ZDTD}
+  //指定通道
 {$ENDIF}
 //葛洲坝嘉鱼
 {$IFDEF GZBJY}
@@ -412,10 +484,8 @@
   //华益读头
   {$DEFINE AppAtTaskBar}
   //状态栏显示
-  {$DEFINE CODEAREA}
-  //喷码打印销售区域
- {$DEFINE CODEAREAEX}
- //喷码打印销售区域3位
+  {$DEFINE CODECOMMON}
+  //通用喷码  
   {$DEFINE ERROPENONEDOOR}
   //过磅失败倒车下磅
   {$DEFINE DaiStepWuCha}
@@ -436,11 +506,43 @@
   //JSQ应答模式
   {$DEFINE SaveEmptyTruck}
   //空车出厂保存净重为0
-  {$DEFINE GlLade}
-  //骨料发运
   {$DEFINE PurchaseOrderSingle}
   //使用单厂采购业务
   {$DEFINE UseELableAsCard}
   //使用电子标签作为卡号
+  {$DEFINE SaveCODENO}
+  //保存喷码编号
+  {$DEFINE SaveYTLadeID} 
+  //保存云天发货单号
+  {$DEFINE SyncRemote}
+  //同步远程
+ {$DEFINE MITTruckProber}
+  //服务器操作车检
+  {$DEFINE FixLoad}
+  //转子秤定制装车
+ {$DEFINE OverTimeReQueue}
+  //使用超时重新排队功能
+ {$DEFINE Between2BillTime}
+ //出厂一定时间内不能开单
+ {$DEFINE UseWXServiceEx}
+  //使用二期微信中间件
+ {$DEFINE NoUseOrderSale}
+  //不能同时使用采购单和销售单
+ {$DEFINE AllUseDate}
+  //使用日期条件筛选
+  {$DEFINE ChangeYTSerialNo}
+  //修改云天业务流水号规则
+  {$DEFINE UseWLFYInfo}
+  //使用物流发运接口
+  {$DEFINE UseWebYYOrder}
+  //使用双向同步
+  {$DEFINE UseELableOpenDoor}
+  //使用电子标签抬杆
+  {.$DEFINE UseUserYS}
+  //使用用户验收控制
+  {$DEFINE JSTruck}
+  //车牌号加品种简码
+  {$DEFINE StockTunnel}
+  //原材料通道验收
 {$ENDIF}
 

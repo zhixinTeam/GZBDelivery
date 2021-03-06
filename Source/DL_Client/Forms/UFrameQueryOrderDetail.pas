@@ -4,6 +4,7 @@
 *******************************************************************************}
 unit UFrameQueryOrderDetail;
 
+{$I Link.inc}
 interface
 
 uses
@@ -40,12 +41,14 @@ type
     N2: TMenuItem;
     N3: TMenuItem;
     N4: TMenuItem;
+    N5: TMenuItem;
     procedure EditDatePropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure EditTruckPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
     procedure mniN1Click(Sender: TObject);
     procedure N2Click(Sender: TObject);
+    procedure N5Click(Sender: TObject);
   private
     { Private declarations }
   protected
@@ -68,7 +71,7 @@ implementation
 {$R *.dfm}
 uses
   IniFiles, ULibFun, UMgrControl, UFormDateFilter, USysPopedom, USysBusiness,
-  UBusinessConst, USysConst, USysDB;
+  UBusinessConst, USysConst, USysDB, UFormBase;
 
 class function TfFrameOrderDetailQuery.FrameID: integer;
 begin
@@ -83,6 +86,12 @@ begin
 
   FJBWhere := '';
   InitDateRange(Name, FStart, FEnd);
+
+  {$IFDEF GZBHC}
+  N5.Visible := True;
+  {$ELSE}
+  N5.Visible := False;
+  {$ENDIF}
 end;
 
 procedure TfFrameOrderDetailQuery.OnDestroyFrame;
@@ -94,9 +103,18 @@ end;
 function TfFrameOrderDetailQuery.InitFormDataSQL(const nWhere: string): string;
 begin
   EditDate.Text := Format('%s 至 %s', [Date2Str(FStart), Date2Str(FEnd)]);
+
+  {$IFDEF AddKSYW}
+  Result := 'Select *,(D_MValue-D_PValue-D_KZValue) as D_NetWeight, ' +
+            ' isnull(D_StockNo, O_StockNo) as O_StockNoEx, ' +
+            ' isnull(D_StockName, O_StockName) as O_StockNameEx ' +
+            ' From $OD od Inner Join $OO oo on od.D_OID=oo.O_ID ';
+  //xxxxxx
+  {$ELSE}
   Result := 'Select *,(D_MValue-D_PValue-D_KZValue) as D_NetWeight ' +
             'From $OD od Inner Join $OO oo on od.D_OID=oo.O_ID ';
   //xxxxxx
+  {$ENDIF}
 
   if FJBWhere = '' then
   begin
@@ -194,6 +212,39 @@ end;
 //Date: 2015/8/13
 //Parm: 
 //Desc: 删除未完成记录
+procedure TfFrameOrderDetailQuery.N5Click(Sender: TObject);
+var
+  nID   : string;
+  nList : TStrings;
+  nP: TFormCommandParam;
+begin
+  inherited;
+  if cxView1.DataController.GetSelectedCount < 1 then
+  begin
+    ShowMsg('请选择要勘误的记录', sHint);
+    Exit;
+  end;
+
+  nID := SQLQuery.FieldByName('D_ID').AsString;
+
+  nList := TStringList.Create;
+  try
+    nList.Add(nID);
+
+    nP.FCommand := cCmd_EditData;
+    nP.FParamA := nList.Text;
+    CreateBaseFormItem(cFI_FormOrderKW, '', @nP);
+
+    if (nP.FCommand = cCmd_ModalResult) and (nP.FParamA = mrOK) then
+    begin
+      InitFormData(FWhere);
+    end;
+
+  finally
+    nList.Free;
+  end;
+end;
+
 initialization
   gControlManager.RegCtrl(TfFrameOrderDetailQuery, TfFrameOrderDetailQuery.FrameID);
 end.

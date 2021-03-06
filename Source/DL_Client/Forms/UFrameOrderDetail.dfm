@@ -10,6 +10,7 @@ inherited fFrameOrderDetail: TfFrameOrderDetail
     inherited BtnEdit: TToolButton
       Left = 79
       Visible = False
+      OnClick = BtnEditClick
     end
     inherited BtnDel: TToolButton
       Left = 158
@@ -243,6 +244,10 @@ inherited fFrameOrderDetail: TfFrameOrderDetail
       Visible = False
       OnClick = N3Click
     end
+    object N10: TMenuItem
+      Caption = #25209#37327#25171#21360#37319#36141#21333
+      OnClick = N10Click
+    end
     object N4: TMenuItem
       Caption = #25171#21360#37319#36141#21333
       OnClick = N4Click
@@ -253,6 +258,17 @@ inherited fFrameOrderDetail: TfFrameOrderDetail
     object N6: TMenuItem
       Caption = #21270#39564#32467#26524
       OnClick = N6Click
+    end
+    object N7: TMenuItem
+      Caption = '-'
+    end
+    object N8: TMenuItem
+      Caption = #20154#24037#19978#20256
+      OnClick = N8Click
+    end
+    object N9: TMenuItem
+      Caption = #37319#36141#35746#21333#21208#35823
+      OnClick = N9Click
     end
   end
 end

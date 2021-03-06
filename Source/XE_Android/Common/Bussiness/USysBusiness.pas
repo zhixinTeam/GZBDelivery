@@ -67,6 +67,8 @@ function SavePurchaseOrders(const nPost: string; const nData: TLadingBillItems):
 function LogIn: Boolean;
 function LogOut: Boolean;
 
+function UserYSControl(const nStockNo: string): Boolean;
+
 function IsStockValid(const nStocks: string): Boolean;
 implementation
 
@@ -367,6 +369,23 @@ begin
   nStr := PackerEncodeStr(gSysParam.FOperator);
   Result := CallBusinessCommand(cBC_UserLogOut, nStr, '', @nOut);
   //if (not Result) or (nOut.FData = '') then Exit;
+end;
+
+function UserYSControl(const nStockNo: string): Boolean;
+var nStr: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  with TStringList.Create do
+  begin
+    Values['UserName'] := gSysParam.FOperator;
+    Values['StockNo']  := nStockNo;
+
+    nStr := PackerEncodeStr(Text);
+    Free;
+  end;
+
+  Result := CallBusinessCommand(cBC_UserYSWh, nStr, '', @nOut);
+  if (not Result) or (nOut.FData = '') then Exit;
 end;
 
 end.

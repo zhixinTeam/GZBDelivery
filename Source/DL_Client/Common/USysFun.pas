@@ -76,6 +76,7 @@ begin
       FCopyRight := ReadString(FProgID, 'CopyRight', '');
       FRecMenuMax := ReadInteger(FProgID, 'MaxRecent', cRecMenuMax);
       FIsMT       := ReadInteger(FProgID,'IsMT',1);
+      FIsKS       := ReadInteger(FProgID,'IsKS',0);
 
       FIconFile := ReadString(FProgID, 'IconFile', gPath + 'Icons\Icon.ini');
       FIconFile := StringReplace(FIconFile, '$Path\', gPath, [rfIgnoreCase]);

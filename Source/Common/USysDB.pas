@@ -68,6 +68,7 @@ ResourceString
   sPopedom_Print      = 'F';                         //打印
   sPopedom_Export     = 'G';                         //导出
   sPopedom_ViewPrice  = 'H';                         //查看单价
+  sPopedom_FullReport = 'I';                         //原始报表
 
   {*数据库标识*}
   sFlag_DB_K3         = 'King_K3';                   //金蝶数据库
@@ -178,6 +179,8 @@ ResourceString
   sFlag_LoadExtInfo   = 'ExtInfo;';                  //载入附加
   sFlag_AllowZeroNum  = 'ZeroNum;';                  //允许没量
 
+  sFlag_PTruckControl = 'PTruckControl';             //原材料进厂车辆数量总控制
+
   sFlag_SysParam      = 'SysParam';                  //系统参数
   sFlag_EnableBakdb   = 'Uses_BackDB';               //备用库
   sFlag_ValidDate     = 'SysValidDate';              //有效期
@@ -191,6 +194,11 @@ ResourceString
   sFlag_HYPackers     = 'HYPackers';                 //可用批次条件
   sFlag_TransferPound = 'TransferPound';             //短倒是否过磅
 
+  sFlag_SetPValue     = 'SetPValue';                 //预设皮重阀值
+
+  sFlag_ShadowWeight  = 'ShadowWeight';              //影子重量
+  sFlag_PoundAsternM  = 'PoundAsternM';              //倒车下磅物料
+  
   sFlag_PDaiWuChaZ    = 'PoundDaiWuChaZ';            //袋装正误差
   sFlag_PDaiWuChaF    = 'PoundDaiWuChaF';            //袋装负误差
   sFlag_PDaiPercent   = 'PoundDaiPercent';           //按比例计算误差
@@ -200,6 +208,7 @@ ResourceString
   sFlag_PoundIfDai    = 'PoundIFDai';                //袋装是否过磅
   sFlag_PoundWarning  = 'PoundWarning';              //皮重预警
   sFlag_PoundMMax     = 'PoundMValueMax';            //启用毛重上限
+  sFlag_PoundJMax     = 'PoundValueMax';             //启用车辆荷载吨位
   sFlag_PoundMultiM   = 'PoundMultiM';               //允许多次过重
   sFlag_NFStock       = 'NoFaHuoStock';              //现场无需发货
   sFlag_StockIfYS     = 'StockIfYS';                 //现场是否验收
@@ -224,6 +233,9 @@ ResourceString
   sFlag_BillItem      = 'BillItem';                  //提单信息项
   sFlag_TruckQueue    = 'TruckQueue';                //车辆队列
   sFlag_ZTLineGroup   = 'ZTLineGroup';               //栈台分组
+
+  sFlag_CardLinShi    = 'L';                         //临时
+  sFlag_CardGuDing    = 'G';                         //固定
                                                                
   sFlag_PaymentItem   = 'PaymentItem';               //付款方式信息项
   sFlag_PaymentItem2  = 'PaymentItem2';              //销售回款信息项
@@ -232,6 +244,7 @@ ResourceString
   sFlag_ProviderItem  = 'ProviderItem';              //供应商信息项
   sFlag_MaterailsItem = 'MaterailsItem';             //原材料信息项
   sFlag_MaterailTunnel= 'MaterailTunnel';            //原材料卸货通道
+  sFlag_KSTunnelStock = 'KSTunnelStock';             //矿山通道品种
 
   sFlag_HardSrvURL    = 'HardMonURL';
   sFlag_MITSrvURL     = 'MITServiceURL';             //服务地址
@@ -302,6 +315,8 @@ ResourceString
   sFlag_InOutBegin    = 'BeginTime';                 //进出厂查询起始时间
   sFlag_InOutEnd      = 'EndTime';                   //进出厂查询结束时间
 
+  sFlag_HHJYServiceMIT= 'HHJYService';               //恒河久远工厂服务
+
   {*数据表*}
   sTable_Group        = 'Sys_Group';                 //用户组
   sTable_User         = 'Sys_User';                  //用户表
@@ -322,6 +337,7 @@ ResourceString
   
   sTable_Customer     = 'S_Customer';                //客户信息
   sTable_Salesman     = 'S_Salesman';                //业务人员
+  sTable_UserYSWh     = 'P_UserYSWh';                //验收维护表
   sTable_Translator   = 'S_Translator';              //运输单位
   sTable_SaleContract = 'S_Contract';                //销售合同
   sTable_SContractExt = 'S_ContractExt';             //合同扩展
@@ -350,6 +366,9 @@ ResourceString
   sTable_BillBak      = 'S_BillBak';                 //已删交货单
   sTable_BillHK       = 'S_BillPreHK';               //开单预合卡
   sTable_StockMatch   = 'S_StockMatch';              //品种映射
+
+  sTable_CardMT       = 'C_CardMT';                  //码头进厂记录
+  sTable_GroupTmp     = 'S_GroupTmp';                //分组表
 
   sTable_Order        = 'P_Order';                   //采购订单
   sTable_OrderBak     = 'P_OrderBak';                //已删除采购订单
@@ -387,6 +406,11 @@ ResourceString
   sTable_YT_Batchcode = 'S_YTBatchcodeInfo';         //云天系统化验记录
   sTable_YT_CusBatMap = 'S_YTCusBatMap';             //云天客户批次绑定
   sTable_HHJYSync     = 'Sys_HHJYSync';              //恒河久远数据同步表
+  sTable_LineMsg      = 'Sys_LineMsg';               //车辆排队通知
+
+  sTable_StockGroup   = 'Sys_StockGroup';            //销售物料分组
+  sTable_SalePlan     = 'Sys_SalePlan';              //销售限量计划
+  sTable_SalePlanDtl  = 'Sys_SalePlanDtl';           //销售限量计划明细
 
   sTable_WebOrderMatch   = 'S_WebOrderMatch';        //商城订单映射
   sTable_PurchaseContract = 'P_PurchaseContract';    //采购合同
@@ -394,6 +418,10 @@ ResourceString
   sTable_PurchaseContractDetail_bak='P_PurchaseContractDetail_bak'; //已删除采购合同明细
   sTable_PurchaseQuotaStandard='sys_PurchaseQuotaStandard'; //采购指标标准表
   sTable_PurchaseAssayResult='P_PurchaseAssayResult'; //采购化验结果
+
+  sTable_YYWebBill     = 'S_YYWebBill';               //网上预约订单
+  sTable_PTruckControl = 'Sys_PTruckControl';         //供应商进厂车辆数量控制表
+  sTable_HYMBWH        = 'S_HYMBWH';                  //化验模板维护
 const
   sFlag_Departments   = 'Departments';               //部门列表
   sFlag_DepDaTing     = '大厅';                      //服务大厅
@@ -571,6 +599,17 @@ const
    *.S_InValid: 已无效
    *.S_Memo: 备注
   -----------------------------------------------------------------------------}
+  
+  sSQL_NewUserYSWH = ' Create Table $Table(R_ID $Inc, P_UName varChar(50), ' +
+       ' P_StockNo varChar(30), P_StockName varChar(50), P_State Char(1))';
+  {-----------------------------------------------------------------------------
+   业务员表: P_UserYSWH
+   *.R_ID: 记录号
+   *.P_UName: 验收人员
+   *.P_StockNo: 物料编码
+   *.P_StockName: 物料名称
+   *.P_State: 状态：Y:允许验收; N:拒绝验收
+  -----------------------------------------------------------------------------}
 
   sSQL_NewTranslator = 'Create Table $Table(R_ID $Inc, T_ID varChar(32),' +
        'T_Name varChar(80),T_PY varChar(80), T_Phone varChar(20),' +
@@ -583,6 +622,53 @@ const
    *.T_Phone: 联系方式
    *.T_Saler: 业务员
    *.T_Memo: 备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_StockGroup = 'Create Table $Table(R_ID $Inc, G_Name varchar(32) NULL)';
+  {-----------------------------------------------------------------------------
+   分组表: Sys_StockGroup
+   *.R_ID        : 编号
+   *.S_PlanID    : 计划编号
+   *.S_PlanName  : 计划名称
+   *.S_MaxNum    : 日车数上限
+   *.S_MaxValue  : 日吨数上限
+   *.S_CusID     : 客户编号
+   *.S_CusName   : 客户
+   *.S_Man       : 操作人
+   *.S_Date      : 操作时间
+  -----------------------------------------------------------------------------}
+  
+  sSQL_SalePlan = 'Create Table $Table(R_ID $Inc, S_PlanName  varchar(32) NULL,' +
+            'S_StockGID  int NULL, S_StartTime DateTime NULL,S_EndTime   DateTime NULL,' +
+            'S_Man varchar(20) NULL,S_Date DateTime NULL,S_IsValid Char(1) Not Null Default ''Y'','+
+            'S_StopCreate Char(1) Not Null Default ''Y'')';
+  {-----------------------------------------------------------------------------
+   限量计划表: Sys_SalePlan
+   *.R_ID         : 计划编号
+   *.S_PlanName   : 计划名称
+   *.S_StockGID   : 分组编号
+   *.S_StartTime  : 开始时间
+   *.S_EndTime    : 结束时间
+   *.S_Man        : 操作人
+   *.S_Date       : 操作时间
+   *.S_IsValid    : 是否有效
+   *.S_StopCreate : 禁止未设置计划用户开单
+  -----------------------------------------------------------------------------}
+  
+  sSQL_SalePlanDtl = 'Create Table $Table(R_ID $Inc, S_PlanID int NULL, S_PlanName varchar(20) NULL,' +
+            'S_MaxNum int NULL, S_MaxValue  Decimal(15,2) NULL, S_CusID varchar(20) NULL,' +
+            'S_CusName varchar(100) NULL, S_Man varchar(20) NULL, S_Date DateTime NULL)';
+  {-----------------------------------------------------------------------------
+   限量明细表: Sys_SalePlanDtl
+   *.R_ID        : 编号
+   *.S_PlanID    : 计划编号
+   *.S_PlanName  : 计划名称
+   *.S_MaxNum    : 日车数上限
+   *.S_MaxValue  : 日吨数上限
+   *.S_CusID     : 客户编号
+   *.S_CusName   : 客户
+   *.S_Man       : 操作人
+   *.S_Date      : 操作时间
   -----------------------------------------------------------------------------}
 
   sSQL_NewCustomer = 'Create Table $Table(R_ID $Inc, C_ID varChar(32), ' +
@@ -861,6 +947,27 @@ const
    *.H_HKBill: 合卡生成的单号
    *.H_Man:操作人
    *.H_Date:创建时间
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewCardMT = ' Create Table $Table(R_ID $Inc, C_Card varChar(50), C_Truck varChar(50), ' +
+       ' C_State Char(1), C_InDate DateTime, C_OutDate DateTime) ';
+  {-----------------------------------------------------------------------------
+   码头进出厂记录: C_CardMT
+   *.R_ID: 编号
+   *.C_Card: 电子标签
+   *.C_Truck: 车牌号
+   *.C_State: 状态
+   *.C_InDate: 进厂时间
+   *.C_OutDate:出厂时间
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewGroupTmp = ' Create Table $Table(R_ID $Inc, G_ID varChar(50),' +
+       ' G_StockName varChar(500) )';
+  {-----------------------------------------------------------------------------
+   统计分组表: S_GroupTmp
+   *.R_ID: 记录号
+   *.G_ID: 组名
+   *.G_StockName: 名称
   -----------------------------------------------------------------------------}
 
   sSQL_NewOrderBase = 'Create Table $Table(R_ID $Inc, B_ID varChar(20),' +
@@ -1871,6 +1978,30 @@ sSQL_NewZTCard = 'Create Table $Table(R_ID $Inc, C_Truck varChar(15), ' +
    *.C_Line: 装车道
    *.C_BusinessTime: 刷卡时间
   -----------------------------------------------------------------------------}
+  
+  sSQL_NewYYWeb = 'Create Table $Table(R_ID $Inc,W_WebOrderID varChar(32),' +
+       'W_OrderNo varChar(50),W_CusID varChar(50), W_Customer varChar(80),' +
+       'W_Truck varChar(32), W_MakeTime varChar(50), W_StockNo varChar(50),' +
+       'W_StockName varChar(80), W_State char(1), ' +
+       'W_SyncNum Integer default 0, W_Value $Float,' +
+       'W_deleted char(1) default ''N'', W_SucessTime DateTime)';
+  {-----------------------------------------------------------------------------
+   网上预约: YYWebBill
+   *.R_ID:记录编号
+   *.W_WebOrderID:网上单号
+   *.W_OrderNo:合同单号
+   *.W_CusID:客户编号
+   *.W_Customer:客户名称
+   *.W_Truck:车牌号
+   *.W_MakeTime:预约时间
+   *.W_StockNo:品种编号
+   *.W_StockName:品种名称
+   *.W_State:状态 0 预约 1 预约成功  2 预约作废
+   *.W_SyncNum:同步次数
+   *.W_Value:预约量
+   *.W_deleted:同步状态 N 失败 Y 成功
+   *.W_SucessTime: 预约成功时间
+  -----------------------------------------------------------------------------}
 
   sSQL_NewHHJYSync = 'Create Table $Table(R_ID $Inc,'
       +'H_ID varchar(20) null,'
@@ -1889,6 +2020,52 @@ sSQL_NewZTCard = 'Create Table $Table(R_ID $Inc, C_Truck varChar(15), ' +
    *.H_SyncNum: 发送次数
    *.H_BillType: 业务类型  采购 销售
    *.H_PurType: 采购流程类型 普通 内倒 临时
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewPTruckControlInfo = 'Create Table $Table(R_ID $Inc, C_CusID varChar(32),' +
+       'C_CusName varChar(150), C_StockNo varChar(32), C_StockName varChar(150), C_Count Integer,' +
+       'C_Valid char(1) default ''Y'', C_Memo varchar(200))';
+  {-----------------------------------------------------------------------------
+   原材料进厂控制表:
+   *.R_ID: 编号
+   *.C_CusID: 客户编号
+   *.C_CusName: 客户名称
+   *.C_StockNo: 物料编号
+   *.C_StockName: 物料名称
+   *.C_Count: 数量
+   *.C_Valid: 是否有效
+   *.C_Memo: 备注
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewHYMBWH = 'Create Table $Table(R_ID $Inc, S_CusID varChar(32),' +
+       'S_CusName varChar(150), S_StockNo varChar(32), S_StockName varChar(150),' +
+       'S_StockNoEx varChar(32), S_StockNameEx varChar(150))';
+  {-----------------------------------------------------------------------------
+   化验模板维护表:
+   *.R_ID: 编号
+   *.S_CusID:       客户编号
+   *.S_CusName:     客户名称
+   *.S_StockNo:     物料编号
+   *.S_StockName:   物料名称
+   *.S_StockNoEx:   模板物料编号
+   *.S_StockNameEx: 模板物料名称
+  -----------------------------------------------------------------------------}
+
+  sSQL_NewLineMsg = 'Create Table $Table(R_ID $Inc,'
+      +'L_Truck varchar(30) null,'
+      +'L_StockNo varchar(30) null,'
+      +'L_OrderNo Integer, '
+      +'L_LastSendDate DateTime,'
+      +'L_Status char(1) default ''N'','
+      +'L_Count Integer default 0 )';
+  {-----------------------------------------------------------------------------
+   车辆排队通知表:
+   *.R_ID: 记录编号
+   *.L_Truck: 车牌号码
+   *.L_StockNo: 品种编号
+   *.L_OrderNo: 排队顺序
+   *.L_Count: 发送次数
+   *.L_Status: Y:通知成功，N:通知失败
   -----------------------------------------------------------------------------}
 
 function CardStatusToStr(const nStatus: string): string;
@@ -2011,8 +2188,10 @@ begin
   AddSysTableItem(sTable_ZhiKaDtl, sSQL_NewZhiKaDtl);
   AddSysTableItem(sTable_Card, sSQL_NewCard);
   AddSysTableItem(sTable_Bill, sSQL_NewBill);
+  AddSysTableItem(sTable_GroupTmp,sSQL_NewGroupTmp);
   AddSysTableItem(sTable_BillBak, sSQL_NewBill);
   AddSysTableItem(sTable_BillHK, sSQL_NewBillHK);
+  AddSysTableItem(sTable_CardMT, sSQL_NewCardMT);
   AddSysTableItem(sTable_Order, sSQL_NewOrder);
   AddSysTableItem(sTable_OrderBak, sSQL_NewOrder);
   AddSysTableItem(sTable_OrderBase, sSQL_NewOrderBase);
@@ -2057,6 +2236,16 @@ begin
   AddSysTableItem(sTable_ZTCard,sSQL_NewZTCard);
 
   AddSysTableItem(sTable_HHJYSync,sSQL_NewHHJYSync);
+  AddSysTableItem(sTable_LineMsg,sSQL_NewLineMsg);
+  AddSysTableItem(sTable_YYWebBill,sSQL_NewYYWeb);
+  AddSysTableItem(sTable_UserYSWh, sSQL_NewUserYSWH);
+
+  AddSysTableItem(sTable_StockGroup,sSQL_StockGroup);
+  AddSysTableItem(sTable_SalePlan,sSQL_SalePlan);
+  AddSysTableItem(sTable_SalePlanDtl,sSQL_SalePlanDtl);
+
+  AddSysTableItem(sTable_PTruckControl,sSQL_NewPTruckControlInfo);
+  AddSysTableItem(sTable_HYMBWH,       sSQL_NewHYMBWH);
 end;
 
 //Desc: 清理系统表

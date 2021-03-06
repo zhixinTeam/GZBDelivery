@@ -121,7 +121,7 @@ end;
 //Date: 2015-01-22
 //Desc: 按指定类型查询
 function TfFormGetYTBatch.QueryData: Boolean;
-var nStr: string;
+var nStr, nStockNo: string;
     nIdx: Integer;
     nListA, nListB: TStrings;
     nCK: string;
@@ -133,6 +133,20 @@ begin
   {$IFDEF SpecifyCk}
   GetCusSpecialSet(FCusNo, FStockNo, nCk);
   {$ENDIF}
+
+  nStockNo           := gCementData.Values['XCB_Cement'];
+
+  nStr := 'Select D_ParamB From %s Where D_Name=''%s'' and D_Value=''%s''';
+  nStr := Format(nStr, [sTable_SysDict, 'BatStockGroup', nStockNo]);
+  with FDM.QuerySQL(nStr) do
+  begin
+    if RecordCount > 0 then
+    begin
+      nStockNo := Fields[0].AsString;
+    end;
+  end;
+
+  gCementData.Values['XCB_Cement'] := nStockNo;
 
   gCementData.Text := YT_GetBatchCode(gCementData);
 

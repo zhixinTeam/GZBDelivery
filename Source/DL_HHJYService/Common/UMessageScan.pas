@@ -29,7 +29,7 @@ type
     //等待对象
     FSyncLock: TCrossProcWaitObject;
     //同步锁定
-    FNumOutFactMsg: Integer;
+    FNumOutFactMsg,FNumOutFactMsgEx: Integer;
     //提货单出厂消息推送计时计数
   protected
     function SendSaleMsgToWebMall(nList: TStrings):Boolean;
@@ -38,10 +38,14 @@ type
     //采购发送消息
     procedure UpdateMsgNum(const nSuccess: Boolean; nLID: string);
     //更新消息状态
+    procedure UpdateSynFailedClear;
+    //同步6次失败的重新同步
     procedure DoSaveOutFactMsg;
     //执行出厂消息插入
     procedure DoSendWLFYOrderInfo;
     //向物流发运发送采购订单
+    procedure DoDeletePicture;
+    //自动删除三个月以上的抓拍图片
     function SaveSaleOutFactMsg(nList: TStrings):Boolean;
     //销售出厂消息
     function SaveOrderOutFactMsg(nList: TStrings):Boolean;
@@ -183,7 +187,8 @@ var nErr, nSuccessCount, nFailCount: Integer;
     nInit: Int64;
     nOut: TWorkerBusinessCommand;
 begin
-  FNumOutFactMsg := 0;
+  FNumOutFactMsg   := 0;
+  FNumOutFactMsgEx := 0;
 
   while not Terminated do
   try
@@ -191,9 +196,13 @@ begin
     if Terminated then Exit;
 
     Inc(FNumOutFactMsg);
+    Inc(FNumOutFactMsgEx);
 
     if FNumOutFactMsg >= 3 then
       FNumOutFactMsg := 0;
+
+    if FNumOutFactMsgEx >= 900 then
+      FNumOutFactMsgEx := 0;
 
     //--------------------------------------------------------------------------
     if not FSyncLock.SyncLockEnter() then Continue;
@@ -208,6 +217,19 @@ begin
       if FNumOutFactMsg = 0 then
       begin
         DoSendWLFYOrderInfo;
+      end else
+      if FNumOutFactMsg = 2 then
+      begin
+        if gSysParam.FClearPicture = 'Y' then
+        begin
+          DoDeletePicture;
+        end;
+      end;
+
+      if FNumOutFactMsgEx = 1 then
+      begin
+        //同步失败后重新上传
+        UpdateSynFailedClear;
       end;
 
       nStr:= 'select top 100 * from %s where H_SyncNum <= %d And H_Deleted <> ''%s''';
@@ -677,6 +699,31 @@ begin
                        nList.Values['H_PurType']]);
   gDBConnManager.WorkerExec(FDBConn, nStr);
   Result := True;
+end;
+
+procedure TMessageScanThread.DoDeletePicture;
+var
+  nStr: string;
+begin
+  nStr := 'Delete From %s Where (%s-P_Date>=90)';
+  nStr := Format(nStr, [sTable_Picture, sField_SQLServer_Now]);
+  gDBConnManager.WorkerExec(FDBConn, nStr); //清理3月以上抓拍图片
+end;
+
+procedure TMessageScanThread.UpdateSynFailedClear;
+var nStr: string;
+    nUpdateDBWorker: PDBWorker;
+begin
+  nUpdateDBWorker := nil;
+  try
+    nStr := ' Update %s set H_FailedNum = H_FailedNum + 1,  H_SyncNum = 0 '
+           +' where H_Deleted = ''N'' and H_FailedNum <= 30 and H_SyncNum > 5  ';
+    nStr:= Format(nStr,[sTable_HHJYSync]);
+    gDBConnManager.ExecSQL(nStr);
+    //更新为已处理
+  finally
+    gDBConnManager.ReleaseConnection(nUpdateDBWorker);
+  end;
 end;
 
 initialization

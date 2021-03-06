@@ -64,6 +64,11 @@ type
     dxLayout1Group5: TdxLayoutGroup;
     dxLayout1Item11: TdxLayoutItem;
     PrintHY: TcxCheckBox;
+    EditMValue: TcxTextEdit;
+    dxLayout1Item13: TdxLayoutItem;
+    EditPValue: TcxTextEdit;
+    dxLayout1Item12: TdxLayoutItem;
+    dxLayout1Group6: TdxLayoutGroup;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure BtnOKClick(Sender: TObject);
@@ -72,6 +77,9 @@ type
       AButtonIndex: Integer);
     procedure EditFQPropertiesButtonClick(Sender: TObject;
       AButtonIndex: Integer);
+    procedure EditTruckPropertiesChange(Sender: TObject);
+    procedure EditMValuePropertiesChange(Sender: TObject);
+    procedure EditPValuePropertiesChange(Sender: TObject);
   protected
     { Protected declarations }
     FCardData, FComentData: TStrings;
@@ -99,7 +107,7 @@ uses
 
 class function TfFormBill.CreateForm(const nPopedom: string;
   const nParam: Pointer): TWinControl;
-var nStr: string;
+var nStr,nStockNo: string;
     nP: PFormCommandParam;
 begin
   Result := nil;
@@ -126,19 +134,50 @@ begin
 
     FCardData.Text := PackerDecodeStr(nStr);
     {$IFNDEF BATAFTERLINE}
+    nStockNo           := FCardData.Values['XCB_Cement'];
+
+    nStr := 'Select D_ParamB From %s Where D_Name=''%s'' and D_Value=''%s''';
+    nStr := Format(nStr, [sTable_SysDict, 'BatStockGroup', nStockNo]);
+    with FDM.QuerySQL(nStr) do
+    begin
+      if RecordCount > 0 then
+      begin
+        nStockNo := Fields[0].AsString;
+      end;
+    end;
+
+    FCardData.Values['XCB_Cement'] := nStockNo;
+    
     FComentData.Text := YT_GetBatchCode(FCardData);
     {$ENDIF}
     InitFormData;
 
     if nPopedom = 'MAIN_D04' then //补单
-         FBuDanFlag := sFlag_Yes
-    else FBuDanFlag := sFlag_No;
+    begin
+      FBuDanFlag := sFlag_Yes;
+      {$IFDEF SaleBudanMValue}
+      dxLayout1Item12.Visible       := True;
+      dxLayout1Item13.Visible       := True;
+      EditValue.Properties.ReadOnly := True;
+      {$ELSE}
+      dxLayout1Item12.Visible       := False;
+      dxLayout1Item13.Visible       := False;
+      EditValue.Properties.ReadOnly := False;
+      {$ENDIF}
+    end
+    else
+    begin
+      FBuDanFlag := sFlag_No;
+      dxLayout1Item12.Visible       := False;
+      dxLayout1Item13.Visible       := False;
+      EditValue.Properties.ReadOnly := False;
+    end;
 
     if Assigned(nParam) then
     with PFormCommandParam(nParam)^ do
     begin
       FCommand := cCmd_ModalResult;
-      FParamA := ShowModal;
+      FParamA  := ShowModal;
 
       if FParamA = mrOK then
            FParamB := FNewBillID
@@ -293,6 +332,35 @@ var nPrint: Boolean;
 begin
   if not IsDataValid then Exit;
   //check valid
+  
+  {$IFDEF BuDanJY}
+  if FBuDanFlag = sFlag_Yes then
+  begin
+    if Trim(EditFQ.Text) = '' then
+    begin
+      ShowMsg('出厂编号不能为空',sHint);
+      Exit;
+    end;
+
+    if Trim(EditLineGroup.Text) = '' then
+    begin
+      ShowMsg('通道分组不能为空',sHint);
+      Exit;
+    end;
+
+    if StrToFloatDef(EditPValue.Text,0) <= 0 then
+    begin
+      ShowMsg('皮重吨数应大于零',sHint);
+      Exit;
+    end;
+
+    if StrToFloatDef(EditMValue.Text,0) <= 0 then
+    begin
+      ShowMsg('毛重吨数应大于零',sHint);
+      Exit;
+    end;
+  end;
+  {$ENDIF}
 
   nCK := '';
   {$IFDEF SpecifyCk}
@@ -343,6 +411,11 @@ begin
       Values['HYDan'] := EditFQ.Text;
       Values['BuDan'] := FBuDanFlag;
       Values['LineGroup'] := GetCtrlData(EditLineGroup);
+      if (dxLayout1Item12.Visible) then
+      begin
+        Values['PValue'] := EditPValue.Text;
+        Values['MValue'] := EditMValue.Text;
+      end;
 
       if PrintHY.Checked  then
            Values['PrintHY'] := sFlag_Yes
@@ -380,6 +453,41 @@ begin
 
   FComentData.Text := PackerDecodeStr(nP.FParamB);
   InitFormData;
+end;
+
+procedure TfFormBill.EditTruckPropertiesChange(Sender: TObject);
+var
+  nStr: string;
+begin
+  inherited;
+  //获取删除记录里最近皮重值
+  if (dxLayout1Item12.Visible) and (Trim(EditTruck.Text) <> '') then
+  begin
+    nStr := ' Select L_PValue From S_BillBak Where L_Truck = ''%s'' and L_PValue > 0 order by R_ID desc ';
+    nStr := Format(nStr, [Trim(EditTruck.Text)]);
+    
+    with FDM.QueryTemp(nStr) do
+    if RecordCount > 0 then
+      EditPValue.Text := Fields[0].AsString;
+  end;
+end;
+
+procedure TfFormBill.EditMValuePropertiesChange(Sender: TObject);
+begin
+  inherited;
+  if (Trim(EditPValue.Text) <> '') and (Trim(EditMValue.Text) <> '') then
+  begin
+    EditValue.Text := FloatToStr(StrToFloatDef(EditMValue.Text,0)-StrToFloatDef(EditPValue.Text,0));
+  end;
+end;
+
+procedure TfFormBill.EditPValuePropertiesChange(Sender: TObject);
+begin
+  inherited;
+  if (Trim(EditPValue.Text) <> '') and (Trim(EditMValue.Text) <> '') then
+  begin
+    EditValue.Text := FloatToStr(StrToFloatDef(EditMValue.Text,0)-StrToFloatDef(EditPValue.Text,0));
+  end;
 end;
 
 initialization

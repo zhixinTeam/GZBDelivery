@@ -30,6 +30,8 @@ type
     FIndex      : Integer;
     FTrucks     : TList;
     FRealCount  : Integer;     //实位车数
+
+    FIsCusLine  : Boolean;
   end;//装车线
 
   PTruckItem = ^TTruckItem;
@@ -57,6 +59,9 @@ type
     FBuCha      : Integer;     //补差总装
     FStarted    : Boolean;     //是否启动
     FCusName    : string;      //客户名称
+
+    FTruckZID   : Boolean;      //客户特定订单车辆
+    FTareweight : Boolean;      //是否过皮
   end;
 
   TQueueParam = record
@@ -118,6 +123,7 @@ type
     //车辆入队
     procedure InvalidTruckOutofQueue;
     function IsLineTruckLeast(const nLine: PLineItem; nIsReal: Boolean): Boolean;
+    function IsSpecialLineTruckLeast(const nLine: PLineItem; nIsReal: Boolean): Boolean;
     procedure SortTruckList(const nList: TList);
     //队列处理
     function RealTruckInQueue(const nTruck: string): Boolean;
@@ -981,6 +987,8 @@ begin
         FIsVIP      := FieldByName('Z_VIPLine').AsString;
         FIsValid    := FieldByName('Z_Valid').AsString <> sFlag_No;
         FIndex      := FieldByName('Z_Index').AsInteger;
+
+        FIsCusLine  := FieldByName('Z_CusLine').AsString='Y';
       end;
 
       Next;
@@ -1103,6 +1111,7 @@ begin
 
         FInFact     := FieldByName('T_InFact').AsString <> '';
         FInLade     := FieldByName('T_InLade').AsString <> '';
+        FTareweight := FieldByName('T_PDate').AsString <> '';
 
         FIndex      := FieldByName('T_Index').AsInteger;
         if FIndex < 1 then FIndex := MaxInt;
@@ -1112,6 +1121,8 @@ begin
         FBuCha      := FieldByName('T_BuCha').AsInteger;
         FIsBuCha    := FNormal > 0;
         FDai        := 0;
+
+        FTruckZID   := FieldByName('T_CusLine').AsString='Y';
       end;
       
       Inc(nIdx);
@@ -1210,6 +1221,41 @@ begin
     end;
   end;
 
+
+  //有客户专用车道 ，相关车辆优先进入专用车道
+  for nIdx:=0 to FOwner.FLines.Count - 1 do
+  with PLineItem(FOwner.Lines[nIdx])^,FOwner do
+  begin
+    if (not FIsValid) or (not FIsCusLine) then Continue;
+    //通道无效或非指定客户通道
+    if not IsSpecialLineTruckLeast(FOwner.Lines[nIdx], True) then Continue;
+    //非车辆最少专用车道队列
+
+    for i:=Low(FTruckPool) to High(FTruckPool) do
+    begin
+      if not FTruckPool[i].FEnable then Continue;
+      //0.车辆无需处理
+
+      if FTruckPool[i].FTruckZID<>FIsCusLine  then Continue;
+      //1.交货单与专用通道（指定客户）不匹配
+
+      if not IsStockMatch(FTruckPool[i].FStockNo, FStockNo) then Continue;
+      //2.交货单与通道品种不匹配
+
+      if BillInLine(FTruckPool[i].FBill, FTrucks, True) >= 0 then Continue;
+      //3.交货单已经在队列中
+
+      MakePoolTruckIn(i, FOwner.Lines[nIdx]);
+      //进队
+
+      WriteLog('车辆进专用车道成功:'+FTruckPool[i].FTruck+','+FTruckPool[i].FStockNo+' '+FTruckPool[i].FStockName+
+               ',装车线:' + FLineID);
+
+      Result := True;
+      Break;
+    end;
+  end;
+
   //船运不检查队容
   for nIdx:=0 to FOwner.FLines.Count - 1 do
   with PLineItem(FOwner.Lines[nIdx])^,FOwner do
@@ -1249,11 +1295,15 @@ begin
     //队列关闭
     if FIsVIP = sFlag_TypeShip then Continue;
     //船运通道已处理
+    if FIsCusLine then Continue;
+    //专用通道已处理
 
     for i:=Low(FTruckPool) to High(FTruckPool) do
     begin
       if not FTruckPool[i].FEnable then Continue;
       //0.车辆无需处理
+      if FTruckPool[i].FTruckZID  then Continue;
+      //0.交货单车辆有客户专用通道（客户）不匹配
 
       if (nTimes = 2) and (not FTruckPool[i].FInFact) then Continue;
       //0.第二轮扫描,已进厂车辆优先
@@ -1287,6 +1337,9 @@ begin
 
       MakePoolTruckIn(i, FOwner.Lines[nIdx]);
       //车辆进队列
+
+      WriteLog('车辆进普通车道成功:'+FTruckPool[i].FTruck+','+FTruckPool[i].FStockNo+' '+FTruckPool[i].FStockName+
+               ',装车线:' + FLineID);
 
       Result := True;
       Break;
@@ -1475,6 +1528,22 @@ begin
           TruckOutofQueueEx(nTruck.FTruck);
           {$ENDIF}
         end;
+        //多长时间未过皮进行重新排到队尾
+//        if (not FTareweight and ((GetTickCount - nTruck.FInTime) >
+//           FParam.FInTimeout * 60 * 1000)) and (FIsVIP <> sFlag_TypeShip) then
+//        begin
+//          {$IFDEF DEBUG}
+//          WriteLog(Format('车辆[ %s ]出队.', [nTruck.FTruck]));
+//          {$ENDIF}
+//
+//          {$IFNDEF OverTimeReQueue}
+//          TruckOutofQueue(nTruck.FTruck);
+//          //未进厂车辆超时
+//          {$ELSE}
+//          WriteLog(Format('车辆[ %s ]出队后重新排队.', [nTruck.FTruck]));
+//          TruckOutofQueueEx(nTruck.FTruck);
+//          {$ENDIF}
+//        end;
 
         FTruckPool[j].FEnable := False;
       end;
@@ -1540,6 +1609,41 @@ begin
          (nLine.FLineGroup <> FLineGroup) then Continue;
     end;
     //分组不同
+
+    if nIsReal and (FRealCount >= nLine.FRealCount) then Continue;
+    //3.实位车辆,对比实位车辆个数
+
+    if (not nIsReal) and (FTrucks.Count >= nLine.FTrucks.Count) then Continue;
+    //4.虚位车辆,对比车辆列表大小
+
+    if not IsStockMatch(FStockNo, nLine) then Continue;
+    //5.两个通道品种不匹配
+
+    Result := False;
+    Break;
+  end;
+end;
+
+//Date: 2012-4-25
+//Parm: 装车线;实位车辆
+//Desc: 判断nLine的队列车辆否为同品种专用通道中最少
+function TTruckQueueDBReader.IsSpecialLineTruckLeast(const nLine: PLineItem;
+  nIsReal: Boolean): Boolean;
+var nIdx: Integer;
+begin
+  Result := True;
+
+  for nIdx:=FOwner.Lines.Count - 1 downto 0 do
+  with PLineItem(FOwner.Lines[nIdx])^ do
+  begin
+    if (not FIsValid) or (FIsVIP <> nLine.FIsVIP) then Continue;
+    //1.通道无效,或通道类型不匹配
+
+    if (not FIsCusLine) then Continue;
+    //1.通道非专用通道 跳过
+
+    if FRealCount >= FQueueMax then Continue;
+    //2.通道车辆已满
 
     if nIsReal and (FRealCount >= nLine.FRealCount) then Continue;
     //3.实位车辆,对比实位车辆个数

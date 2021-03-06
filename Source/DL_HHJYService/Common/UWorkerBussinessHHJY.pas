@@ -21,10 +21,14 @@ uses
   V_QPhysicsSettingTimeRecord_Intf,V_QPhysicsFinenessRecord_Intf,
   V_QPhysicsSpecificSurfaceAreaRecord_Intf,V_QPhysicsIntensityRecord_Intf,
   QAdmixtureDataBrief_WS_Intf,QAdmixtureDataDetail_WS_Intf, xxykt_Intf,
-  uSuperObject;
+  uSuperObject, UObjectList;
 
 const
   cHttpTimeOut          = 10;
+  
+var
+  gSapURLInited: Integer = 0;      //是否初始化
+
 type
   TMITDBWorker = class(TBusinessWorkerBase)
   protected
@@ -59,7 +63,7 @@ type
     FIn: TWorkerHHJYData;
     FOut: TWorkerHHJYData;
     //in out
-    FIdHttp: TIdHTTP;
+    FChannel: TIdHTTP;
     FUrl: string;
   protected
     procedure GetInOutData(var nIn,nOut: PBWDataBase); override;
@@ -261,10 +265,7 @@ begin
   FListC := TStringList.Create;
   FListD := TStringList.Create;
   FListE := TStringList.Create;
-
-  FidHttp := TIdHTTP.Create(nil);
-  FidHttp.ConnectTimeout := cHttpTimeOut * 1000;
-  FidHttp.ReadTimeout := cHttpTimeOut * 1000;
+  
   inherited;
 end;
 
@@ -275,7 +276,6 @@ begin
   FreeAndNil(FListC);
   FreeAndNil(FListD);
   FreeAndNil(FListE);
-  FreeAndNil(FidHttp);
   inherited;
 end;
 
@@ -330,34 +330,81 @@ begin
   end;
 end;
 
+//Date: 2017-09-24
+//Desc: 创建对象
+function NewHttp(const nClass: TClass): TObject;
+begin
+  Result := TIdHTTP.Create(nil);
+end;
+
+//Date: 2017-09-24
+//Desc: 释放对象
+procedure FreeHttp(const nObject: TObject);
+begin
+  TIdHTTP(nObject).Free;
+end;
+
 //Date: 2012-3-22
 //Parm: 输入数据
 //Desc: 执行nData业务指令
 function TBusWorkerBusinessHHJY.DoDBWork(var nData: string): Boolean;
+var
+  nInt: Integer;
+  nItem: PObjectPoolItem;
 begin
-  with FOut.FBase do
-  begin
-    FResult := True;
-    FErrCode := 'S.00';
-    FErrDesc := '业务执行成功.';
-  end;
-  FPackOut := True;
-
-//  case FIn.FCommand of
-//   cBC_SyncHhSaleDetail        : FPackOut := False;
-//  end;
-
-  case FIn.FCommand of
-    cBC_FYWLGetSaleInfo:   Result := GetWLFYSaleInfo(nData);
-    cBC_FYWLSynSalePound:  Result := SyncWLFYSalePound(nData);
-    cBC_FYWLSynOrderPound: Result := SyncWLFYOrderPound(nData);
-    cBC_FYWLSynOrderInfo:  Result := SyncWLFYOrderInfo(nData);
-  else
+  nInt := InterlockedExchange(gSapURLInited, 10);
+  try
+    if nInt < 1 then
     begin
-      Result := False;
-      nData := '无效的业务代码(Code: %d Invalid Command).';
-      nData := Format(nData, [FIn.FCommand]);
+      if not Assigned(gObjectPoolManager) then
+        gObjectPoolManager := TObjectPoolManager.Create;
+      gObjectPoolManager.RegClass(TIdHTTP, NewHttp, FreeHttp);
     end;
+  except
+    InterlockedExchange(gSapURLInited, nInt);
+  end;
+
+  nItem := nil;
+  try
+    Result := False;
+    nItem := gObjectPoolManager.LockObject(TIdHTTP);
+
+    if not Assigned(nItem) then
+    begin
+      nData := '连接Sap失败(IdHTTP Is Null).';
+      Exit;
+    end;
+
+    FChannel := nItem.FObject as TIdHTTP;
+
+
+    with FOut.FBase do
+    begin
+      FResult := True;
+      FErrCode := 'S.00';
+      FErrDesc := '业务执行成功.';
+    end;
+    FPackOut := True;
+
+  //  case FIn.FCommand of
+  //   cBC_SyncHhSaleDetail        : FPackOut := False;
+  //  end;
+
+    case FIn.FCommand of
+      cBC_FYWLGetSaleInfo:   Result := GetWLFYSaleInfo(nData);
+      cBC_FYWLSynSalePound:  Result := SyncWLFYSalePound(nData);
+      cBC_FYWLSynOrderPound: Result := SyncWLFYOrderPound(nData);
+      cBC_FYWLSynOrderInfo:  Result := SyncWLFYOrderInfo(nData);
+    else
+      begin
+        Result := False;
+        nData := '无效的业务代码(Code: %d Invalid Command).';
+        nData := Format(nData, [FIn.FCommand]);
+      end;
+    end;
+
+  finally
+    gObjectPoolManager.ReleaseObject(nItem);
   end;
 end;
 
@@ -2832,10 +2879,10 @@ begin
 
     szUrl := gSysParam.FERPSrv + '/ipp-api/custom/dispatch/dispatchFeedbackNotice.shtml';
     WriteLog('获取订单服务地址:' + szUrl);
-    FidHttp.Request.Clear;
-    FidHttp.Request.ContentType        := 'application/json;Charset=UTF-8';
-    FidHttp.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;
-    FidHttp.Post(szUrl, PostStream, ReStream);
+    FChannel.Request.Clear;
+    FChannel.Request.ContentType        := 'application/json;Charset=UTF-8';
+    FChannel.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;
+    FChannel.Post(szUrl, PostStream, ReStream);
     nStr := UTF8Decode(ReStream.DataString);
     WriteLog('获取订单信息出参:' + nStr);
 
@@ -2885,7 +2932,7 @@ begin
       else WriteLog('订单信息失败：' + ReJo.S['msg']);
     end;
   finally
-    FidHttp.Disconnect;
+    FChannel.Disconnect;
     ReStream.Free;
     PostStream.Free;
   end;
@@ -2900,11 +2947,13 @@ var
   nIdx: Integer;
   nNetWeight: Double;
   ndispatchNo,nshipmentNo,nextDispatchNo: string;
+  nIsHD:Boolean;
 begin
   Result      := False;
+  nIsHD       := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
 
-  //销售信息
+  //销售信息 L_HKRecord
   nSql := ' select a.L_Value, a.L_DispatchNo, a.L_extDispatchNo, b.P_ID, a.L_ID from %s a, %s b '+
           ' where a.L_ID = b.P_Bill and a.l_id = ''%s'' and a.l_status = ''%s'' and IsNull(a.L_DispatchNo, '''') <> '''' ';
   nSql := Format(nSql, [sTable_Bill, sTable_PoundLog, FListA.Values['ID'],sFlag_TruckOut]);
@@ -2920,10 +2969,35 @@ begin
     end
     else
     begin
-      Result             := True;
-      FOut.FData         := nData;
-      FOut.FBase.FResult := True;
-      Exit;
+      nIsHD         := True;
+    end;
+  end;
+
+  if nIsHD then
+  begin
+    //销售信息 L_HKRecord
+    nSql := ' select a.L_Value, a.L_DispatchNo, a.L_extDispatchNo, b.P_ID, a.L_ID,'+
+            ' (select Top 1 IsNull(L_extDispatchNo,'''') from  S_Bill where L_HKRecord=a.L_HKRecord and L_ID <>a.L_ID) as L_HdDispatchNo '+
+            ' from %s a, %s b '+
+            ' where a.L_ID = b.P_Bill and a.l_id = ''%s'' and a.l_status = ''%s'' and IsNull(a.L_DispatchNo, '''') = '''' ';
+    nSql := Format(nSql, [sTable_Bill, sTable_PoundLog, FListA.Values['ID'],sFlag_TruckOut]);
+
+    with gDBConnManager.WorkerQuery(FDBConn, nSql) do
+    begin
+      if (recordcount > 0) and (Trim(FieldByName('L_HdDispatchNo').AsString) <> '') then
+      begin
+        nNetWeight    := FieldByName('L_Value').asFloat;
+        ndispatchNo   := FieldByName('L_HdDispatchNo').AsString;
+        nshipmentNo   := FieldByName('L_ID').AsString;
+        nextDispatchNo:= FieldByName('L_HdDispatchNo').AsString;
+      end
+      else
+      begin
+        Result             := True;
+        FOut.FData         := nData;
+        FOut.FBase.FResult := True;
+        Exit;
+      end;
     end;
   end;
 
@@ -2941,10 +3015,10 @@ begin
     szUrl := gSysParam.FERPSrv + '/ipp-api/api/dispatchOrder/dispatchOrderFeedback.shtml';
 
     WriteLog('销售通知单反馈服务地址:' + szUrl);
-    FidHttp.Request.Clear;
-    FidHttp.Request.ContentType        := 'application/json;Charset=UTF-8';
-    FidHttp.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;
-    FidHttp.Post(szUrl, PostStream, ReStream);
+    FChannel.Request.Clear;
+    FChannel.Request.ContentType        := 'application/json;Charset=UTF-8';
+    FChannel.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;
+    FChannel.Post(szUrl, PostStream, ReStream);
     nStr := UTF8Decode(ReStream.DataString);
     WriteLog('获取销售通知单反馈信息出参:' + nStr);
 
@@ -2962,7 +3036,7 @@ begin
       else WriteLog('订单信息失败：' + ReJo.S['message']);
     end;
   finally
-    FidHttp.Disconnect;
+    FChannel.Disconnect;
     ReStream.Free;
     PostStream.Free;
   end;
@@ -2970,11 +3044,11 @@ end;
 
 procedure TBusWorkerBusinessHHJY.ReQuestInit;
 begin
-  FidHttp.Request.Clear;
-  FidHttp.Request.Accept         := 'application/json, text/javascript, */*; q=0.01';
-  FidHttp.Request.AcceptLanguage := 'zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3';
-  FidHttp.Request.ContentType    := 'application/json;Charset=UTF-8';
-  FidHttp.Request.Connection     := 'keep-alive';
+  FChannel.Request.Clear;
+  FChannel.Request.Accept         := 'application/json, text/javascript, */*; q=0.01';
+  FChannel.Request.AcceptLanguage := 'zh-cn,zh;q=0.8,en-us;q=0.5,en;q=0.3';
+  FChannel.Request.ContentType    := 'application/json;Charset=UTF-8';
+  FChannel.Request.Connection     := 'keep-alive';
 end;
 
 function TBusWorkerBusinessHHJY.SyncWLFYOrderPound(
@@ -3027,10 +3101,10 @@ begin
     szUrl := gSysParam.FERPSrv + '/ipp-api/api/dispatchOrder/dispatchOrderFeedback.shtml';
 
     WriteLog('采购通知单反馈服务地址:' + szUrl);
-    FidHttp.Request.Clear;
-    FidHttp.Request.ContentType        := 'application/json;Charset=UTF-8';
-    FidHttp.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;    
-    FidHttp.Post(szUrl, PostStream, ReStream);
+    FChannel.Request.Clear;
+    FChannel.Request.ContentType        := 'application/json;Charset=UTF-8';
+    FChannel.Request.CustomHeaders.Text := 'token:'+gSysParam.FToken;
+    FChannel.Post(szUrl, PostStream, ReStream);
     nStr := UTF8Decode(ReStream.DataString);
     WriteLog('获取采购通知单反馈信息出参:' + nStr);
 
@@ -3048,7 +3122,7 @@ begin
       else WriteLog('订单信息失败：' + ReJo.S['message']);
     end;
   finally
-    FidHttp.Disconnect;
+    FChannel.Disconnect;
     ReStream.Free;
     PostStream.Free;
   end;
@@ -3171,10 +3245,10 @@ begin
       szUrl := gSysParam.FERPSrvOms + '/oms-open-api-web/open/order/receivingOrder.shtml';
 
       WriteLog('采购订单同步服务地址:' + szUrl);
-      FidHttp.Request.Clear;
-      FidHttp.Request.ContentType        := 'application/json;Charset=UTF-8';
-      FidHttp.Request.CustomHeaders.Text := 'token:'+gSysParam.FTokenOms;
-      FidHttp.Post(szUrl, PostStream, ReStream);
+      FChannel.Request.Clear;
+      FChannel.Request.ContentType        := 'application/json;Charset=UTF-8';
+      FChannel.Request.CustomHeaders.Text := 'token:'+gSysParam.FTokenOms;
+      FChannel.Post(szUrl, PostStream, ReStream);
       nStr := UTF8Decode(ReStream.DataString);
       WriteLog('获取采购订单同步信息出参:' + nStr);
 
@@ -3200,7 +3274,7 @@ begin
         else WriteLog('订单信息失败：' + ReJo.S['message']);
       end;
     finally
-      FidHttp.Disconnect;
+      FChannel.Disconnect;
       ReStream.Free;
       PostStream.Free;
     end;

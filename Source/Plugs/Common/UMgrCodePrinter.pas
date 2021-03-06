@@ -37,11 +37,11 @@ type
   protected
     FPrinter: PCodePrinter;
     //喷码机
-    FClient: TIdTCPClient;
+//    FClient: TIdTCPClient;
     //客户端
     FFlagLock: Boolean;
     //锁定标记
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; virtual; abstract;
     //打印编码
   public
@@ -50,10 +50,10 @@ type
     //创建释放
     class function DriverName: string; virtual; abstract;
     //驱动名称
-    function Print(const nPrinter: PCodePrinter; const nCode: string;
+    function Print(const nPrinter: PCodePrinter; const nCode: string;const Client1:TIdTCPClient;
      var nHint: string): Boolean;
     //打印编码
-    function IsOnline(const nPrinter: PCodePrinter): Boolean;
+//    function IsOnline(const nPrinter: PCodePrinter): Boolean;
     //是否在线
     procedure LockMe;
     procedure UnlockMe;
@@ -204,7 +204,7 @@ begin
       if not Assigned(nPrinter) then Break;
       nDriver := LockDriver(nPrinter.FDriver);
       try
-        nDriver.IsOnline(nPrinter);
+//        nDriver.IsOnline(nPrinter);
       finally
         UnlockDriver(nDriver);
       end;
@@ -409,7 +409,7 @@ begin
   try
     nDriver := LockDriver(nPrinter.FDriver);
     if Assigned(nDriver) then
-      Result := nDriver.IsOnline(nPrinter);
+      Result :=  True;   // nDriver.IsOnline(nPrinter);
     //xxxxx
   finally
     UnlockDriver(nDriver);
@@ -456,6 +456,7 @@ function TCodePrinterManager.PrintCode(const nTunnel, nCode: string;
   var nHint: string): Boolean;
 var nPrinter: PCodePrinter;
     nDriver: TCodePrinterBase;
+    nClient: TIdTCPClient;
 begin
   if not FEnablePrinter then
   begin
@@ -478,15 +479,20 @@ begin
     nHint := Format('通道[ %s ]没有配置喷码机.', [nTunnel]);
     Exit;
   end;
-  
+
+  nClient                := TIdTCPClient.Create;
+  nClient.ConnectTimeout := 5 * 1000;
+  nClient.ReadTimeout    := 3 * 1000;
   nDriver := nil;
   try
     nDriver := LockDriver(nPrinter.FDriver);
     if Assigned(nDriver) then
-         Result := nDriver.Print(nPrinter, nCode, nHint)
+         Result := nDriver.Print(nPrinter, nCode, nClient, nHint)
     else nHint := Format('加载名称为[ %s ]的喷码机失败.', [nPrinter.FDriver]);
   finally
     UnlockDriver(nDriver);
+    nClient.Disconnect;
+    FreeAndNil(nClient);
   end;
 
   if Result then
@@ -568,15 +574,15 @@ end;
 constructor TCodePrinterBase.Create;
 begin
   FFlagLock := False;
-  FClient := TIdTCPClient.Create;
-  FClient.ConnectTimeout := 5 * 1000;
-  FClient.ReadTimeout := 3 * 1000;
+//  FClient := TIdTCPClient.Create;
+//  FClient.ConnectTimeout := 5 * 1000;
+//  FClient.ReadTimeout := 3 * 1000;
 end;
 
 destructor TCodePrinterBase.Destroy;
 begin
-  FClient.Disconnect;
-  FClient.Free;
+//  FClient.Disconnect;
+//  FClient.Free;
   inherited;
 end;
 
@@ -596,79 +602,69 @@ begin
 end;
 
 //Desc: 判断nPrinter是否在线
-function TCodePrinterBase.IsOnline(const nPrinter: PCodePrinter): Boolean;
-begin
-  if (not nPrinter.FEnable) or
-     (GetTickCount - nPrinter.FLastOn < cCP_KeepOnLine) then
-  begin
-    Result := True;
-    Exit;
-  end else Result := False;
-
-  try
-    if (FClient.Host <> nPrinter.FIP) or (FClient.Port <> nPrinter.FPort) then
-    begin
-      FClient.Disconnect;
-      if Assigned(FClient.IOHandler) then
-        FClient.IOHandler.InputBuffer.Clear;
-      //xxxxx
-
-      FClient.Host := nPrinter.FIP;
-      FClient.Port := nPrinter.FPort;
-    end;
-
-    if not FClient.Connected then
-      FClient.Connect;
-    Result := FClient.Connected;
-
-    nPrinter.FOnline := Result;
-    if Result then
-      nPrinter.FLastOn := GetTickCount;
-    //xxxxx
-  except
-    FClient.Disconnect;
-    if Assigned(FClient.IOHandler) then
-      FClient.IOHandler.InputBuffer.Clear;
-    //xxxxx
-  end;
-end;
+//function TCodePrinterBase.IsOnline(const nPrinter: PCodePrinter): Boolean;
+//begin
+//  if (not nPrinter.FEnable) or
+//     (GetTickCount - nPrinter.FLastOn < cCP_KeepOnLine) then
+//  begin
+//    Result := True;
+//    Exit;
+//  end else Result := False;
+//
+//  try
+////    if (FClient.Host <> nPrinter.FIP) or (FClient.Port <> nPrinter.FPort) then
+////    begin
+////    end;
+//    FClient.Disconnect;
+//    if Assigned(FClient.IOHandler) then
+//      FClient.IOHandler.InputBuffer.Clear;
+//    //xxxxx
+//    FClient.Host := nPrinter.FIP;
+//    FClient.Port := nPrinter.FPort;
+//    FClient.Connect;
+//    Result := FClient.Connected;
+//
+//    nPrinter.FOnline := Result;
+//    if Result then
+//      nPrinter.FLastOn := GetTickCount;
+//    //xxxxx
+//  except
+//    FClient.Disconnect;
+//    if Assigned(FClient.IOHandler) then
+//      FClient.IOHandler.InputBuffer.Clear;
+//    //xxxxx
+//  end;
+//end;
 
 //Date: 2012-9-7
 //Parm: 喷码机;编码
 //Desc: 向nPrinter发送nCode编码.
 function TCodePrinterBase.Print(const nPrinter: PCodePrinter;
-  const nCode: string; var nHint: string): Boolean;
+  const nCode: string;const Client1:TIdTCPClient; var nHint: string): Boolean;
 begin
   if not nPrinter.FEnable then
   begin
     Result := True;
     Exit;
   end else Result := False;
-
-  if not IsOnline(nPrinter) then
+  
+  Client1.Host := nPrinter.FIP;
+  Client1.Port := nPrinter.FPort;
+  Client1.Connect;
+  if not Client1.Connected then
   begin
     nHint := Format('喷码机[ %s ]网络通讯异常.', [nPrinter.FID]);
     Exit;
   end;
-
+  
   try
-    if Assigned(FClient.IOHandler) then
-    begin
-      FClient.IOHandler.InputBuffer.Clear;
-      FClient.IOHandler.WriteBufferClear;
-    end;
-
     FPrinter := nPrinter;
-    Result := PrintCode(nCode, nHint);
+    Result := PrintCode(nCode,Client1, nHint);
   except
     on E:Exception do
     begin
       WriteLog(E.Message);
       nHint := Format('向喷码机[ %s ]发送内容失败.', [nPrinter.FID]);
-
-      FClient.Disconnect;
-      if Assigned(FClient.IOHandler) then
-        FClient.IOHandler.InputBuffer.Clear;
       //xxxxx
     end;
   end;
@@ -779,7 +775,7 @@ end;
 type
   TPrinterZero = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -791,7 +787,7 @@ begin
 end;
 
 //Desc: 打印编码
-function TPrinterZero.PrintCode(const nCode: string;
+function TPrinterZero.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData: string;
     nCrc: TByteWord;
@@ -805,13 +801,15 @@ begin
   nCrc := TByteWord(CRC16(nData, 5, Length(nData)));
   nData := nData + Char(nCrc.FH) + Char(nCrc.FL) + Char($AA);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
+  Sleep(100);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, 9, False);
+    Client1.Socket.ReadBytes(nBuf, 9, False);
     nStr := BytesToString(nBuf,Indy8BitEncoding);
 
     nData :=  Char($55) + Char($FF) + Char($02)+ Char($54)+ Char($4F);
@@ -832,7 +830,7 @@ end;
 type
   TPrinterJY = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -843,7 +841,7 @@ begin
   Result := 'JY';
 end;
 
-function TPrinterJY.PrintCode(const nCode: string;
+function TPrinterJY.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData: string;
   nBuf: TIdBytes;
@@ -863,13 +861,13 @@ begin
   nData := nData + Char(2 + 31) + Char($40) + Char($37);
   nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+    Client1.Socket.ReadBytes(nBuf, Length(nData), False);
 
     nStr := BytesToString(nBuf, Indy8BitEncoding);
     if nStr <> nData then
@@ -888,7 +886,7 @@ end;
 type
   TPrinterWSD = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -899,7 +897,7 @@ begin
   Result := 'WSD';
 end;
 
-function TPrinterWSD.PrintCode(const nCode: string;
+function TPrinterWSD.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData: string;
   nBuf: TIdBytes;
@@ -919,15 +917,15 @@ begin
   nData := nData+nCode;
   nData := nData+Char($40)+Char($39)+Char($0D);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(100);
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+    Client1.Socket.ReadBytes(nBuf, Length(nData), False);
 
     nStr := BytesToString(nBuf, Indy8BitEncoding);
     if nStr <> nData then
@@ -945,7 +943,7 @@ end;
 type
   TPrinterSGB = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -956,7 +954,7 @@ begin
   Result := 'SGB';
 end;
 
-function TPrinterSGB.PrintCode(const nCode: string;
+function TPrinterSGB.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nData: string;
     nBuf: TIdBytes;
@@ -967,20 +965,20 @@ begin
   nData := Char($1B) + Char($41) + Char($29)+ Char(Length(nCode) + 38);
   nData := nData + Char(2 + 31) + Char($40) + Char($37);
   nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
 
   nData := Char($1B) + Char($41) + Char($2C) +Char($22);
   nData := nData + Char(2 + 31) + Char($0D);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(100);
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+    Client1.Socket.ReadBytes(nBuf, Length(nData), False);
   end;
 
   Result := True;
@@ -990,7 +988,7 @@ end;
 type
   TPrinterWZP = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -1001,7 +999,7 @@ begin
   Result := 'WZP';
 end;
 
-function TPrinterWZP.PrintCode(const nCode: string;
+function TPrinterWZP.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nData: string;
     nBuf: TIdBytes;
@@ -1011,13 +1009,13 @@ begin
   nData := Char($23) + Char($30) + Char($31) + Char($11) + Char($41);
   nData := nData + nCode + Char($0D) + Char($0A);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+    Client1.Socket.ReadBytes(nBuf, Length(nData), False);
   end;
 
   Result := True;
@@ -1027,7 +1025,7 @@ end;
 type
   TPrinterDWA = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -1038,7 +1036,7 @@ begin
   Result := 'DWA';
 end;
 
-function TPrinterDWA.PrintCode(const nCode: string;
+function TPrinterDWA.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData: string;
   nBuf: TIdBytes;
@@ -1058,13 +1056,13 @@ begin
   nData := nData + Char(2 + 31) + Char($40) + Char($37);
   nData := nData + nCode + Char($40) + Char($39)+ Char($0D);
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, Length(nData), False);
+    Client1.Socket.ReadBytes(nBuf, Length(nData), False);
 
     nStr := BytesToString(nBuf, Indy8BitEncoding);
     if nStr <> nData then
@@ -1082,7 +1080,7 @@ end;
 type
   TPrinterWSDP011C = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -1094,7 +1092,7 @@ begin
 end;
 
 //Desc: 打印编码
-function TPrinterWSDP011C.PrintCode(const nCode: string;
+function TPrinterWSDP011C.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData,nDataVerify: string;
     nCrc: TByteWord;
@@ -1113,13 +1111,13 @@ begin
 
   nData := nData + nDataVerify;
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
   if FPrinter.FResponse then
   begin
     SetLength(nBuf, 0);
-    FClient.Socket.ReadBytes(nBuf, 12, False);
+    Client1.Socket.ReadBytes(nBuf, 12, False);
     nStr := BytesToString(nBuf,Indy8BitEncoding);
 
     nData :=  Char($55) + Char($00) + Char($0C)+ Char($4F)+ Char($4B);
@@ -1140,7 +1138,7 @@ end;
 type
   TPrinterHYPM = class(TCodePrinterBase)
   protected
-    function PrintCode(const nCode: string;
+    function PrintCode(const nCode: string; const Client1:TIdTCPClient;
      var nHint: string): Boolean; override;
   public
     class function DriverName: string; override;
@@ -1152,7 +1150,7 @@ begin
 end;
 
 //Desc: 打印编码
-function TPrinterHYPM.PrintCode(const nCode: string;
+function TPrinterHYPM.PrintCode(const nCode: string; const Client1:TIdTCPClient;
   var nHint: string): Boolean;
 var nStr,nData: string;
     nCrc: TByteWord;
@@ -1184,7 +1182,7 @@ begin
   crc := IntToHex(CRC12(8+nlength,Finstructions),4);
   nData := nData + Copy(crc,1,2)+' '+Copy(crc,3,2) +' FA FA ';
 
-  FClient.Socket.Write(nData, Indy8BitEncoding);
+  Client1.Socket.Write(nData, Indy8BitEncoding);
   Sleep(200);
 
 //  if FPrinter.FResponse then

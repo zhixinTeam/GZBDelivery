@@ -75,6 +75,8 @@ type
     //获取岗位交货单
     function SavePostBillItems(var nData: string): Boolean;
     //保存岗位交货单
+    function AlterTruckSnap(var nData: string): Boolean;
+    //修改车辆签到信息
   public
     constructor Create; override;
     destructor destroy; override;
@@ -188,6 +190,8 @@ begin
    cBC_LogoffCard          : Result := LogoffCard(nData);
    cBC_GetPostBills        : Result := GetPostBillItems(nData);
    cBC_SavePostBills       : Result := SavePostBillItems(nData);
+
+   cBC_AlterTruckSnap      : Result := AlterTruckSnap(nData);
    else
     begin
       Result := False;
@@ -346,12 +350,17 @@ end;
 //Desc: 验证能否开单
 function TWorkerBusinessBills.VerifyBeforSave(var nData: string): Boolean;
 var nIdx,nInt: Integer;
-    nVal, nRenum: Double;
-    nStr,nTruck,nStock,nWebOrderID,nMemo,nCusID: string;
+    nVal, nRenum, nMaxBillNum: Double;
+    nStr,nTruck,nStock,nWebOrderID,nMemo,nCusID,nType: string;
     nOut: TWorkerBusinessCommand;
     nTime: Integer;
+    nDBill,nDCusID,nDStockNo,nDWorkaddr,nSQL: string;
 begin
-  Result := False;
+  Result    := False;
+  nDBill    := '';
+  nDCusID   := '';
+  nDStockNo := '';
+  nDWorkaddr:= '';
   nCusID := FListA.Values['CusID'];
   nTruck := FListA.Values['Truck'];
   nWebOrderID := FListA.Values['WebOrderID'];
@@ -364,8 +373,8 @@ begin
   
   if nInt > 0 then
   begin
-    nStr := 'Select %s as T_Now,T_LastTime,T_NoVerify,T_Valid From %s ' +
-            'Where T_Truck=''%s''';
+    nStr := ' Select %s as T_Now,T_LastTime,T_NoVerify,T_Valid,T_MaxBillNum From %s ' +
+            ' Where T_Truck=''%s''';
     nStr := Format(nStr, [sField_SQLServer_Now, sTable_Truck, nTruck]);
 
     with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -384,6 +393,10 @@ begin
         nData := Format(nData, [nTruck]);
         Exit;
       end;
+
+      {$IFDEF UseTruckXZ}
+      nMaxBillNum := FieldByName('T_MaxBillNum').AsFloat;
+      {$ENDIF}
       
       if FieldByName('T_NoVerify').AsString <> sFlag_Yes then
       begin
@@ -452,28 +465,55 @@ begin
 
     while not Eof do
     begin
-      //钟祥用语句：or ((Trim(nWebOrderID) <> '')  and (Trim(nMemo)= ''))
-      if ((FieldByName('T_Type').AsString = sFlag_San) and (not FSanMultiBill)) then
-      begin
-        nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
-        nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
-        Exit;
-      end else
+      nType := FieldByName('T_Type').AsString;
+      nDBill:= FieldByName('T_Bill').AsString;
+      {$IFDEF UseNoWebOrderID}
+        if ((FieldByName('T_Type').AsString = sFlag_San) and (not FSanMultiBill))
+           or ((Trim(nWebOrderID) <> '')  and (Trim(nMemo)= ''))
+        then
+        begin
+          nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end else
 
-      //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
-      //if FieldByName('T_Valid').AsString = sFlag_Yes then
-      if (FieldByName('T_InFact').AsString <> '') then     
-      begin
-        nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
-        nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
-        Exit;
-      end else
-      if FieldByName('T_Valid').AsString = sFlag_No then
-      begin
-        nStr := '车辆[ %s ]有已出队的交货单[ %s ],需先处理.';
-        nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
-        Exit;
-      end; 
+        //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
+        //if FieldByName('T_Valid').AsString = sFlag_Yes then
+        if (FieldByName('T_InFact').AsString <> '') then
+        begin
+          nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end else
+        if FieldByName('T_Valid').AsString = sFlag_No then
+        begin
+          nStr := '车辆[ %s ]有已出队的交货单[ %s ],需先处理.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end;
+      {$ELSE}
+        if ((FieldByName('T_Type').AsString = sFlag_San) and (not FSanMultiBill)) then
+        begin
+          nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end else
+
+        //if (FieldByName('T_Type').AsString = sFlag_Dai) and //袋装与散装都有
+        //if FieldByName('T_Valid').AsString = sFlag_Yes then
+        if (FieldByName('T_InFact').AsString <> '') then
+        begin
+          nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end else
+        if FieldByName('T_Valid').AsString = sFlag_No then
+        begin
+          nStr := '车辆[ %s ]有已出队的交货单[ %s ],需先处理.';
+          nData := Format(nStr, [nTruck, FieldByName('T_Bill').AsString]);
+          Exit;
+        end;
+      {$ENDIF}
 
       with FMatchItems[nIdx] do
       begin
@@ -492,22 +532,23 @@ begin
   end;
 
   {$IFDEF NoUseOrderSale}
-  nStr :=' select L_ID from S_Bill  where L_Status <> ''O'' and L_Truck ='''+nTruck+''' and L_Card  not like ''E%'' ';
-//  nStr := Format(nStr, [sTable_Bill, sFlag_TruckOut, nTruck]);
-  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if nType = sFlag_San then
   begin
-    if RecordCount > 0 then
+    nStr :=' select L_ID from S_Bill  where L_Status <> ''O'' and L_Truck ='''+nTruck+''' and L_Card  not like ''E%'' ';
+    with gDBConnManager.WorkerQuery(FDBConn, nStr) do
     begin
-      nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
-      nData := Format(nStr, [nTruck, FieldByName('L_ID').AsString]);
-      Exit;
+      if RecordCount > 0 then
+      begin
+        nStr := '车辆[ %s ]在未完成[ %s ]交货单之前禁止开单.';
+        nData := Format(nStr, [nTruck, FieldByName('L_ID').AsString]);
+        Exit;
+      end;
     end;
   end;
 
   nStr := ' Select o.O_ID From P_Order o Where o.O_Truck='''+nTruck+''' ' +
           ' And  exists(Select R_ID from P_OrderDtl od where o.O_ID=od.D_OID '+
           ' and od.D_Status <> ''O'' and od.D_Card not like ''E%'' )';
-//  nStr := Format(nStr, [sTable_Order, nTruck]);
   with gDBConnManager.WorkerQuery(FDBConn, nStr) do
   begin
     if RecordCount > 0 then
@@ -561,12 +602,90 @@ begin
   end;
   {$ENDIF}
 
+  //钟祥出厂90分钟禁止开单
+  {$IFDEF Between2BillTimeEx}
+  if nType = sFlag_San then
+  begin
+    nTime := 0;
+//    if nTime <= 0 then
+    begin
+      nStr  := ' select D_Value from %s where D_Name = ''%s'' and D_Memo  = ''%s'' ';
+      nStr  := Format(nStr,[sTable_SysDict,sFlag_SysParam,'Between2BillTime']);
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if recordcount > 0 then
+        begin
+          nTime :=  FieldByName('D_Value').AsInteger;
+        end;
+      end;
+    end;
+    if nTime > 0 then
+    begin
+      nStr := 'select top 1 L_OutFact from %s where '+
+              'l_truck=''%s'' order by L_OutFact desc';
+      nStr := Format(nStr,[sTable_Bill,nTruck]);
+      with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+      begin
+        if recordcount > 0 then
+        begin
+          if (Now - FieldByName('L_OutFact').AsDateTime)*24*60 < nTime then
+          begin
+            nStr := '车辆[ %s ]出厂未到'+inttostr(nTime)+'分钟,禁止开单.';
+            nData := Format(nStr, [nTruck]);
+            Exit;
+          end;
+        end;
+      end;
+    end;
+  end;
+  {$ENDIF}
+
   TWorkerBusinessCommander.CallMe(cBC_SaveTruckInfo, nTruck, '', @nOut);
   //保存车牌号
                         
   //----------------------------------------------------------------------------
   FListC.Text := PackerDecodeStr(FListA.Values['ZhiKa']);
   //云天xs_card_base信息
+
+  {$IFDEF HDWorkAddr}
+    nSQL := 'Select * From %s Where L_ID=''%s''';
+    nSQL := Format(nSQL, [sTable_Bill, nDBill]);
+    with gDBConnManager.WorkerQuery(FDBConn, nSQL) do
+    if RecordCount > 0 then
+    begin
+      nDCusID   := FieldByName('L_CusID').AsString;
+      nDStockNo := FieldByName('L_StockNo').AsString;
+      nDWorkaddr:= FieldByName('L_WorkAddr').AsString;
+    end;
+
+    if (Trim(nDCusID)<>'') and (nDCusID <> FListC.Values['XCB_Client']) then
+    begin
+      nData := '客户信息不一致,详情如下:' + #13#10#13#10 +
+               '※.提货客户: %s' + #13#10 +
+               '※.拼单客户: %s' + #13#10#13#10 +
+               '请确认提货单号是否正确.';
+      nData := Format(nData, [nDCusID, FListC.Values['XCB_Client']]);
+      Exit;
+    end;
+    if (Trim(nDStockNo)<>'') and (nDStockNo <> FListC.Values['XCB_Cement']) then
+    begin
+      nData := '品种编码信息不一致,详情如下:' + #13#10#13#10 +
+               '※.提货品种编码: %s' + #13#10 +
+               '※.拼单品种编码: %s' + #13#10#13#10 +
+               '请确认提货单号是否正确.';
+      nData := Format(nData, [nDStockNo, FListC.Values['XCB_Cement']]);
+      Exit;
+    end;
+    if (Trim(nDWorkaddr)<>'') and (nDWorkaddr <> FListC.Values['XCB_WorkAddr']) then
+    begin
+      nData := '工程工地信息不一致,详情如下:' + #13#10#13#10 +
+               '※.提货工程工地: %s' + #13#10 +
+               '※.拼单工程工地: %s' + #13#10#13#10 +
+               '请确认提货单号是否正确.';
+      nData := Format(nData, [nDWorkaddr, FListC.Values['XCB_WorkAddr']]);
+      Exit;
+    end;
+  {$ENDIF}
 
   with gDBConnManager.WorkerQuery(FDBConn, nStr),FListA do
   begin
@@ -595,7 +714,7 @@ begin
     nVal := nVal + StrToFloatDef(FListC.Values['Value'], 0);
     nStock := FListC.Values['StockNo'];
   end;
-  //开单总量，用于校验批次号和订单可用量 
+  //开单总量，用于校验批次号和订单可用量
 
   if not TWorkerBusinessCommander.CallMe(cBC_ReadYTCard,
      FListA.Values['Project'], '', @nOut) then
@@ -606,7 +725,7 @@ begin
 
   FListB.Text := PackerDecodeStr(nOut.FData);
   FListC.Text := PackerDecodeStr(FListB[0]);
-
+  
   if FListC.Values['XCB_IsOnly'] = '1' then
   begin
     nStr := 'Select L_ID From %s Where L_Project=''%s''';
@@ -622,7 +741,7 @@ begin
   end;   
   //判断一车一票不允许重复开单
 
-  FListC.Values['Seal'] := FListA.Values['Seal'];
+  FListC.Values['Seal']  := FListA.Values['Seal'];
   FListC.Values['HYDan'] := FListA.Values['HYDan'];
   FListC.Values['Value'] := FloatToStr(nVal);
   //订单信息
@@ -639,6 +758,20 @@ begin
   //订单剩余量
   WriteLog('销售卡片编号：' + FListA.Values['Project'] + ' 剩余量：' + FListB.Values['XCB_RemainNum']);
 
+  {$IFDEF UseTruckXZ}
+  if nMaxBillNum > 0 then
+  begin
+    if FloatRelation(nMaxBillNum, nVal, rtLess, cPrecision) then
+    begin
+      nData := '车辆[%s]荷载吨位没有足够的量,详情如下:' + #13#10#13#10 +
+               '※.荷载吨数: %.2f吨' + #13#10 +
+               '※.本次开单: %.2f吨' + #13#10+#13#10 +
+               '请重新确认订单量.';
+      nData := Format(nData, [nTruck, nMaxBillNum, nVal]);
+      Exit;
+    end;
+  end;
+  {$ENDIF}
   if FloatRelation(nRenum, nVal, rtLess, cPrecision) then
   begin
     nData := '客户[ %s.%s ]订单上没有足够的量,详情如下:' + #13#10#13#10 +
@@ -693,11 +826,28 @@ var nStr,nSQL,nHKID, nRID, nBill, nCode: string;
     nOut: TWorkerBusinessCommand;
     nIdx,nInt: Integer;
     nVal: Double;
-    nWebOrderID:string;
+    nWebOrderID: string;
+    nHasCusLine: Boolean;
 
     {$IFDEF ASyncWriteData}
     nItem: TDBASyncItem;
     {$ENDIF}
+
+function HasCusLine:Boolean;
+var nStr:string;
+begin
+  Result:= False;
+
+  nStr := ' Select * From %s Where M_CusID like ''%s'' and M_StockNo = ''%s'' ';
+  nStr := Format(nStr, [sTable_YT_CusBatMap, FListA.Values['CusID'], FListC.Values['StockNO']]);
+  with gDBConnManager.WorkerQuery(FDBConn, nStr) do
+  if RecordCount > 0 then
+  begin
+    WriteLog(Format('检测到 %s 有订单专用车道、%s 将使用专用车道装车', [FListA.Values['CusID'],FListC.Values['StockNO']]));
+    Result:= True;
+  end;
+end;
+
 begin
   Result := False;
   FListA.Text := PackerDecodeStr(FIn.FData);
@@ -753,6 +903,8 @@ begin
       //combine bill
       FListC.Text := PackerDecodeStr(FListB[nIdx]);
       //get bill info
+      nHasCusLine := HasCusLine;
+      //是否有专用车道
 
       nStr := MakeSQLByStr([SF('L_ID', nOut.FData),
               SF('L_ZhiKa', FListA.Values['Record']),
@@ -800,6 +952,21 @@ begin
       
       if FListA.Values['BuDan'] = sFlag_Yes then //补单
       begin
+        {$IFDEF SaleBudanMValue}
+        nStr := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
+                SF('L_InTime', sField_SQLServer_Now, sfVal),
+                SF('L_PValue', FListA.Values['PValue'], sfVal),
+                SF('L_PDate', sField_SQLServer_Now, sfVal),
+                SF('L_PMan', FIn.FBase.FFrom.FUser),
+                SF('L_MValue', FListA.Values['MValue'], sfVal),
+                SF('L_MDate', sField_SQLServer_Now, sfVal),
+                SF('L_MMan', FIn.FBase.FFrom.FUser),
+                SF('L_OutFact', sField_SQLServer_Now, sfVal),
+                SF('L_OutMan', FIn.FBase.FFrom.FUser),
+                SF('L_Card', '')
+                ], sTable_Bill, SF('L_ID', nOut.FData), False);
+        gDBConnManager.WorkerExec(FDBConn, nStr);
+        {$ELSE}
         nStr := MakeSQLByStr([SF('L_Status', sFlag_TruckOut),
                 SF('L_InTime', sField_SQLServer_Now, sfVal),
                 SF('L_PValue', 0, sfVal),
@@ -813,6 +980,7 @@ begin
                 SF('L_Card', '')
                 ], sTable_Bill, SF('L_ID', nOut.FData), False);
         gDBConnManager.WorkerExec(FDBConn, nStr);
+        {$ENDIF}
       end else
       begin
         if FListC.Values['Type'] = sFlag_San then
@@ -850,6 +1018,18 @@ begin
             SF('T_HKBills' , nOut.FData + '.')
             ], sTable_ZTTrucks, '', True);
           gDBConnManager.WorkerExec(FDBConn, nSQL);
+
+          {$IFDEF ZDTD}
+          if nHasCusLine then
+          begin
+            nSQL := ' UPDate $TK Set T_CusLine=''$ZhiKa'' Where T_Truck=''$Truck''';
+            nSQL := MacroValue(nSQL, [MI('$TK', sTable_ZTTrucks),
+                                      MI('$ZhiKa', 'Y'),
+                                      MI('$Truck', FListA.Values['Truck']) ]);
+            gDBConnManager.WorkerExec(FDBConn, nSQL);
+            WriteLog( Format('更新排队车辆 %s 客户信息：%s',[FListA.Values['Truck'],nSQL] ));
+          end;
+          {$ENDIF}
 
           nStr := 'Select Max(R_ID) From ' + sTable_ZTTrucks;
           with gDBConnManager.WorkerQuery(FDBConn, nStr) do
@@ -1974,6 +2154,7 @@ var nStr,nSQL,nTmp,nCode,nRID,nBill: string;
     nItem: TDBASyncItem;
     {$ENDIF}
 begin
+  FOut.FExtParam := '';
   Result := False;
   AnalyseBillItems(FIn.FData, nBills);
   nInt := Length(nBills);
@@ -2444,6 +2625,17 @@ begin
           nData := Format(nData, [FStockName, FListC.Values['XCB_CementName']]);
           Exit;
         end;
+          {$IFDEF HDWorkAddr}
+          if Fworkaddr <> FListC.Values['XCB_WorkAddr'] then
+          begin
+            nData := '工程工地信息不一致,详情如下:' + #13#10#13#10 +
+                     '※.提货工程工地: %s' + #13#10 +
+                     '※.合单工程工地: %s' + #13#10#13#10 +
+                     '请确认提货单号是否正确.';
+            nData := Format(nData, [Fworkaddr, FListC.Values['XCB_WorkAddr']]);
+            Exit;
+          end;
+          {$ENDIF}
         {$ENDIF}
 
         if not TWorkerBusinessCommander.CallMe(cBC_VerifyYTCard, FListB[0],
@@ -2632,6 +2824,9 @@ begin
          PackerEncodeStr(FListC.Text), sFlag_Yes, @nOut) then
       begin
         nData := nOut.FData;
+        FOut.FData     := '批次量不足,请找化验室人员更改批次';
+        FOut.FExtParam := '-1';
+        Result         := True;
         Exit;
       end; //验证批次号有效性和可提量
       
@@ -3193,6 +3388,40 @@ begin
     gWXPlatFormHelper.WXSendMsg(cWXBus_OutFact, FListA.Text);
   end;
   {$ENDIF}
+end;
+
+function TWorkerBusinessBills.AlterTruckSnap(var nData: string): Boolean;
+var nIdx: Integer;
+    nStr, nCard, nSql : string;
+begin
+  Result := False;
+  
+  nCard  := FIn.FData;
+
+  FOut.FData := '';
+  nSql := ' Select T_Truck From S_Truck Where T_Card = ''%s'' ';
+  nSql := Format(nSql,[nCard]);
+  with gDBConnManager.WorkerQuery(FDBConn,nSql) do
+  begin
+    if RecordCount > 0 then
+    begin
+      FOut.FData := Fields[0].AsString;
+    end;
+  end;
+  //----------------------------------------------------------------------------
+  FDBConn.FConn.BeginTrans;
+  try
+    nStr := MakeSQLByStr([
+            SF('T_LastTime', sField_SQLServer_Now, sfVal)
+            ], sTable_Truck, SF('T_Card', nCard), False);
+    gDBConnManager.WorkerExec(FDBConn, nStr);
+    //更新车辆签到信息
+    FDBConn.FConn.CommitTrans;
+    Result := True;
+  except
+    FDBConn.FConn.RollbackTrans;
+    raise;
+  end;
 end;
 
 initialization

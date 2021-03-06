@@ -471,7 +471,11 @@ var
     nPrefixLen, nIDLen, nLength: Integer;
 begin
   Result := True;
-  if not gCodePrinterManager.EnablePrinter then Exit;
+  if not gCodePrinterManager.EnablePrinter then
+  begin
+    WriteLog('通道'+FIn.FExtParam+'自动打印喷码已关闭!');
+    Exit;
+  end;
 
   nStr := '向通道[ %s ]发送交货单[ %s ]防违流码.';
   nStr := Format(nStr, [FIn.FExtParam, FIn.FData]);
@@ -508,7 +512,9 @@ begin
       if RecordCount < 1 then
       begin
         Result := False;
-        nData := Format('交货单[ %s ]已无效.', [FIn.FData]); Exit;
+        nData := Format('交货单[ %s ]已无效.', [FIn.FData]);
+        WriteLog(nData);
+        Exit;
       end;
 
       {$IFDEF CODECOMMON}
@@ -576,12 +582,20 @@ begin
 
       {$IFDEF CODEHCDZ}
       //汉川喷码规则: P09+年月日+L_HYDan(#+后两位)
-      nCode := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
-      nCode := nCode + '@5#@7' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+//      nCode := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
+//      nCode := nCode + '@5#@7' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+//               +' '+Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
+//
+//      nCodeTmp := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
+//      nCodeTmp := nCodeTmp + '#' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+//               +Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
+
+      nCode := 'P';
+      nCode := nCode + StringReplace(FieldByName('L_HYDan').AsString,'＃','@5#@7',[rfReplaceAll])
                +' '+Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
                
-      nCodeTmp := 'P09'+Copy(Date2Str(Now,False),3,MaxInt);
-      nCodeTmp := nCodeTmp + '#' +Copy(FieldByName('L_HYDan').AsString,Length(FieldByName('L_HYDan').AsString)-1,2)
+      nCodeTmp := 'P';
+      nCodeTmp := nCodeTmp + StringReplace(FieldByName('L_HYDan').AsString,'＃','#',[rfReplaceAll])
                +Copy(FieldByName('L_ID').AsString,Length(FieldByName('L_ID').AsString)-2,3);
       {$ENDIF}
 
@@ -590,6 +604,7 @@ begin
       {$ENDIF}
 
       {$IFDEF GZBLHK}
+      //喷码规则：提货单号去掉前7位，然后把'P'+化验批次值从第3位插入到剩余提货单号中
       nCode := FieldByName('L_ID').AsString;
       System.Delete(nCode, 1, nPrefixLen + 4);
       //日期(YYMMDD) + 流水(XXX)

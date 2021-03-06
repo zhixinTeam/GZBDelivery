@@ -46,6 +46,8 @@ type
     dxLayout1Item14: TdxLayoutItem;
     EditMaxBillNum: TcxTextEdit;
     dxLayout1Item15: TdxLayoutItem;
+    EditAxlesNum: TcxTextEdit;
+    dxLayout1Item16: TdxLayoutItem;
     procedure BtnOKClick(Sender: TObject);
   protected
     { Protected declarations }
@@ -124,6 +126,7 @@ begin
     EditPhone.Text      := FieldByName('T_Phone').AsString;
     EditMValue.Text     := FieldByName('T_MValueMax').AsString;
     EditMaxBillNum.Text := FieldByName('T_MaxBillNum').AsString;
+    EditAxlesNum.Text   := FieldByName('T_AxlesNum').AsString;
     EditPrePValue.Text  := FloatToStr(FieldByName('T_PrePValue').AsFloat);
 
     CheckVerify.Checked := FieldByName('T_NoVerify').AsString = sFlag_No;
@@ -203,6 +206,7 @@ begin
           SF('T_Phone', EditPhone.Text),
           SF('T_MValueMax', EditMValue.Text, sfVal),
           SF('T_MaxBillNum', EditMaxBillNum.Text, sfVal),
+          SF('T_AxlesNum', EditAxlesNum.Text),
           SF('T_NoVerify', nU),
           SF('T_Valid', nV),
           SF('T_PrePUse', nP),

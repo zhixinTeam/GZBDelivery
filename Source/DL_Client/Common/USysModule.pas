@@ -28,12 +28,12 @@ uses
   UFrameBill, UFormBill, UFormGetTruck, UFrameQueryDiapatch, UFrameTruckQuery,
   UFrameBillCard, UFormCard, UFormTruckIn, UFormTruckOut, UFormLadingDai,
   UFormLadingSan, UFramePoundManual, UFramePoundAuto, UFramePMaterails,
-  UFramePSaleInfo, UFramePUserYSInfo,
+  UFramePSaleInfo, UFramePUserYSInfo, UFrameRFIDMater,UFormOrderDtl,
   UFormPMaterails, UFramePProvider, UFormPProvider, UFramePoundQuery,
   UFrameQuerySaleDetail, UFrameQuerySaletunnel, UFrameZTDispatch, UFrameTrucks, UFormTruck,
   UFormRFIDCard, UFormBillNew,UFrameCustomer, UFormCustomer, UFormGetCustom,
   UFormTruckEmpty, UFormReadCard, UFormTransfer, UFrameTransfer,
-  UFrameQueryTransferDetail, UFormGetYTBatch,
+  UFrameQueryTransferDetail, UFormGetYTBatch,UFrameSalePlan,UFromSalePlan,UFormSalePlanDtl,
 
   UFramePurchaseOrder, UFormPurchaseOrder, UFormPurchasing, UFormPro_Order,
   UFrameQueryOrderDetail, UFrameOrderCard,  UFrameOrderDetail,UFramePro_Order,
@@ -59,7 +59,8 @@ uses
   {$ENDIF}
   //----------------------------------------------------------------------------
   UFramePurchaseContract,UFormPurchaseContract,UFormGetPurchaseContract,
-  UFormPurchaseAssayRes, UFormCardSearch,
+  UFormPurchaseAssayRes, UFormCardSearch,UFormOrderKW,UFrameHYMBWH,UFormHYMBWH,
+  UFormPTruckControl, UFramePTruckControl,
   UFormHYStock, UFormHYData, UFormHYRecord, UFormGetStockNo,
   UFrameHYStock, UFrameHYData, UFrameHYRecord;
 
@@ -126,7 +127,8 @@ begin
 
     FPoundMMax := False;
     FDaiWCStop := False;
-    FDaiPercent := False;
+    FDaiPercent:= False;
+    FPoundJMax := False;
   end;
 
   nStr := 'Select D_Value,D_Memo From %s Where D_Name=''%s''';
@@ -143,6 +145,8 @@ begin
       if nStr = sFlag_PoundMMax then
         gSysParam.FPoundMMax := Fields[0].AsString = sFlag_Yes;
       //xxxxx
+      if nStr = sFlag_PoundJMax then
+        gSysParam.FPoundJMax := Fields[0].AsString = sFlag_Yes;
 
       if nStr = sFlag_PoundMultiM then
       with USysConst.gSysParam do

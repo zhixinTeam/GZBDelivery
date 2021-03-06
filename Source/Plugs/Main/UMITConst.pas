@@ -68,6 +68,7 @@ type
     FSaleArea   : string;                            //销售点
     FProvFirm   : string;                            //供应厂区
     FGPWSURL    : string;                            //集团公共web服务平台地址
+    FHYReaderLog: string;                            //华益标签日志
   end;
   //系统参数
 
@@ -160,6 +161,7 @@ begin
 
         FSaleArea  := ReadString(FProgID, 'SaleArea', '');
         FProvFirm  := ReadString(FProgID, 'ProvFirm', '');
+        FHYReaderLog:= ReadString(FProgID, 'HYReaderLog', 'N');
       end;
     end;
   finally

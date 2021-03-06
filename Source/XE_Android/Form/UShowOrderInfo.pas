@@ -29,6 +29,8 @@ type
     CheckBox1: TCheckBox;
     Label3: TLabel;
     EditWorkAddr: TComboEdit;
+    Label5: TLabel;
+    lblMValue: TLabel;
     procedure tmrGetOrderTimer(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
@@ -77,6 +79,12 @@ begin
   if Length(gOrders)>0 then
   with gOrders[0] do
   begin
+    if not UserYSControl(FStockNo) then
+    begin
+      ShowMessage('无验收此品种权限');
+      Exit;
+    end;
+
     if CheckBox1.IsChecked then
     begin
       nYSVaid := 'N';
@@ -94,7 +102,8 @@ begin
 
     if SavePurchaseOrders('X', gOrders) then
     begin
-      Toast('验收保存成功');
+      //Toast('验收保存成功');
+      ShowMessage('验收保存成功');
       MainForm.Show;
     end;
 
@@ -151,6 +160,7 @@ begin
   lblProvider.Text := '';
   lblMate.Text     := '';
   lblTruck.Text    := '';
+  lblMValue.Text   := '';
   EditKZValue.Text := '0.00';
 
   BtnOK.Enabled := False;
@@ -193,6 +203,7 @@ begin
     lblProvider.Text := FCusName;
     lblMate.Text     := FStockName;
     lblTruck.Text    := FTruck;
+    lblMValue.Text   := Floattostr(FPData.FValue);
 
     EditKZValue.Text := FloatToStr(FKZValue);
     EditKZMemo.Text := FMemo;

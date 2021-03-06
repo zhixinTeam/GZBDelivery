@@ -21,6 +21,8 @@ type
     procedure BtnAddClick(Sender: TObject);
     procedure BtnEditClick(Sender: TObject);
     procedure BtnDelClick(Sender: TObject);
+    procedure EditCusNamePropertiesButtonClick(Sender: TObject;
+      AButtonIndex: Integer);
   private
     { Private declarations }
   protected
@@ -100,6 +102,30 @@ begin
   nStr := Format(nStr, [sTable_YT_CusBatMap, SQLQuery.FieldByName('R_ID').AsString]);
   FDM.ExecuteSQL(nStr);
   InitFormData('');
+end;
+
+procedure TfFrameCusBatMap.EditCusNamePropertiesButtonClick(
+  Sender: TObject; AButtonIndex: Integer);
+begin
+  inherited;
+  if Sender = EditCode then
+  begin
+    EditCode.Text := Trim(EditCode.Text);
+    if EditCode.Text = '' then Exit;
+
+    FWhere := ' M_StockName like ''%' + EditCode.Text + '%'' ';
+    InitFormData(FWhere);
+  end else
+
+  if Sender = EditCusName then
+  begin
+    EditCusName.Text := Trim(EditCusName.Text);
+    if EditCusName.Text = '' then Exit;
+
+    FWhere := 'M_CusID like ''%%%s%%'' Or M_CusName like ''%%%s%%''';
+    FWhere := Format(FWhere, [EditCusName.Text, EditCusName.Text]);
+    InitFormData(FWhere);
+  end
 end;
 
 initialization

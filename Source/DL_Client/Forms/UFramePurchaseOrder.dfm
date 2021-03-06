@@ -1,8 +1,8 @@
 inherited fFramePurchaseOrder: TfFramePurchaseOrder
-  Width = 957
+  Width = 986
   Height = 436
   inherited ToolBar1: TToolBar
-    Width = 957
+    Width = 986
     inherited BtnAdd: TToolButton
       OnClick = BtnAddClick
     end
@@ -16,7 +16,7 @@ inherited fFramePurchaseOrder: TfFramePurchaseOrder
   end
   inherited cxGrid1: TcxGrid
     Top = 202
-    Width = 957
+    Width = 986
     Height = 234
     inherited cxView1: TcxGridDBTableView
       PopupMenu = PMenu1
@@ -24,7 +24,7 @@ inherited fFramePurchaseOrder: TfFramePurchaseOrder
     end
   end
   inherited dxLayout1: TdxLayoutControl
-    Width = 957
+    Width = 986
     Height = 135
     object EditID: TcxButtonEdit [0]
       Left = 81
@@ -194,15 +194,15 @@ inherited fFramePurchaseOrder: TfFramePurchaseOrder
   end
   inherited cxSplitter1: TcxSplitter
     Top = 194
-    Width = 957
+    Width = 986
   end
   inherited TitlePanel1: TZnBitmapPanel
-    Width = 957
+    Width = 986
     inherited TitleBar: TcxLabel
       Caption = #37319#36141#35746#21333#31649#29702
       Style.IsFontAssigned = True
-      Width = 957
-      AnchorX = 479
+      Width = 986
+      AnchorX = 493
       AnchorY = 11
     end
   end
@@ -244,6 +244,17 @@ inherited fFramePurchaseOrder: TfFramePurchaseOrder
     object N3: TMenuItem
       Caption = #20462#25913#36710#29260#21495
       OnClick = N3Click
+    end
+    object N4: TMenuItem
+      Caption = '-'
+    end
+    object N5: TMenuItem
+      Caption = #30005#23376#26631#31614#21464#26356
+      OnClick = N5Click
+    end
+    object N7: TMenuItem
+      Caption = #30005#23376#26631#31614#27880#38144
+      OnClick = N7Click
     end
   end
 end

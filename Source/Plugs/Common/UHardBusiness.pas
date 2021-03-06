@@ -39,6 +39,8 @@ procedure WhenTTCE_K720_ReadCardByTTCEDispenser(const nItem: PDispenserItem);
 //处理网络自动发卡(新版驱动)
 function DoTTCEDispenserIssCard(const nItem: PDispenserItem): Boolean;
 //电子标签发卡(新版驱动)
+function DoTruckSnapInfo(const nCard:string; nList:TStringList):Boolean;
+//电子标签车辆签到并发送到小屏展示
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 procedure WhenBlueReaderCardArrived(nHost: TBlueReaderHost; nCard: TBlueReaderCard);
 //有新卡号到达读头
@@ -48,6 +50,10 @@ procedure WhenReaderCardOut(const nCard: string; const nHost: PReaderHost);
 //现场读头卡号超时
 procedure WhenBusinessMITSharedDataIn(const nData: string);
 //业务中间件共享数据
+function GetStockType(nBill: string):string;
+//获取品种简称
+function GetJSTruck(const nTruck,nBill: string): string;
+//获取计数器显示车牌
 procedure WhenSaveJS(const nTunnel: PMultiJSTunnel);
 //保存计数结果
 
@@ -384,6 +390,20 @@ begin
 end;
 
 //Date: 2019-04-05
+//Parm: 磁卡号
+//Desc: 获取短倒单卡类型
+function GetDuanDaoCType(const nCard: string; var nOrderCType: string): Boolean;
+var nOut: TWorkerBusinessCommand;
+begin
+  Result := CallBusinessCommand(cBC_GetDuanDaoCType, nCard, '', @nOut);
+
+  if Result then
+       nOrderCType := nOut.FData
+  else gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
+//Date: 2019-04-05
 //Parm: 单据号 类型
 //Desc: 获取单据网上下单信息
 function GetWebOrderID(const nID, nType: string; var nWebOrderID: string;
@@ -423,6 +443,21 @@ var nStr: string;
 begin
   nStr := CombineBillItmes(nData);
   Result := CallBusinessPurchaseOrder(cBC_SavePostOrders, nStr, nPost, @nOut);
+
+  if not Result then
+    gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
+  //xxxxx
+end;
+
+//Date: 2015-08-06
+//Parm: 岗位;采购单列表
+//Desc: 保存nPost岗位上的采购单数据
+function SaveLadingOrders_KS(const nPost: string; nData: TLadingBillItems): Boolean;
+var nStr: string;
+    nOut: TWorkerBusinessCommand;
+begin
+  nStr := CombineBillItmes(nData);
+  Result := CallBusinessPurchaseOrder(cBC_AlterPostOrders, nStr, nPost, @nOut);
 
   if not Result then
     gSysLoger.AddLog(TBusinessWorkerManager, '业务对象', nOut.FData);
@@ -1318,6 +1353,10 @@ begin
   nMaxNum  := 3;
   FList:=TStringList.Create;
   try
+    nStr := ' Update %s Set C_State = ''2'' Where (%s - C_InDate >= 2) ';
+    nStr := Format(nStr, [sTable_CardMT, sField_SQLServer_Now]);
+    gDBConnManager.WorkerExec(nDB, nStr); //大于两天更新成已出厂
+    
     SplitStr(nCard, FList, 0, ',', False);
 
     for nIdx := 0 to FList.Count - 1 do
@@ -1458,11 +1497,142 @@ begin
   end;
 end;
 
+//------------------------------------------------------------------------------
+procedure WriteNearReaderLog(const nEvent: string);
+begin
+  gSysLoger.AddLog(T02NReader, '现场近距读卡器', nEvent);
+end;
+
+//Date: 2018-11-26
+//Parm: 磁卡号;通道号
+//Desc: 对nCard执行卸货操作
+function MakeTruckYSStockTunnel(const nCard,nTunnel,nCardType: string) : Boolean;
+var nStr, nStockNo, nStockName : string;
+    nIdx,i: Integer;
+    nTrucks: TLadingBillItems;
+    nDBConn: PDBWorker;
+begin
+  WriteNearReaderLog('MakeTruckYSStockTunnel进入.'+' 磁卡:'+nCard+' 通道：'+nTunnel);
+
+  Result := False;
+  if nCardType = sFlag_Provide then
+    Result := GetLadingOrders(nCard, 'X', nTrucks);
+
+  if not Result then
+  begin
+    nStr := '读取磁卡[ %s ]业务单据信息失败.';
+    nStr := Format(nStr, [nCard]);
+
+    WriteNearReaderLog(nStr);
+    {$IFDEF StockTunnel}
+     {$IFDEF LedNew}
+     LEDDisplayNew(nTunnel, '', '磁卡无效');
+     {$ELSE}
+     gDisplayManager.Display(nTunnel, '磁卡无效');
+     {$ENDIF}
+    {$ENDIF}
+    Exit;
+  end;
+
+  if Length(nTrucks) < 1 then
+  begin
+    nStr := '磁卡[ %s ]没有对应车辆信息.';
+    nStr := Format(nStr, [nCard]);
+
+    WriteNearReaderLog(nStr);
+    {$IFDEF StockTunnel}
+     {$IFDEF LedNew}
+     LEDDisplayNew(nTunnel, '', '磁卡无效');
+     {$ELSE}
+     gDisplayManager.Display(nTunnel, '磁卡无效');
+     {$ENDIF}
+    {$ENDIF}
+    Exit;
+  end;
+
+  for nIdx := Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
+  begin
+    if (FNextStatus='X') or (FNextStatus='M') then Continue;
+    //未装或已装
+
+    nStr := nTrucks[0].FTruck + '状态'+ FNextStatus +'不能验收';
+    WriteNearReaderLog(nStr);
+    Exit;
+  end;
+
+  nDBConn := nil;
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+    if not Assigned(nDBConn) then
+    begin
+      WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+    nStr := ' Select D_ParamB From %s Where D_Name=''%s'' And D_Value = ''%s'' ';
+    nStr := Format(nStr, [sTable_SysDict, 'StockTunnel',nTunnel]);
+
+    with gDBConnManager.WorkerQuery(nDBConn, nStr) do
+    begin
+      if RecordCount > 0 then
+      begin
+        nStockNo   := Fields[0].AsString;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+
+  if Trim(nTrucks[0].FStockNo) <> nStockNo then
+  begin
+    Result := False;
+
+    nStr := '订单品种:'+ nTrucks[0].FStockNo + '与绑定品种'+ nStockNo +'不同';
+    WriteNearReaderLog(nStr);
+    Exit; 
+  end;
+
+  with nTrucks[0] do
+  begin
+    FYSValid  := 'Y';
+    FKZValue  :=  0;
+    FMemo     := '刷卡自动验收';
+  end;
+  
+  if nCardType = sFlag_Provide then
+    Result := SaveLadingOrders('X', nTrucks);
+  if not Result then
+  begin
+    nStr := '车辆[ %s ]验收失败.';
+    nStr := Format(nStr, [nTrucks[0].FTruck]);
+
+    WriteNearReaderLog(nStr);
+    Exit;
+  end;
+
+  nStr := nTrucks[0].FTruck + StringOfChar(' ', 12 - Length(nTrucks[0].FTruck));
+  nStr := nStr + nTrucks[0].FStockName;
+  //xxxxx
+ {$IFDEF LedNew}
+  for i := 0 to 3 do
+  begin
+    LEDDisplayNew(nTunnel, '', nStr);
+  end;
+ {$ELSE}
+   gDisplayManager.Display(nTunnel, nStr);
+ {$ENDIF}
+end;
+
 //Date: 2012-4-22
 //Parm: 读头数据
 //Desc: 对nReader读到的卡号做具体动作
 procedure WhenReaderCardArrived(const nReader: THHReaderItem);
-var nStr,nSQL,nHYStr,nReaderType : string;
+var nStr,nSQL,nHYStr,nReaderType,nCard : string;
     nErrNum: Integer;
     nDBConn: PDBWorker;
 begin
@@ -1535,6 +1705,8 @@ begin
     if not nDBConn.FConn.Connected then
       nDBConn.FConn.Connected := True;
     //conn db
+      nStr := Format('磁卡号[ %s ]通道号[ %s ].', [nReader.FCard,nReader.FID]);
+      WriteHardHelperLog(nStr);
 
     nStr := 'Select C_Card, C_Used From $TB Where C_Card=''$CD'' or ' +
             'C_Card2=''$CD'' or C_Card3=''$CD''';
@@ -1543,6 +1715,7 @@ begin
     with gDBConnManager.WorkerQuery(nDBConn, nStr) do
     if RecordCount > 0 then
     begin
+      nCard:= Fields[0].AsString;
       nStr := Fields[0].AsString;
 
       {$IFDEF TruckInLoop}
@@ -1587,7 +1760,19 @@ begin
     if Assigned(nReader.FOptions) then
          nReaderType := nReader.FOptions.Values['ReaderType']
     else nReaderType := '';
-
+    {$IFDEF StockTunnel}
+    if (Assigned(nReader.FOptions)) and
+      (Trim(nReader.FOptions.Values['Tunnel']) <> '') then
+    begin
+      WriteHardHelperLog('读卡器对应通道:'+Trim(nReader.FOptions.Values['Tunnel']));
+      if MakeTruckYSStockTunnel(nCard,Trim(nReader.FOptions.Values['Tunnel']),nReaderType) then
+      begin
+        if nReader.FID <> '' then
+          BlueOpenDoor(nReader.FID, nReaderType);
+        //抬杆
+      end;
+    end;
+    {$ENDIF}
     try
       if nReader.FType = rtIn then
       begin
@@ -1786,11 +1971,18 @@ end;
 //Desc: 华益读头磁卡动作
 procedure WhenHYReaderCardArrived(const nReader: PHYReaderItem);
 var
-  nTruck :string;
+  i, nIdx : Integer;
+  nTruck, nStr, nTunnels, nTunnel :string;
   nItem: PDispenserItem;
+  nList: TStringList;
+  nBool: Boolean;
+  nOut: TWorkerBusinessCommand;
 begin
   //{$IFDEF DEBUG}
-  WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
+  if gSysParam.FHYReaderLog = 'Y' then
+  begin
+    WriteHardHelperLog(Format('华益标签 %s:%s', [nReader.FTunnel, nReader.FCard]));
+  end;
   //{$ENDIF}
 
   if Assigned(nReader.FOptions) then
@@ -1810,9 +2002,41 @@ begin
       begin
         gHYReaderManager.OpenDoor(nReader.FID);
       end;
+      if nReader.FOptions.Values['TruckSnap'] = 'Y' then
+      begin
+        WriteHardHelperLog('电子标签：'+nReader.FCard);
+        nBool    :=  CallBusinessSaleBill(cBC_AlterTruckSnap, nReader.FCard,'',@nOut);
+        nTruck   := nOut.FData;
+        if  Trim(nTruck) <> '' then
+        begin
+          nTunnels := nReader.FOptions.Values['tunnel'];
+          nList := TStringList.Create;
+          try
+            nList.Text := StringReplace(nTunnels, ',', #13#10, [rfReplaceAll]);
+            for nIdx := 0 to nList.Count - 1 do
+            begin
+              nTunnel := nList[nIdx];
+
+              nStr := nTruck + StringOfChar(' ', 12 - Length(nTruck));
+              nStr := nStr + '签到成功';
+              //xxxxx
+             {$IFDEF LedNew}
+              for i := 0 to 3 do
+              begin
+                LEDDisplayNew(nTunnel, '', nStr);
+                WriteHardHelperLog(nStr);
+              end;
+             {$ELSE}
+               gDisplayManager.Display(nTunnel, nStr);
+             {$ENDIF}
+            end;
+         finally
+           nList.Free;
+         end;
+       end;
+      end;
     end;
-
-
+    
     {$IFDEF PurELabelAutoCard}
     if (CompareText('NET', nReader.FOptions.Values['SendCard']) = 0) then
     begin
@@ -1874,7 +2098,7 @@ end;
 procedure WhenTTCE_M100_ReadCard(const nItem: PM100ReaderItem);
 var nStr: string;
     nRetain: Boolean;
-    nCType,nOrderCType: string;
+    nCType,nOrderCType,nReaderType: string;
 begin
   nRetain := False;
   //init
@@ -1884,18 +2108,29 @@ begin
   WriteHardHelperLog(nStr);
   {$ENDIF}
 
+  if Assigned(nItem.FOptions) then
+       nReaderType := nItem.FOptions.Values['ReaderType']
+  else nReaderType := '';
+
   try
     if not nItem.FVirtual then Exit;
     case nItem.FVType of
     rtOutM100 :
     begin
       nRetain := MakeTruckOutM100(nCType,nItem.FCard, nItem.FVReader,
-                                  nItem.FVPrinter, nItem.FVHYPrinter);
+                                  nItem.FVPrinter, nItem.FVHYPrinter,nReaderType);
 
       if nCType = sFlag_Provide then
       begin
         GetOrderCType(nItem.FCard, nOrderCType);
         WriteHardHelperLog('采购单卡类型:' + nOrderCType);
+        if nOrderCType = sFlag_OrderCardG then
+          nRetain := False;
+      end
+      else if nCType = sFlag_DuanDao then
+      begin
+        GetDuanDaoCType(nItem.FCard, nOrderCType);
+        WriteHardHelperLog('短倒单卡类型:' + nOrderCType);
         if nOrderCType = sFlag_OrderCardG then
           nRetain := False;
       end;
@@ -1984,6 +2219,14 @@ begin
   //{$ENDIF}
 end;
 
+//电子标签车辆签到并发送到小屏展示
+function DoTruckSnapInfo(const nCard:string; nList:TStringList):Boolean;
+var
+  nSql: string;
+begin
+  //
+end;
+
 // 2018-11-29
 //电子标签自动发卡(新版驱动)
 function DoTTCEDispenserIssCard(const nItem: PDispenserItem): Boolean;
@@ -2067,12 +2310,6 @@ begin
       Values['ECard'] := '';
     end;
   end;
-end;
-
-//------------------------------------------------------------------------------
-procedure WriteNearReaderLog(const nEvent: string);
-begin
-  gSysLoger.AddLog(T02NReader, '现场近距读卡器', nEvent);
 end;
 
 //Date: 2012-4-24
@@ -2392,6 +2629,199 @@ begin
   end;
 end;
 
+//Date: 2018-11-26
+//Parm: 磁卡号;通道号
+//Desc: 对nCard执行卸货操作
+procedure MakeTruckXieHuo(const nCard,nTunnel,nCardType: string);
+var nStr, nStockNo, nStockName : string;
+    nIdx,i: Integer;
+    nTrucks: TLadingBillItems;
+    nRet : Boolean;
+    nDBConn: PDBWorker;
+begin
+  WriteNearReaderLog('MakeTruckXieHuo进入.'+' 磁卡:'+nCard+' 通道：'+nTunnel);
+
+  nRet := False;
+  if nCardType = sFlag_Provide then
+    nRet := GetLadingOrders(nCard, sFlag_TruckBFM, nTrucks);
+
+  if not nRet then
+  begin
+    nStr := '读取磁卡[ %s ]业务单据信息失败.';
+    nStr := Format(nStr, [nCard]);
+
+    WriteNearReaderLog(nStr);
+    {$IFDEF YanShouOnlyShow}
+     {$IFDEF LedNew}
+     LEDDisplayNew(nTunnel, '', '磁卡无效');
+     {$ELSE}
+     gDisplayManager.Display(nTunnel, '磁卡无效');
+     {$ENDIF}
+    {$ENDIF}
+    Exit;
+  end;
+
+  if Length(nTrucks) < 1 then
+  begin
+    nStr := '磁卡[ %s ]没有对应车辆信息.';
+    nStr := Format(nStr, [nCard]);
+
+    WriteNearReaderLog(nStr);
+    {$IFDEF YanShouOnlyShow}
+     {$IFDEF LedNew}
+     LEDDisplayNew(nTunnel, '', '磁卡无效');
+     {$ELSE}
+     gDisplayManager.Display(nTunnel, '磁卡无效');
+     {$ENDIF}
+    {$ENDIF}
+    Exit;
+  end;
+
+  for nIdx := Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
+  begin
+    if (FStatus = sFlag_TruckBFM) or (FNextStatus = sFlag_TruckBFM) then Continue;
+    //未装或已装
+    if FStatus = 'I' then
+    begin
+      nStr := nTrucks[0].FTruck + StringOfChar(' ', 12 - Length(nTrucks[0].FTruck));
+      nStr := nStr + nTrucks[0].FStockName;
+     {$IFDEF LedNew}
+      for i := 0 to 3 do
+      begin
+        LEDDisplayNew(nTunnel, '', nStr);
+      end;
+     {$ELSE}
+        gDisplayManager.Display(nTunnel, nStr);
+     {$ENDIF}
+      Exit;
+    end;
+    Exit;
+  end;
+
+  nDBConn := nil;
+  with gParamManager.ActiveParam^ do
+  try
+    nDBConn := gDBConnManager.GetConnection(FDB.FID, nIdx);
+    if not Assigned(nDBConn) then
+    begin
+      WriteHardHelperLog('连接HM数据库失败(DBConn Is Null).');
+      Exit;
+    end;
+
+    if not nDBConn.FConn.Connected then
+      nDBConn.FConn.Connected := True;
+    //conn db
+    nStr := ' Select D_ParamB, D_Value From %s Where D_Name=''%s'' And D_Memo Like ''%%%s%%'' ';
+    nStr := Format(nStr, [sTable_SysDict, sFlag_KSTunnelStock,nTunnel]);
+
+    with gDBConnManager.WorkerQuery(nDBConn, nStr) do
+    begin
+      if RecordCount > 0 then
+      begin
+        nStockNo   := Fields[0].AsString;
+        nStockName := Fields[1].AsString;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nDBConn);
+  end;
+  //更改品种信息
+  for nIdx := Low(nTrucks) to High(nTrucks) do
+  with nTrucks[nIdx] do
+  begin
+    FStockNo   := nStockNo;
+    FStockName := nStockName;
+  end;
+
+  nRet := False;
+  if nCardType = sFlag_Provide then
+    nRet := SaveLadingOrders_KS(sFlag_TruckBFM, nTrucks);
+  if not nRet then
+  begin
+    nStr := '车辆[ %s ]卸货处卸货失败.';
+    nStr := Format(nStr, [nTrucks[0].FTruck]);
+
+    WriteNearReaderLog(nStr);
+    Exit;
+  end;
+
+  if nCardType = sFlag_Provide then
+    nRet := SaveLadingOrders(sFlag_TruckOut, nTrucks);
+  if not nRet then
+  begin
+    nStr := '车辆[ %s ]卸货处自动出厂失败.';
+    nStr := Format(nStr, [nTrucks[0].FTruck]);
+
+    WriteNearReaderLog(nStr);
+    Exit;
+  end;
+
+  nStr := nTrucks[0].FTruck + StringOfChar(' ', 12 - Length(nTrucks[0].FTruck));
+  nStr := nStr + nTrucks[0].FStockName;
+  //xxxxx
+ {$IFDEF LedNew}
+  for i := 0 to 3 do
+  begin
+    LEDDisplayNew(nTunnel, '', nStr);
+  end;
+ {$ELSE}
+   gDisplayManager.Display(nTunnel, nStr);
+ {$ENDIF}
+end;
+
+//Date: 2017-11-05
+//Parm: 车辆
+//Desc: 查询nTruck所在道并与虚拟道匹配
+function CanLadingInLine(const nTruck,nLine: string;var nIsVIP:Boolean):Boolean;
+var nStr,nTruckCus,nLineCus: string;
+   nWorker,nWorkerA: PDBWorker;
+begin
+  Result:= False;
+  nIsVIP:= False;
+
+  nWorker := nil;
+  nWorkerA:= nil;
+  try
+    nStr := 'Select * From %s Where Z_ID=''%s''';
+    nStr := Format(nStr, [sTable_ZTLines, nLine]);
+
+    with gDBConnManager.SQLQuery(nStr, nWorkerA) do
+    if RecordCount > 0 then
+    begin
+      nIsVIP:=  (FieldByName('Z_CusLine').AsString='Y');
+      nLineCus:= FieldByName('Z_CusLine').AsString;
+      //xxxxx
+    end;
+
+    if not nIsVIP then
+    begin
+      WriteNearReaderLog(Format('%s 为 非客户特定订单专用通道、检查通过', [nLine]));
+      Result:= True;
+      Exit;
+    end;
+
+    WriteNearReaderLog(Format('%s 为特定订单：%s 专用通道、进行通道匹配检查', [nLine, nLineCus]));
+    //
+    nStr := 'Select * From %s Where T_Truck=''%s''';
+    nStr := Format(nStr, [sTable_ZTTrucks, nTruck]);
+
+    with gDBConnManager.SQLQuery(nStr, nWorker) do
+    if RecordCount > 0 then
+    begin
+      Result := nLineCus=FieldByName('T_CusLine').AsString;
+      //xxxxx
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+    gDBConnManager.ReleaseConnection(nWorkerA);
+
+    if Result then
+         WriteNearReaderLog(Format('%s %s 匹配检查通过', [nTruck,nLine]))
+    else WriteNearReaderLog(Format('匹配检查未通过、%s 禁止在 %s 装车', [nTruck,nLine]));
+  end;
+end;
+
 //Date: 2012-4-24
 //Parm: 磁卡号;通道号
 //Desc: 对nCard执行袋装装车操作
@@ -2421,6 +2851,14 @@ begin
 
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
+
+  {$IFDEF AddKSYW}
+  if (nCardType = sFlag_Provide) then
+  begin
+    MakeTruckXieHuo(nCard, nTunnel, nCardType);
+    Exit;
+  end;
+  {$ENDIF}
 
   if nCardType = sFlag_Provide then
   begin
@@ -2728,6 +3166,7 @@ var nStr, nCardType: string;
     nPLine: PLineItem;
     nPTruck: PTruckItem;
     nTrucks: TLadingBillItems;
+    nIsVIP : Boolean;
 begin
   {$IFDEF DEBUG}
   WriteNearReaderLog('MakeTruckLadingSan进入.');
@@ -2735,6 +3174,14 @@ begin
 
   nCardType := '';
   if not GetCardUsed(nCard, nCardType) then Exit;
+
+  {$IFDEF AddKSYW}
+  if (nCardType = sFlag_Provide)  then
+  begin
+    MakeTruckXieHuo(nCard, nTunnel, nCardType);
+    Exit;
+  end;
+  {$ENDIF}
 
   if nCardType = sFlag_SaleSingle then
     nRet := GetLadingBillsSingle(nCard, sFlag_TruckFH, nTrucks)
@@ -2765,8 +3212,7 @@ begin
     {$IFDEF AllowMultiM}
     if FStatus = sFlag_TRuckBFM then
     begin
-      FStatus := sFlag_TruckBFP;
-      FNextStatus := sFlag_TruckFH;
+      FStatus := sFlag_TruckFH;
     end;
     //过重后允许返回(状态回溯至成皮重,防止过快出厂)
     {$ENDIF}
@@ -2812,6 +3258,19 @@ begin
     else
       LEDDisplayNew(nTunnel, '请换库装车', nTrucks[0].FTruck);
     {$ENDIF}
+    Exit;
+  end; //检查通道
+
+  nIsVIP:= False;
+  if not CanLadingInLine(nTrucks[0].FTruck, nTunnel, nIsVIP) then
+  begin
+    WriteNearReaderLog(nStr);
+    //loged
+
+    nIdx := Length(nTrucks[0].FTruck);
+    nStr := nTrucks[0].FTruck + StringOfChar(' ',12 - nIdx) + '当前为专用车道';
+    nStr := '当前专用车道请换道装车';
+    gERelayManager.ShowTxt(nTunnel, nStr);
     Exit;
   end; //检查通道
 
@@ -2894,6 +3353,14 @@ begin
   WriteHardHelperLog('WhenReaderCardOut退出.');
   {$ENDIF}
 
+  if Assigned(nHost.FOptions) then
+  begin
+    if nHost.FOptions.Values['YanShou'] = sFlag_Yes then
+    begin
+      Exit;
+    end;
+  end;
+
   {$IFDEF FixLoad}
   WriteHardHelperLog('停止定置装车::'+nHost.FTunnel+'@Close');
   //发送卡号和通道号到定置装车服务器
@@ -2940,6 +3407,61 @@ begin
   if Pos('TruckOut', nData) = 1 then
     MakeTruckAutoOut(Copy(nData, Pos(':', nData) + 1, MaxInt));
   //auto out
+end;
+
+function GetStockType(nBill: string):string;
+var nStr, nStockMap: string;
+    nWorker: PDBWorker;
+begin
+  Result := 'C';
+  nStr := 'Select L_StockNO From %s ' +
+          'Where L_ID=''%s''';
+  nStr := Format(nStr, [sTable_Bill, nBill]);
+
+  nWorker := nil;
+  try
+    with gDBConnManager.SQLQuery(nStr, nWorker) do
+    if RecordCount > 0 then
+    begin
+      nStockMap := Fields[0].AsString;
+
+      nStr := 'Select D_Value From %s Where D_Name=''%s'' And D_Memo=''%s''';
+      nStr := Format(nStr, [sTable_SysDict, 'StockBrandShow', nStockMap]);
+      with gDBConnManager.WorkerQuery(nWorker, nStr) do
+      if RecordCount > 0 then
+      begin
+        Result := Fields[0].AsString;
+      end;
+    end;
+  finally
+    gDBConnManager.ReleaseConnection(nWorker);
+  end;
+
+  {$IFNDEF PreShowEx}//特殊显示不再截取
+  Result := Copy(Result, 1, 4);
+  {$ENDIF}
+end;
+
+//Date: 2015-01-14
+//Parm: 车牌号;交货单
+//Desc: 格式化nBill交货单需要显示的车牌号
+function GetJSTruck(const nTruck,nBill: string): string;
+var nStr: string;
+    nLen: Integer;
+    nWorker: PDBWorker;
+begin
+  Result := nTruck;
+  if nBill = '' then Exit;
+
+  {$IFDEF JSTruck}
+  nStr := GetStockType(nBill);
+  if nStr = '' then Exit;
+
+  nLen := cMultiJS_Truck - 2;
+  Result := Copy(nStr, 1, 2) +    //取前两位
+            Copy(nTruck, Length(nTruck) - nLen + 1, nLen);
+  Exit;
+  {$ENDIF}
 end;
 
 //Date: 2013-07-17
